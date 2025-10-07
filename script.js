@@ -1,4 +1,4 @@
-// Smart Exam Pro — with “Retest Wrong Only”
+// Smart Exam Pro — safe rendering + “Retest Wrong Only”
 const els = {
   // sections
   studentSection: document.getElementById("student-section"),
@@ -57,7 +57,7 @@ els.themeToggle.addEventListener("click", () => {
 
 // state
 let mcqData = [];          // current exam questions
-let lastResults = null;    // last grading (used for retest wrong only)
+let lastResults = null;    // last grading (for retest wrong only)
 
 // flow: student -> input
 els.continueBtn.addEventListener("click", () => {
@@ -105,7 +105,7 @@ els.submitBtn.addEventListener("click", () => {
     results.push({ ...q, selected: ans, isCorrect });
   });
 
-  lastResults = results; // save for “retest wrong”
+  lastResults = results; // save for retest
   const percent = Math.round((correct / mcqData.length) * 100);
   showResults(results, percent);
 });
@@ -124,7 +124,6 @@ els.retestWrongBtn.addEventListener("click", () => {
   const wrongQs = lastResults.filter(r => !r.isCorrect);
   if (!wrongQs.length) { alert("Great job! No wrong answers to retest."); return; }
 
-  // Build a new set from wrong questions (keep question, options, answer, explanation)
   mcqData = wrongQs.map(r => ({
     question: r.question,
     options: r.options.slice(),
@@ -154,19 +153,39 @@ function updateProgress(val) {
 }
 function renderExam(questions) {
   els.examForm.innerHTML = "";
+
   questions.forEach((q, i) => {
     const wrap = document.createElement("div");
     wrap.className = "question";
-    wrap.innerHTML = `<p><strong>Q${i + 1}:</strong> ${q.question}</p>`;
+
+    // Question line (safe text)
+    const p = document.createElement("p");
+    const strong = document.createElement("strong");
+    strong.textContent = `Q${i + 1}: `;
+    p.appendChild(strong);
+    p.appendChild(document.createTextNode(q.question));
+    wrap.appendChild(p);
+
+    // Options (safe text — no innerHTML)
     q.options.forEach(opt => {
-      const letter = opt[0].toUpperCase();
+      const letter = opt[0].toUpperCase(); // A/B/C/D
       const id = `q${i}_${letter}`;
+
       const label = document.createElement("label");
       label.className = "opt";
       label.setAttribute("for", id);
-      label.innerHTML = `<input id="${id}" type="radio" name="q${i}" value="${letter}"> ${opt}`;
+
+      const input = document.createElement("input");
+      input.id = id;
+      input.type = "radio";
+      input.name = `q${i}`;
+      input.value = letter;
+
+      label.appendChild(input);
+      label.appendChild(document.createTextNode(" " + opt)); // text node prevents HTML parsing
       wrap.appendChild(label);
     });
+
     els.examForm.appendChild(wrap);
   });
 
@@ -191,17 +210,38 @@ function showResults(results, percent) {
   els.qCorrect.textContent = correct;
   els.qWrong.textContent = results.length - correct;
 
-  // details
+  // details (safe text)
   els.analysis.innerHTML = "";
   results.forEach((r, i) => {
     const block = document.createElement("div");
     block.className = "question";
-    block.innerHTML = `
-      <p><strong>Q${i + 1}:</strong> ${r.question}</p>
-      <p>Your Answer: ${r.selected || "<em>None</em>"}<br>
-      Correct Answer: ${r.answer} <span class="${r.isCorrect ? "result-correct" : "result-wrong"}"> ${r.isCorrect ? "✔ Correct" : "✘ Wrong"}</span></p>
-      ${r.explanation ? `<p><strong>Explanation:</strong> ${escapeHtml(r.explanation)}</p>` : ""}
-    `;
+
+    const qp = document.createElement("p");
+    const strong = document.createElement("strong");
+    strong.textContent = `Q${i + 1}: `;
+    qp.appendChild(strong);
+    qp.appendChild(document.createTextNode(r.question));
+    block.appendChild(qp);
+
+    const ap = document.createElement("p");
+    ap.appendChild(document.createTextNode(`Your Answer: ${r.selected || "None"}`));
+    ap.appendChild(document.createElement("br"));
+    const ansSpan = document.createElement("span");
+    ansSpan.className = r.isCorrect ? "result-correct" : "result-wrong";
+    ansSpan.textContent = r.isCorrect ? " ✔ Correct" : " ✘ Wrong";
+    ap.appendChild(document.createTextNode(`Correct Answer: ${r.answer} `));
+    ap.appendChild(ansSpan);
+    block.appendChild(ap);
+
+    if (r.explanation) {
+      const ep = document.createElement("p");
+      const eStrong = document.createElement("strong");
+      eStrong.textContent = "Explanation: ";
+      ep.appendChild(eStrong);
+      ep.appendChild(document.createTextNode(r.explanation));
+      block.appendChild(ep);
+    }
+
     els.analysis.appendChild(block);
   });
 
@@ -239,6 +279,3 @@ function parseMCQs(text) {
   return qs.filter(q => q.question && q.options.length >= 2 && /[A-D]/.test(q.answer));
 }
 function emptyQ() { return { question: "", options: [], answer: "", explanation: "" }; }
-function escapeHtml(s) {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-}
