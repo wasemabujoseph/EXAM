@@ -3,32 +3,54 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Smart MCQ Exam</title>
+  <title>Smart Exam System</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div class="container">
-    <h1>Smart MCQ Exam Generator</h1>
+  <header class="navbar">
+    <h1>Smart Exam System</h1>
+  </header>
 
-    <section id="input-section">
-      <h2>Step 1: Paste Your MCQs</h2>
-      <textarea id="mcq-input" placeholder="Paste MCQs in the correct format..."></textarea>
-      <button id="generate-btn">Generate Exam</button>
+  <main class="main">
+    <!-- Input Section -->
+    <section id="input-section" class="card fade-in">
+      <h2>📝 Create Your Exam</h2>
+      <p>Paste your MCQs in this format and click <strong>Generate Exam</strong>:</p>
+      <pre class="format-example">
+Q1: What is 2+2?
+A) 3
+B) 4
+C) 5
+D) 6
+Answer: B
+      </pre>
+      <textarea id="mcq-input" placeholder="Paste your MCQs here..."></textarea>
+      <button id="generate-btn" class="primary-btn">Generate Exam</button>
     </section>
 
-    <section id="exam-section" class="hidden">
-      <h2>Your Exam</h2>
+    <!-- Exam Section -->
+    <section id="exam-section" class="card hidden fade-in">
+      <div class="exam-header">
+        <h2>📚 Take Your Exam</h2>
+        <div id="progress" class="progress-bar"><div class="progress-fill"></div></div>
+      </div>
       <form id="exam-form"></form>
-      <button id="submit-btn">Submit Exam</button>
+      <button id="submit-btn" class="primary-btn">Submit Answers</button>
     </section>
 
-    <section id="result-section" class="hidden">
-      <h2>Results</h2>
-      <p id="score"></p>
+    <!-- Result Section -->
+    <section id="result-section" class="card hidden fade-in">
+      <h2>🏁 Exam Results</h2>
+      <div id="score" class="score-display"></div>
       <div id="analysis"></div>
-      <button id="retry-btn">Retry Exam</button>
+      <button id="retry-btn" class="secondary-btn">Retry Exam</button>
+      <button id="back-btn" class="primary-btn">Create New Exam</button>
     </section>
-  </div>
+  </main>
+
+  <footer class="footer">
+    <p>Built with ❤️ by <a href="https://github.com/wasemabujoseph" target="_blank">Waseem Abu Joseph</a></p>
+  </footer>
 
   <script src="script.js"></script>
 </body>
