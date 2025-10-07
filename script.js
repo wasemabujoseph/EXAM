@@ -1,22 +1,22 @@
 document.getElementById("generate-btn").addEventListener("click", generateExam);
 document.getElementById("submit-btn").addEventListener("click", submitExam);
 document.getElementById("retry-btn").addEventListener("click", retryExam);
+document.getElementById("back-btn").addEventListener("click", goBack);
 
 let mcqData = [];
 
 function generateExam() {
   const input = document.getElementById("mcq-input").value.trim();
   if (!input) return alert("Please paste your MCQs first!");
+  mcqData = parseMCQs(input);
+  if (!mcqData.length) return alert("Invalid format. Please check your input.");
 
-  const lines = input.split("\n").map(l => l.trim()).filter(l => l);
-  mcqData = parseMCQs(lines);
   renderExam(mcqData);
-
-  document.getElementById("input-section").classList.add("hidden");
-  document.getElementById("exam-section").classList.remove("hidden");
+  toggleSection("input", "exam");
 }
 
-function parseMCQs(lines) {
+function parseMCQs(input) {
+  const lines = input.split("\n").map(l => l.trim()).filter(l => l);
   const questions = [];
   let current = { question: "", options: [], answer: "" };
 
@@ -37,11 +37,9 @@ function parseMCQs(lines) {
 function renderExam(questions) {
   const form = document.getElementById("exam-form");
   form.innerHTML = "";
-
   questions.forEach((q, i) => {
     const div = document.createElement("div");
     div.className = "question";
-
     const qText = document.createElement("p");
     qText.innerHTML = `<strong>Q${i + 1}:</strong> ${q.question}`;
     div.appendChild(qText);
@@ -55,11 +53,12 @@ function renderExam(questions) {
       label.appendChild(input);
       label.append(` ${opt}`);
       div.appendChild(label);
-      div.appendChild(document.createElement("br"));
     });
 
     form.appendChild(div);
   });
+
+  updateProgress(0);
 }
 
 function submitExam() {
@@ -80,10 +79,8 @@ function submitExam() {
 }
 
 function displayResults(results, scorePercent) {
-  document.getElementById("exam-section").classList.add("hidden");
-  document.getElementById("result-section").classList.remove("hidden");
-
-  document.getElementById("score").innerText = `Your Score: ${scorePercent}% (${results.filter(r => r.isCorrect).length}/${results.length})`;
+  toggleSection("exam", "result");
+  document.getElementById("score").innerHTML = `Your Score: ${scorePercent}% (${results.filter(r => r.isCorrect).length}/${results.length})`;
 
   const analysis = document.getElementById("analysis");
   analysis.innerHTML = "";
@@ -98,15 +95,24 @@ function displayResults(results, scorePercent) {
       </span>`;
     analysis.appendChild(p);
   });
-
-  const weakCount = results.filter(r => !r.isCorrect).length;
-  const strongCount = results.filter(r => r.isCorrect).length;
-  const summary = document.createElement("p");
-  summary.innerHTML = `<br><strong>Summary:</strong> ${strongCount} strong areas, ${weakCount} weak areas.`;
-  analysis.appendChild(summary);
 }
 
 function retryExam() {
-  document.getElementById("result-section").classList.add("hidden");
-  document.getElementById("exam-section").classList.remove("hidden");
+  document.querySelectorAll("input[type='radio']").forEach(el => (el.checked = false));
+  toggleSection("result", "exam");
+  updateProgress(0);
+}
+
+function goBack() {
+  toggleSection("result", "input");
+}
+
+function toggleSection(hide, show) {
+  document.getElementById(`${hide}-section`).classList.add("hidden");
+  document.getElementById(`${show}-section`).classList.remove("hidden");
+}
+
+function updateProgress(value) {
+  const fill = document.querySelector(".progress-fill");
+  fill.style.width = value + "%";
 }
