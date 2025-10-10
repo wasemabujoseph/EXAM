@@ -4,87 +4,81 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Smart Exam Pro</title>
-  <meta name="theme-color" content="#3b82f6"/>
-  <link rel="manifest" href="manifest.webmanifest"/>
   <link rel="stylesheet" href="style.css"/>
+  <meta name="color-scheme" content="light dark">
 </head>
 <body>
-  <header class="navbar" role="banner">
-    <div class="brand" aria-label="Smart Exam Pro">
-      <div class="logo-dot" aria-hidden="true"></div>
-      <span>Smart Exam Pro</span>
+  <header class="navbar">
+    <div class="brand">
+      <div class="logo-dot"></div>
+      <span id="app-title">Smart Exam Pro</span>
     </div>
-    <div class="actions" role="toolbar" aria-label="Global actions">
-      <button id="theme-toggle" class="icon-btn" title="Toggle theme" aria-pressed="false" aria-label="Toggle theme">🌓</button>
-      <button id="install-btn" class="icon-btn" title="Install app" aria-label="Install app" hidden>⬇️</button>
+    <div class="actions">
+      <button id="import-btn" class="icon-btn" title="Import Exam (JSON)" aria-label="Import Exam">📥</button>
+      <button id="export-btn" class="icon-btn" title="Export Exam (JSON)" aria-label="Export Exam">📤</button>
+      <button id="settings-btn" class="icon-btn" title="Settings" aria-haspopup="dialog" aria-controls="settings-dialog">⚙️</button>
+      <button id="theme-toggle" class="icon-btn" title="Toggle theme" aria-label="Toggle theme">🌓</button>
     </div>
   </header>
 
   <main class="main" id="main" tabindex="-1">
+    <!-- Live regions -->
+    <div class="sr-only" aria-live="polite" id="live"></div>
+
     <!-- Student Info -->
-    <section id="student-section" class="card fade-in" aria-labelledby="student-title">
-      <h2 id="student-title">👤 Student Information</h2>
+    <section id="student-section" class="card fade-in">
+      <h2>👤 Student Information</h2>
       <p class="muted">Please enter your details to begin.</p>
       <div class="grid">
         <label>Full Name <span class="req">*</span>
-          <input id="student-name" type="text" placeholder="e.g., Waseem Khallaf" required />
+          <input id="student-name" type="text" placeholder="e.g., Waseem Khallaf" required autocomplete="name"/>
         </label>
         <label>Email / ID (optional)
-          <input id="student-id" type="text" placeholder="e.g., waseem@example.com or 2025-0012" />
+          <input id="student-id" type="text" placeholder="e.g., waseem@example.com or 2025-0012" autocomplete="email"/>
         </label>
       </div>
-
-      <div class="grid">
-        <label>Exam Duration (minutes, optional)
-          <input id="exam-minutes" type="number" min="1" step="1" placeholder="e.g., 20"/>
-        </label>
-        <label>Options
-          <div class="row wrap">
-            <label class="checkbox">
-              <input id="toggle-shuffle-questions" type="checkbox" />
-              <span>Shuffle questions</span>
-            </label>
-            <label class="checkbox">
-              <input id="toggle-shuffle-options" type="checkbox" />
-              <span>Shuffle options</span>
-            </label>
-            <label class="checkbox">
-              <input id="remember-device" type="checkbox" checked />
-              <span>Remember my details & theme</span>
-            </label>
-          </div>
-        </label>
-      </div>
-
       <div class="row">
+        <label class="checkbox">
+          <input id="save-locally" type="checkbox" checked />
+          <span>Remember my name and theme on this device</span>
+        </label>
+      </div>
+      <div class="actions-row">
         <button id="continue-btn" class="primary-btn">Continue</button>
+        <button id="resume-btn" class="secondary-btn" title="Resume last session (if any)">Resume</button>
       </div>
     </section>
 
     <!-- Input Section -->
-    <section id="input-section" class="card hidden fade-in" aria-labelledby="input-title">
-      <h2 id="input-title">📝 Create Your Exam</h2>
+    <section id="input-section" class="card hidden fade-in">
+      <h2>📝 Create Your Exam</h2>
       <p>Paste MCQs using this <strong>enhanced format</strong> (with explanation):</p>
-      <pre class="format-example" aria-label="Example MCQ format">
+      <pre class="format-example" aria-label="MCQ format example">
 Q1: What does HTML stand for?
 A) Hyperlinks and Text Markup Language
 B) Hyper Text Markup Language
 C) Home Tool Markup Language
 D) Hyperlinking Textual Management Language
 Answer: B
-Explanation: HTML stands for Hyper Text Markup Language, used to structure web pages.
-      </pre>
+Explanation: HTML stands for Hyper Text Markup Language, used to structure web pages.</pre>
 
-      <div class="row wrap">
-        <input id="file-input" type="file" accept=".txt" aria-label="Import MCQs from file"/>
-        <button id="load-file-btn" class="secondary-btn" type="button">Import .txt</button>
+      <div id="dropzone" class="dropzone" role="button" tabindex="0" aria-label="Paste MCQs or drop a .txt file here">
+        <textarea id="mcq-input" placeholder="Paste your MCQs here..."></textarea>
+        <input id="file-input" type="file" accept=".txt,.md" class="sr-only" />
+        <div class="dropzone-hint">Drop a .txt/.md, or click to upload</div>
       </div>
 
-      <textarea id="mcq-input" placeholder="Paste your MCQs here..." aria-label="MCQ input area"></textarea>
-
       <div class="row">
+        <label class="checkbox">
+          <input id="include-explanations" type="checkbox" checked />
+          <span>Show explanations in results</span>
+        </label>
+      </div>
+
+      <div class="actions-row">
         <button id="generate-btn" class="primary-btn">Generate Exam</button>
-        <button id="clear-input-btn" class="secondary-btn" type="button">Clear</button>
+        <button id="demo-btn" class="secondary-btn" title="Load demo questions">Load Demo</button>
+        <button id="clear-input-btn" class="secondary-btn danger">Clear</button>
       </div>
     </section>
 
@@ -92,59 +86,66 @@ Explanation: HTML stands for Hyper Text Markup Language, used to structure web p
     <section id="exam-section" class="card hidden fade-in" aria-labelledby="exam-title">
       <div class="exam-header">
         <div>
-          <h2 id="exam-title">📚 Exam for <span id="student-name-live"></span></h2>
-          <p class="muted">Select one answer for each question. Use <kbd>J</kbd>/<kbd>K</kbd> to navigate, <kbd>F</kbd> to flag.</p>
-        </div>
-        <div class="exam-meta">
-          <div class="progress-wrap" aria-label="Progress">
-            <div class="progress-bar" aria-hidden="true">
-              <div id="progress-fill" class="progress-fill"></div>
-            </div>
-            <span id="progress-text" class="muted small">0 / 0</span>
+          <h2 id="exam-title">📚 <span id="exam-name">Exam</span> for <span id="student-name-live"></span></h2>
+          <p class="muted">Select one answer for each question.</p>
+          <div class="exam-meta">
+            <span id="timer" class="badge" title="Time remaining">--:--</span>
+            <span id="passmark" class="badge" title="Pass mark">Pass: —</span>
           </div>
-          <div id="timer" class="timer" aria-live="polite" title="Remaining time"></div>
+        </div>
+        <div class="progress-bar" aria-label="Progress">
+          <div id="progress-fill" class="progress-fill"></div>
         </div>
       </div>
 
-      <div class="layout">
-        <nav id="nav-panel" class="nav-panel" aria-label="Question navigator"></nav>
-        <form id="exam-form" class="exam-form" aria-describedby="exam-title"></form>
-      </div>
+      <form id="exam-form" aria-describedby="exam-help"></form>
+      <p id="exam-help" class="muted">Tip: 1–4 or A–D to pick, Enter to jump to next. Ctrl/⌘+S to save.</p>
 
-      <div class="actions-row">
+      <div class="actions-row sticky-actions">
         <button id="submit-btn" class="primary-btn">Submit Answers</button>
+        <button id="mark-review-btn" class="secondary-btn">Mark Current for Review</button>
+        <button id="jump-prev-btn" class="secondary-btn">◀ Prev</button>
+        <button id="jump-next-btn" class="secondary-btn">Next ▶</button>
         <button id="cancel-btn" class="secondary-btn">Back</button>
       </div>
     </section>
 
     <!-- Result Section -->
-    <section id="result-section" class="card hidden fade-in" aria-labelledby="result-title">
-      <h2 id="result-title">🏁 Exam Results</h2>
+    <section id="result-section" class="card hidden fade-in">
+      <h2>🏁 Results</h2>
       <div class="result-top">
-        <div class="ring" id="score-ring" aria-label="Score ring">
+        <div class="ring" id="score-ring">
           <div class="ring-inner">
             <div id="score-percent">0%</div>
           </div>
         </div>
         <div class="result-meta">
           <div class="kv"><span>Student:</span><strong id="student-name-result"></strong></div>
+          <div class="kv"><span>Exam:</span><strong id="exam-name-result"></strong></div>
           <div class="kv"><span>Questions:</span><strong id="q-count"></strong></div>
           <div class="kv"><span>Correct:</span><strong id="q-correct"></strong></div>
           <div class="kv"><span>Wrong:</span><strong id="q-wrong"></strong></div>
-          <div class="kv"><span>Flagged:</span><strong id="q-flagged"></strong></div>
-          <div class="kv"><span>Time used:</span><strong id="time-used"></strong></div>
+          <div class="kv"><span>Unanswered:</span><strong id="q-unanswered"></strong></div>
+          <div class="kv"><span>Score:</span><strong id="score-raw"></strong></div>
+          <div class="kv"><span>Status:</span><strong id="status-passfail"></strong></div>
         </div>
       </div>
-      <hr />
-      <div class="row wrap">
-        <button id="export-csv-btn" class="secondary-btn" type="button">Export CSV</button>
-        <button id="print-btn" class="secondary-btn" type="button">Print Results</button>
+
+      <div class="mini-bars" aria-label="Answer distribution">
+        <div class="bar-wrap"><div id="bar-correct" class="bar"></div><span>Correct</span></div>
+        <div class="bar-wrap"><div id="bar-wrong" class="bar"></div><span>Wrong</span></div>
+        <div class="bar-wrap"><div id="bar-unanswered" class="bar"></div><span>Unanswered</span></div>
       </div>
+
+      <hr/>
       <div id="analysis"></div>
+
       <div class="actions-row">
         <button id="retest-wrong-btn" class="primary-btn">Retest Wrong Only</button>
-        <button id="retest-flagged-btn" class="secondary-btn">Retest Flagged</button>
         <button id="retry-btn" class="secondary-btn">Retry Full Exam</button>
+        <button id="review-btn" class="secondary-btn">Review Mode</button>
+        <button id="download-csv-btn" class="secondary-btn">Download CSV</button>
+        <button id="print-btn" class="secondary-btn">Print</button>
         <button id="back-btn" class="secondary-btn">Create New Exam</button>
       </div>
     </section>
@@ -153,6 +154,47 @@ Explanation: HTML stands for Hyper Text Markup Language, used to structure web p
   <footer class="footer">
     <p>© <span id="year"></span> Smart Exam Pro · Built for learning</p>
   </footer>
+
+  <!-- Settings Dialog -->
+  <dialog id="settings-dialog" aria-labelledby="settings-title">
+    <form method="dialog" class="settings-form" id="settings-form">
+      <h3 id="settings-title">⚙️ Exam Settings</h3>
+      <div class="grid">
+        <label>Exam Title
+          <input id="setting-exam-title" type="text" placeholder="e.g., Web Fundamentals Quiz"/>
+        </label>
+        <label>Duration (minutes, 0 = no timer)
+          <input id="setting-duration" type="number" min="0" value="0"/>
+        </label>
+        <label>Pass Mark (%)
+          <input id="setting-passmark" type="number" min="0" max="100" value="50"/>
+        </label>
+        <label>Negative Marking (e.g., 0.25)
+          <input id="setting-negative" type="number" min="0" step="0.01" value="0.25"/>
+        </label>
+      </div>
+      <div class="row">
+        <label class="checkbox">
+          <input id="setting-shuffle-questions" type="checkbox" checked />
+          <span>Shuffle questions</span>
+        </label>
+        <label class="checkbox">
+          <input id="setting-shuffle-options" type="checkbox" checked />
+          <span>Shuffle options</span>
+        </label>
+        <label class="checkbox">
+          <input id="setting-autosave" type="checkbox" checked />
+          <span>Autosave progress</span>
+        </label>
+      </div>
+      <div class="actions-row">
+        <button class="primary-btn" value="save">Save</button>
+        <button class="secondary-btn" value="cancel">Cancel</button>
+      </div>
+    </form>
+  </dialog>
+
+  <input type="file" id="import-json" accept=".json" class="sr-only"/>
 
   <script src="script.js"></script>
 </body>
