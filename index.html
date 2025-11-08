@@ -1,109 +1,133 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Smart Exam Pro</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Smart Exam Pro — GitHub Pages + Saved Exams</title>
+  <link rel="stylesheet" href="./style.css" />
 </head>
 <body>
-  <header class="navbar">
-    <div class="brand">
-      <div class="logo-dot"></div>
-      <span>Smart Exam Pro</span>
-    </div>
-    <div class="actions">
-      <button id="theme-toggle" class="icon-btn" title="Toggle theme">🌓</button>
-    </div>
+  <header class="container">
+    <h1>Smart Exam Pro</h1>
+    <p class="muted">Take “one-time” exams from this repo or save exams locally and redo them anytime.</p>
   </header>
 
-  <main class="main">
-    <!-- Student Info Section -->
-    <section id="student-section" class="card fade-in">
-      <h2>👤 Student Information</h2>
-      <p class="muted">Please enter your details to begin.</p>
-      <div class="grid">
-        <label>Full Name <span class="req">*</span>
-          <input id="student-name" type="text" placeholder="e.g., Waseem Khallaf" required />
-        </label>
-        <label>Email / ID (optional)
-          <input id="student-id" type="text" placeholder="e.g., waseem@example.com or 2025-0012" />
-        </label>
-      </div>
-      <button id="continue-btn" class="primary-btn">Continue</button>
-    </section>
+  <main class="container">
+    <!-- Tabs -->
+    <nav class="tabs card">
+      <button class="tab active" data-tab="load">Load Exam</button>
+      <button class="tab" data-tab="saved">My Saved Exams</button>
+      <button class="tab" data-tab="paste">Paste MCQs</button>
+    </nav>
 
-    <!-- Input Section -->
-    <section id="input-section" class="card hidden fade-in">
-      <h2>📝 Create Your Exam</h2>
-      <p>Paste MCQs using this <strong>enhanced format</strong> (with explanation):</p>
-      <pre class="format-example">
-Q1: What does HTML stand for?
-A) Hyperlinks and Text Markup Language
-B) Hyper Text Markup Language
-C) Home Tool Markup Language
-D) Hyperlinking Textual Management Language
-Answer: B
-Explanation: HTML stands for Hyper Text Markup Language, used to structure web pages.
-      </pre>
-      <textarea id="mcq-input" placeholder="Paste your MCQs here..."></textarea>
+    <!-- LOAD EXAM (from /exams) -->
+    <section id="tab-load" class="card tab-panel">
+      <h2>Load From Repo</h2>
       <div class="row">
-        <label class="checkbox">
-          <input id="save-locally" type="checkbox" checked />
-          <span>Remember my name and theme on this device</span>
+        <label for="examSelect">Exams (from /exams/index.json)</label>
+        <select id="examSelect" aria-label="Available exams"></select>
+      </div>
+      <div class="row">
+        <button id="btnLoadOneTime" class="primary" type="button">Start One-Time</button>
+        <button id="btnLoadAndSave" type="button">Save Locally & Start</button>
+        <button id="btnCopyRemoteLink" type="button" title="Copy deep link like ?exam=sample">Copy Link</button>
+      </div>
+      <p class="muted small">
+        One-time won’t save the exam itself. “Save Locally” stores the exam on this device so you can reopen it later.
+      </p>
+    </section>
+
+    <!-- SAVED EXAMS (localStorage) -->
+    <section id="tab-saved" class="card tab-panel hidden">
+      <h2>My Saved Exams (This Device)</h2>
+      <div class="row">
+        <button id="btnExportAll" type="button">Export All</button>
+        <label class="file-btn">
+          <input id="fileImport" type="file" accept="application/json" hidden />
+          <span>Import</span>
         </label>
+        <button id="btnClearAll" type="button">Delete All</button>
       </div>
-      <button id="generate-btn" class="primary-btn">Generate Exam</button>
+      <div id="savedList" class="saved-list"></div>
+      <p class="muted small">
+        Saved exams persist via <code>localStorage</code> in this browser only. Deep link format: <code>?saved=&lt;id&gt;</code> (works on this device).
+      </p>
     </section>
 
-    <!-- Exam Section -->
-    <section id="exam-section" class="card hidden fade-in">
-      <div class="exam-header">
+    <!-- PASTE MCQS -->
+    <section id="tab-paste" class="card tab-panel hidden">
+      <h2>Paste MCQs</h2>
+      <textarea id="pasteInput" rows="10" placeholder="Q1: ...&#10;A) ...&#10;B) ...&#10;Answer: B&#10;Explanation: ..."></textarea>
+      <div class="grid-2">
+        <div class="row">
+          <label for="pasteTitle">Title</label>
+          <input id="pasteTitle" placeholder="My Custom Exam" />
+        </div>
+        <div class="row">
+          <label for="pasteId">Custom ID (optional)</label>
+          <input id="pasteId" placeholder="custom-id (letters/numbers/hyphens)" />
+        </div>
+      </div>
+      <div class="row">
+        <button id="btnPasteOneTime" class="primary" type="button">Start One-Time</button>
+        <button id="btnPasteSave" type="button">Save Locally & Start</button>
+      </div>
+    </section>
+
+    <!-- STUDENT INFO -->
+    <section class="card">
+      <h2>Student Info</h2>
+      <div class="grid-2">
+        <div class="row">
+          <label for="studentName">Name</label>
+          <input id="studentName" placeholder="Your name" />
+        </div>
+        <div class="row">
+          <label for="studentId">ID (optional)</label>
+          <input id="studentId" placeholder="e.g. 12345" />
+        </div>
+      </div>
+    </section>
+
+    <!-- EXAM META -->
+    <section id="examMeta" class="card hidden">
+      <h2 id="examTitle">Exam</h2>
+      <p id="examDesc" class="muted"></p>
+      <div class="row">
+        <button id="btnCopySavedLink" type="button" class="hidden">Copy Saved Link</button>
+        <button id="btnForgetSaved" type="button" class="hidden">Delete This Saved Exam</button>
+      </div>
+    </section>
+
+    <!-- EXAM BODY -->
+    <section id="examContainer" class="card hidden"></section>
+
+    <!-- ACTIONS -->
+    <section id="actions" class="row hidden">
+      <button id="submitBtn" class="primary" type="button">Submit</button>
+      <button id="retestBtn" type="button" disabled>Retest Wrong Only</button>
+      <button id="downloadBtn" type="button" disabled>Download Results (.json)</button>
+      <button id="resetBtn" type="button">Reset</button>
+    </section>
+
+    <!-- RESULTS -->
+    <section id="results" class="card hidden">
+      <h2>Results</h2>
+      <div class="results-summary">
+        <div class="score-ring" id="scoreRing" aria-label="Score ring"></div>
         <div>
-          <h2>📚 Exam for <span id="student-name-live"></span></h2>
-          <p class="muted">Select one answer for each question.</p>
-        </div>
-        <div class="progress-bar" aria-label="Progress">
-          <div id="progress-fill" class="progress-fill"></div>
+          <p><strong id="scoreText">0 / 0</strong></p>
+          <p id="percentText" class="muted">0%</p>
         </div>
       </div>
-      <form id="exam-form"></form>
-      <div class="actions-row">
-        <button id="submit-btn" class="primary-btn">Submit Answers</button>
-        <button id="cancel-btn" class="secondary-btn">Back</button>
-      </div>
-    </section>
-
-    <!-- Result Section -->
-    <section id="result-section" class="card hidden fade-in">
-      <h2>🏁 Exam Results</h2>
-      <div class="result-top">
-        <div class="ring" id="score-ring">
-          <div class="ring-inner">
-            <div id="score-percent">0%</div>
-          </div>
-        </div>
-        <div class="result-meta">
-          <div class="kv"><span>Student:</span><strong id="student-name-result"></strong></div>
-          <div class="kv"><span>Questions:</span><strong id="q-count"></strong></div>
-          <div class="kv"><span>Correct:</span><strong id="q-correct"></strong></div>
-          <div class="kv"><span>Wrong:</span><strong id="q-wrong"></strong></div>
-        </div>
-      </div>
-      <hr />
-      <div id="analysis"></div>
-      <div class="actions-row">
-        <button id="retest-wrong-btn" class="primary-btn">Retest Wrong Only</button>
-        <button id="retry-btn" class="secondary-btn">Retry Full Exam</button>
-        <button id="back-btn" class="secondary-btn">Create New Exam</button>
-      </div>
+      <div id="breakdown"></div>
     </section>
   </main>
 
-  <footer class="footer">
-    <p>© <span id="year"></span> Smart Exam Pro · Built for learning</p>
+  <footer class="container muted">
+    <p>Hosted on GitHub Pages. Remote exams load from <code>/exams</code>. Saved exams live in your browser.</p>
   </footer>
 
-  <script src="script.js"></script>
+  <script src="./script.js"></script>
 </body>
 </html>
