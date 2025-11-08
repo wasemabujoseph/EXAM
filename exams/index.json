@@ -1,0 +1,10 @@
+{
+  "exams": [
+    {
+      "id": "sample",
+      "title": "Sample MCQ Exam",
+      "file": "sample.json",
+      "description": "A short demo exam hosted from this repo."
+    }
+  ]
+}
