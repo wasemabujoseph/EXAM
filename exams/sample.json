@@ -1,0 +1,29 @@
+{
+  "title": "Sample MCQ Exam",
+  "description": "Three example questions to demonstrate GitHub-hosted + saved exams.",
+  "questions": [
+    {
+      "text": "What does HTML stand for?",
+      "options": [
+        "Hyperlinks and Text Markup Language",
+        "Hyper Text Markup Language",
+        "Home Tool Markup Language",
+        "Hyperlinking Textual Management Language"
+      ],
+      "answer": 1,
+      "explanation": "HTML = Hyper Text Markup Language."
+    },
+    {
+      "text": "2 + 2 = ?",
+      "options": ["3", "4", "5", "22"],
+      "answer": 1,
+      "explanation": "Basic arithmetic."
+    },
+    {
+      "text": "Which HTML tag inserts a line break?",
+      "options": ["<br>", "<hr>", "<p>", "<div>"],
+      "answer": 0,
+      "explanation": "<br> adds a line break."
+    }
+  ]
+}
