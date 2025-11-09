@@ -1,4 +1,4 @@
-// Smart Exam Pro — safe rendering + “Retest Wrong Only”
+// Smart Exam Pro — extended options (A–Z) + import from file (txt/docx/pdf)
 const els = {
   // sections
   studentSection: document.getElementById("student-section"),
@@ -13,6 +13,9 @@ const els = {
   mcqInput: document.getElementById("mcq-input"),
   saveLocally: document.getElementById("save-locally"),
   generateBtn: document.getElementById("generate-btn"),
+  importBtn: document.getElementById("import-btn"),
+  fileInput: document.getElementById("file-input"),
+  importStatus: document.getElementById("import-status"),
   // exam
   examForm: document.getElementById("exam-form"),
   submitBtn: document.getElementById("submit-btn"),
@@ -72,6 +75,55 @@ els.continueBtn.addEventListener("click", () => {
   toggle(els.studentSection, false);
   toggle(els.inputSection, true);
 });
+
+// import from file
+els.importBtn.addEventListener("click", () => els.fileInput.click());
+els.fileInput.addEventListener("change", async (e) => {
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+  els.importStatus.textContent = `Reading ${file.name}…`;
+  try {
+    const text = await readFileAsTextSmart(file);
+    els.mcqInput.value = text;
+    els.importStatus.textContent = `Imported ${file.name}. Review the text, then Generate.`;
+  } catch (err) {
+    console.error(err);
+    els.importStatus.textContent = "Import failed. Try a .txt, .docx, or .pdf formatted with MCQs.";
+    alert("Sorry, that file couldn't be imported. Make sure it contains text MCQs.");
+  } finally {
+    e.target.value = ""; // reset
+  }
+});
+
+async function readFileAsTextSmart(file) {
+  const name = file.name.toLowerCase();
+  const type = file.type || "";
+  // Plain text
+  if (type.startsWith("text/") || name.endsWith(".txt")) {
+    return await file.text();
+  }
+  // DOCX via Mammoth
+  if (name.endsWith(".docx") || type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
+    const arrayBuffer = await file.arrayBuffer();
+    const result = await window.mammoth.extractRawText({ arrayBuffer });
+    return (result && result.value) ? result.value : "";
+  }
+  // PDF via PDF.js — concatenate page text
+  if (name.endsWith(".pdf") || type === "application/pdf") {
+    const arrayBuffer = await file.arrayBuffer();
+    const loadingTask = window.pdfjsLib.getDocument({ data: arrayBuffer });
+    const pdf = await loadingTask.promise;
+    let out = "";
+    for (let p = 1; p <= pdf.numPages; p++) {
+      const page = await pdf.getPage(p);
+      const tc = await page.getTextContent();
+      const pageText = tc.items.map(it => (it.str || "")).join(" ");
+      out += pageText + "\n";
+    }
+    return out;
+  }
+  throw new Error("Unsupported file type");
+}
 
 // generate exam
 els.generateBtn.addEventListener("click", () => {
@@ -168,12 +220,14 @@ function renderExam(questions) {
 
     // Options (safe text — no innerHTML)
     q.options.forEach(opt => {
-      const letter = opt[0].toUpperCase(); // A/B/C/D
+      // opt expected like "A) option text", but we safely derive letter
+      const letterMatch = /^([A-Z])\)/i.exec(opt);
+      const letter = letterMatch ? letterMatch[1].toUpperCase() : "";
       const id = `q${i}_${letter}`;
 
       const label = document.createElement("label");
       label.className = "opt";
-      label.setAttribute("for", id);
+      if (letter) label.setAttribute("for", id);
 
       const input = document.createElement("input");
       input.id = id;
@@ -189,7 +243,7 @@ function renderExam(questions) {
     els.examForm.appendChild(wrap);
   });
 
-  // progress as they answer
+  // progress as they answer (once per render)
   els.examForm.addEventListener("change", () => {
     const total = questions.length;
     const answered = Array.from(els.examForm.querySelectorAll("input[type=radio]:checked"))
@@ -248,8 +302,9 @@ function showResults(results, percent) {
   toggle(els.examSection, false);
   toggle(els.resultSection, true);
 }
+
 function parseMCQs(text) {
-  // Qn:, A) .. D), Answer: X, Explanation: ...
+  // Supports: Qn:, options labeled A) … Z), Answer: <letter>, Explanation: … (multi-line)
   const lines = text.split(/\r?\n/).map(l => l.trim());
   const qs = [];
   let cur = emptyQ();
@@ -262,10 +317,14 @@ function parseMCQs(text) {
       if (cur.question) qs.push({ ...cur });
       cur = emptyQ();
       cur.question = line.replace(/^Q\d+:\s*/i, "");
-    } else if (/^[A-D]\)/i.test(line)) {
+    } else if (/^[A-Z]\)/i.test(line)) {
+      // Accept option labels A) to Z)
       cur.options.push(line);
     } else if (/^Answer:/i.test(line)) {
-      cur.answer = line.split(":")[1].trim().toUpperCase();
+      // Extract first letter A–Z after colon (covers 'B', 'B)', '(B)')
+      const after = line.split(":")[1] || "";
+      const m = /([A-Z])/i.exec(after);
+      cur.answer = m ? m[1].toUpperCase() : "";
     } else if (/^Explanation:/i.test(line)) {
       cur.explanation = line.replace(/^Explanation:\s*/i, "");
     } else {
@@ -275,7 +334,12 @@ function parseMCQs(text) {
   }
   if (cur.question) qs.push(cur);
 
-  // basic validation
-  return qs.filter(q => q.question && q.options.length >= 2 && /[A-D]/.test(q.answer));
+  // basic validation: at least 2 options, answer within provided option letters
+  return qs.filter(q => {
+    if (!q.question || q.options.length < 2 || !/[A-Z]/.test(q.answer)) return false;
+    const letters = q.options.map(o => (o.match(/^([A-Z])\)/i) || [," "])[1]?.toUpperCase());
+    return letters.includes(q.answer);
+  });
 }
+
 function emptyQ() { return { question: "", options: [], answer: "", explanation: "" }; }
