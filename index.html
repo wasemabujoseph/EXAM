@@ -1,62 +1,134 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"/>
-  <title>Smart Exam Pro</title>
-  <link rel="stylesheet" href="style.css"/>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Smart Exam Pro (Single-File Build)</title>
+<style>
+:root{
+  --bg:#f5f7fb; --card:#fff; --text:#222; --muted:#6b7280;
+  --primary:#3b82f6; --primary-600:#2563eb; --accent:#10b981; --danger:#ef4444;
+  --ring-bg:#e5e7eb; --radius:14px; --shadow:0 8px 24px rgba(0,0,0,.08); --transition:.25s ease;
+}
+:root.dark{
+  --bg:#0f172a; --card:#111827; --text:#e5e7eb; --muted:#9ca3af;
+  --primary:#60a5fa; --primary-600:#3b82f6; --accent:#34d399; --danger:#f87171; --ring-bg:#1f2937; --shadow:0 10px 28px rgba(0,0,0,.45);
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--text);display:flex;flex-direction:column}
+.navbar{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;position:sticky;top:0;background:linear-gradient(180deg,rgba(255,255,255,.9),rgba(255,255,255,.75));backdrop-filter:blur(6px);border-bottom:1px solid rgba(0,0,0,.06)}
+:root.dark .navbar{background:linear-gradient(180deg,rgba(17,24,39,.9),rgba(17,24,39,.75));border-bottom:1px solid rgba(255,255,255,.06)}
+.brand{display:flex;gap:10px;align-items:center;font-weight:700}
+.logo-dot{width:12px;height:12px;border-radius:50%;background:var(--primary);box-shadow:0 0 0 4px rgba(59,130,246,.25)}
+.icon-btn{background:transparent;border:1px solid rgba(0,0,0,.1);padding:8px 10px;border-radius:10px;cursor:pointer}
+:root.dark .icon-btn{border-color:rgba(255,255,255,.15)}
+.icon-btn:hover{transform:translateY(-1px)}
+.checkbox{display:flex;align-items:center;gap:8px;cursor:pointer}
+.checkbox.sm{font-size:12px;opacity:.85}
+.main{max-width:980px;margin:32px auto;width:92%;flex:1}
+.card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:24px;margin-bottom:24px}
+h2{margin-top:0}
+.muted{color:var(--muted)}
+.grid{display:grid;gap:16px;grid-template-columns:1fr 1fr;margin:12px 0 8px}
+@media (max-width:720px){ .grid{grid-template-columns:1fr} }
+input[type="text"], textarea{
+  width:100%; padding:12px 14px; border-radius:12px; border:1px solid rgba(0,0,0,.12); background:transparent; color:var(--text);
+}
+:root.dark input[type="text"], :root.dark textarea{border-color:rgba(255,255,255,.15)}
+textarea{min-height:240px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace}
+.row{display:flex;align-items:center;gap:10px;margin-top:8px}
+.req{color:var(--danger)}
+.primary-btn,.secondary-btn{border:none;cursor:pointer;border-radius:12px;padding:12px 16px;font-weight:600;transition:var(--transition)}
+.primary-btn{background:var(--primary);color:#fff}
+.primary-btn:hover{background:var(--primary-600);transform:translateY(-1px)}
+.secondary-btn{background:transparent;color:var(--primary);border:2px solid var(--primary)}
+.secondary-btn:hover{background:var(--primary);color:#fff}
+.format-example{background:linear-gradient(135deg,rgba(59,130,246,.10),rgba(16,185,129,.08));padding:12px;border-radius:12px;border:1px dashed rgba(0,0,0,.15);overflow:auto}
+:root.dark .format-example{border-color:rgba(255,255,255,.18)}
+.hidden{display:none}
+.question{margin-bottom:16px;padding:14px;border-radius:12px;border:1px solid rgba(0,0,0,.06);background:rgba(0,0,0,.02)}
+:root.dark .question{border-color:rgba(255,255,255,.08);background:rgba(255,255,255,.03)}
+.opt{display:flex;gap:10px;padding:8px;border-radius:10px;cursor:pointer;align-items:flex-start}
+label.opt:hover{background:rgba(59,130,246,.08)}
+:root.dark label.opt:hover{background:rgba(96,165,250,.12)}
+.choice-badge{min-width:24px;text-align:center;font-weight:700}
+.option-text{white-space:pre-wrap}
+.progress-bar{width:160px;height:10px;background:var(--ring-bg);border-radius:10px;overflow:hidden}
+.progress-fill{height:100%;width:0;background:var(--accent);transition:width .3s ease}
+.actions-row{display:flex;gap:12px;flex-wrap:wrap}
+.result-top{display:flex;gap:24px;align-items:center;flex-wrap:wrap}
+.kv{display:flex;gap:10px;align-items:center;font-size:15px}.kv span{color:var(--muted)}
+.ring{width:120px;height:120px;border-radius:50%;background:conic-gradient(var(--accent) 0deg,var(--ring-bg) 0deg);display:grid;place-items:center}
+.ring-inner{width:88px;height:88px;border-radius:50%;background:var(--card);display:grid;place-items:center}
+#score-percent{font-weight:800;font-size:22px}
+.result-correct{color:var(--accent);font-weight:700}
+.result-wrong{color:var(--danger);font-weight:700}
+.choice-line{display:flex;gap:8px;align-items:flex-start;margin:2px 0}
+.choice-mark{font-weight:700}
+.choice-mark.correct{color:var(--accent)}
+.choice-mark.wrong{color:var(--danger)}
+.footer{text-align:center;color:var(--muted);padding:18px 10px;border-top:1px solid rgba(0,0,0,.06)}
+:root.dark .footer{border-top-color:rgba(255,255,255,.08)}
+.fade-in{animation:fade .4s ease}
+@keyframes fade{from{opacity:.0;transform:translateY(6px)} to{opacity:1;transform:none}}
+@media print {
+  body{background:#fff;color:#000}
+  .navbar,.footer,.primary-btn,.secondary-btn,.icon-btn,.progress-bar{display:none!important}
+  .card{box-shadow:none;border:0;margin:0;padding:0}
+  .question{page-break-inside:avoid}
+}
+</style>
 </head>
 <body>
-  <header class="navbar">
-    <div class="brand">
-      <div class="logo-dot" aria-hidden="true"></div>
-      <span>Smart Exam Pro</span>
-    </div>
-    <div class="actions">
-      <input id="file-input" type="file" accept=".txt,.doc,.docx,.pdf,.sep,.json" hidden />
-      <button id="import-btn" class="icon-btn" title="Import MCQs" type="button" aria-label="Import">📥</button>
-      <button id="export-all-pdf-btn" class="icon-btn" title="Export results (all)" type="button" aria-label="Export all">🖨️</button>
-      <button id="export-wrong-pdf-btn" class="icon-btn" title="Export wrong-only" type="button" aria-label="Export wrong only">🧾</button>
-      <label class="checkbox sm" title="Show corrections in export">
-        <input id="export-corrections" type="checkbox" checked />
-        <span>Corrections</span>
-      </label>
-      <button id="theme-toggle" class="icon-btn" title="Toggle theme" type="button" aria-label="Toggle theme">🌗</button>
-    </div>
-  </header>
+<header class="navbar">
+  <div class="brand">
+    <div class="logo-dot" aria-hidden="true"></div>
+    <span>Smart Exam Pro</span>
+  </div>
+  <div class="actions">
+    <input id="file-input" type="file" accept=".txt,.doc,.docx,.pdf,.sep,.json" hidden />
+    <button id="import-btn" class="icon-btn" title="Import MCQs" type="button" aria-label="Import">📥</button>
+    <button id="export-all-pdf-btn" class="icon-btn" title="Export results (all)" type="button" aria-label="Export all">🖨️</button>
+    <button id="export-wrong-pdf-btn" class="icon-btn" title="Export wrong-only" type="button" aria-label="Export wrong only">🧾</button>
+    <label class="checkbox sm" title="Show corrections in export">
+      <input id="export-corrections" type="checkbox" checked />
+      <span>Corrections</span>
+    </label>
+    <button id="theme-toggle" class="icon-btn" title="Toggle theme" type="button" aria-label="Toggle theme">🌗</button>
+  </div>
+</header>
 
-  <main class="main">
-    <!-- Student Info -->
-    <section id="student-section" class="card fade-in">
-      <h2>👤 Student Information</h2>
-      <p class="muted">Please enter your details to begin.</p>
+<main class="main">
+  <!-- Student Info -->
+  <section id="student-section" class="card fade-in">
+    <h2>👤 Student Information</h2>
+    <p class="muted">Please enter your details to begin.</p>
 
-      <form id="student-form" autocomplete="on">
-        <div class="grid">
-          <label>Full Name <span class="req">*</span>
-            <input id="student-name" name="student-name" type="text" placeholder="e.g., Waseem Khallaf" required />
-          </label>
-          <label>Email / ID (optional)
-            <input id="student-id" name="student-id" type="text" placeholder="e.g., waseem@example.com or 2025-0012" />
-          </label>
-        </div>
-        <div class="row">
-          <label class="checkbox">
-            <input id="save-locally" type="checkbox" checked />
-            <span>Remember my name and theme on this device</span>
-          </label>
-        </div>
-        <button id="continue-btn" class="primary-btn" type="submit">Continue</button>
-      </form>
-    </section>
+    <form id="student-form" autocomplete="on">
+      <div class="grid">
+        <label>Full Name <span class="req">*</span>
+          <input id="student-name" name="student-name" type="text" placeholder="e.g., Waseem Khallaf" required />
+        </label>
+        <label>Email / ID (optional)
+          <input id="student-id" name="student-id" type="text" placeholder="e.g., waseem@example.com or 2025-0012" />
+        </label>
+      </div>
+      <div class="row">
+        <label class="checkbox">
+          <input id="save-locally" type="checkbox" checked />
+          <span>Remember my name and theme on this device</span>
+        </label>
+      </div>
+      <button class="primary-btn" type="submit">Continue</button>
+    </form>
+  </section>
 
-    <!-- Input -->
-    <section id="input-section" class="card hidden fade-in">
-      <h2>📄Create Your Exam</h2>
-      <p>Paste MCQs (any number of options A–Z). Answers can be <code>Answer: B</code> or <code>Answer: D &amp; E</code>.</p>
-      <pre class="format-example">
+  <!-- Input -->
+  <section id="input-section" class="card hidden fade-in">
+    <h2>📄Create Your Exam</h2>
+    <p>Paste MCQs (any number of options A–Z). Answers can be <code>Answer: B</code> or <code>Answer: D &amp; E</code>.</p>
+    <pre class="format-example">
 Q1: What does HTML stand for?
 A) Hyperlinks and Text Markup Language
 B) Hyper Text Markup Language
@@ -64,62 +136,63 @@ C) Home Tool Markup Language
 D) Hyperlinking Textual Management Language
 Answer: B
 Explanation: HTML stands for Hyper Text Markup Language, used to structure web pages.
-      </pre>
-      <textarea id="mcq-input" placeholder="Paste your MCQs or use 📥 Import..."></textarea>
-      <div class="row">
-        <button id="generate-btn" class="primary-btn" type="button">Generate Exam</button>
-        <button id="import-here-btn" class="secondary-btn" type="button">Import From File</button>
-      </div>
-    </section>
+    </pre>
+    <textarea id="mcq-input" placeholder="Paste your MCQs or use 📥 Import..."></textarea>
+    <div class="row">
+      <button id="generate-btn" class="primary-btn" type="button">Generate Exam</button>
+      <button id="import-here-btn" class="secondary-btn" type="button">Import From File</button>
+    </div>
+  </section>
 
-    <!-- Exam -->
-    <section id="exam-section" class="card hidden fade-in">
-      <div class="exam-header">
-        <div>
-          <h2>📃 Exam for <span id="student-name-live"></span></h2>
-          <p class="muted">Select one answer for each question.</p>
-        </div>
-        <div class="progress-bar" aria-label="Progress">
-          <div id="progress-fill" class="progress-fill"></div>
-        </div>
+  <!-- Exam -->
+  <section id="exam-section" class="card hidden fade-in">
+    <div class="exam-header">
+      <div>
+        <h2>📃 Exam for <span id="student-name-live"></span></h2>
+        <p class="muted">Select one answer for each question.</p>
       </div>
-      <form id="exam-form"></form>
-      <div class="actions-row">
-        <button id="submit-btn" class="primary-btn" type="button">Submit Answers</button>
-        <button id="cancel-btn" class="secondary-btn" type="button">Back</button>
+      <div class="progress-bar" aria-label="Progress">
+        <div id="progress-fill" class="progress-fill"></div>
       </div>
-    </section>
+    </div>
+    <form id="exam-form"></form>
+    <div class="actions-row">
+      <button id="submit-btn" class="primary-btn" type="button">Submit Answers</button>
+      <button id="cancel-btn" class="secondary-btn" type="button">Back</button>
+    </div>
+  </section>
 
-    <!-- Results -->
-    <section id="result-section" class="card hidden fade-in">
-      <h2>📝 Exam Results</h2>
-      <div class="result-top">
-        <div class="ring" id="score-ring">
-          <div class="ring-inner">
-            <div id="score-percent">0%</div>
-          </div>
-        </div>
-        <div class="result-meta">
-          <div class="kv"><span>Student:</span><strong id="student-name-result"></strong></div>
-          <div class="kv"><span>Questions:</span><strong id="q-count"></strong></div>
-          <div class="kv"><span>Correct:</span><strong id="q-correct"></strong></div>
-          <div class="kv"><span>Wrong:</span><strong id="q-wrong"></strong></div>
+  <!-- Results -->
+  <section id="result-section" class="card hidden fade-in">
+    <h2>📝 Exam Results</h2>
+    <div class="result-top">
+      <div class="ring" id="score-ring">
+        <div class="ring-inner">
+          <div id="score-percent">0%</div>
         </div>
       </div>
-      <hr/>
-      <div id="analysis"></div>
-      <div class="actions-row">
-        <button id="retest-wrong-btn" class="primary-btn" type="button">Retest Wrong Only</button>
-        <button id="retry-btn" class="secondary-btn" type="button">Retry Full Exam</button>
-        <button id="back-btn" class="secondary-btn" type="button">Create New Exam</button>
+      <div class="result-meta">
+        <div class="kv"><span>Student:</span><strong id="student-name-result"></strong></div>
+        <div class="kv"><span>Questions:</span><strong id="q-count"></strong></div>
+        <div class="kv"><span>Correct:</span><strong id="q-correct"></strong></div>
+        <div class="kv"><span>Wrong:</span><strong id="q-wrong"></strong></div>
       </div>
-    </section>
-  </main>
+    </div>
+    <hr/>
+    <div id="analysis"></div>
+    <div class="actions-row">
+      <button id="retest-wrong-btn" class="primary-btn" type="button">Retest Wrong Only</button>
+      <button id="retry-btn" class="secondary-btn" type="button">Retry Full Exam</button>
+      <button id="back-btn" class="secondary-btn" type="button">Create New Exam</button>
+    </div>
+  </section>
+</main>
 
-  <footer class="footer">
-    <p>📃 <span id="year"></span> Smart Exam Pro 📄 Built for learning</p>
-  </footer>
+<footer class="footer">
+  <p>📃 <span id="year"></span> Smart Exam Pro 📄 Built for learning</p>
+</footer>
 
-  <script src="script.js"></script>
-</body>
-</html>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const els = {
+    studentSection: document.getElementById("s
