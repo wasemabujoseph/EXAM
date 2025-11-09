@@ -7,31 +7,56 @@
 <link rel="icon" href="data:,">
 <link rel="preconnect" href="https://unpkg.com">
 <style>
-  :root { --bg:#0b1220; --panel:#111a2b; --muted:#99a3b3; --text:#e9eef7; --brand:#6ae3ff; --accent:#8b5cf6; }
-  html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font:16px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial;}
-  .container{max-width:980px;margin:24px auto;padding:0 16px;}
+  :root { --bg:#0b1220; --panel:#111a2b; --muted:#99a3b3; --text:#e9eef7; --brand:#6ae3ff; --accent:#8b5cf6; --ok:#16a34a; --warn:#eab308; --err:#ef4444; }
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font:16px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial}
+  .container{max-width:1024px;margin:24px auto;padding:0 16px}
   .header{display:flex;align-items:center;gap:10px;margin-bottom:16px}
   .dot{width:10px;height:10px;border-radius:50%;background:var(--brand);box-shadow:0 0 16px var(--brand)}
   h1{font-size:22px;margin:0}
+  h2{margin:0 0 10px 0}
   .card{background:var(--panel);border:1px solid #1c2740;border-radius:14px;padding:18px;box-shadow:0 10px 25px rgba(0,0,0,.25)}
   .row{display:flex;gap:12px;flex-wrap:wrap}
   textarea{width:100%;min-height:160px;background:#0d1527;color:var(--text);border:1px solid #1b2550;border-radius:12px;padding:12px;resize:vertical}
   .btn{cursor:pointer;border:1px solid #2a3570;background:#162044;color:#eaf3ff;border-radius:12px;padding:10px 14px}
   .btn:hover{background:#1a284f}
   .btn.primary{background-image:linear-gradient(135deg,var(--accent),#4cc9f0);border-color:transparent;color:white}
+  .btn.ghost{background:transparent;border-color:#2a3570}
+  .btn.warn{background:#3a2a05;border-color:#8b6b0f}
+  .btn.ok{background:#11331b;border-color:#1f7a41}
   .muted{color:var(--muted);font-size:14px}
   .toolbar{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}
-  .switch{display:flex;align-items:center;gap:6px}
-  input[type="text"],input[type="email"]{background:#0d1527;color:var(--text);border:1px solid #1b2550;border-radius:10px;padding:8px 10px}
-  .hidden{display:none}
   .pill{font-size:12px;border:1px solid #2b386e;padding:2px 8px;border-radius:999px;color:#c9d6ff}
+  .hidden{display:none}
+  .hr{height:1px;background:#1b254b;margin:16px 0}
   .q{padding:14px;border:1px solid #21305f;border-radius:12px;margin:10px 0;background:#0e1730}
   .q h3{margin:0 0 8px 0;font-size:16px}
-  .opt{display:block;margin:6px 0;padding:8px;border:1px solid #223264;border-radius:10px;background:#0c1530}
-  .correct{border-color:#1e8b4d;background:#0d1f16}
+  .opt{display:block;margin:8px 0;padding:10px;border:1px solid #223264;border-radius:10px;background:#0c1530}
+  .opt input{margin-right:8px;transform:translateY(1px)}
+  .opt.correct.revealed{border-color:#1e8b4d;background:#0d1f16}
+  .opt.incorrect.revealed{border-color:#7a1f1f;background:#1a0f12}
   .explain{margin-top:6px;color:#b9c6ff;font-size:14px}
-  .hr{height:1px;background:#1b254b;margin:16px 0}
+  .meta{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:6px 0}
+  .flag{cursor:pointer;margin-left:auto;font-size:12px;border:1px dashed #40508f;padding:2px 8px;border-radius:999px}
+  .progress{height:10px;border-radius:8px;background:#0c152d;overflow:hidden}
+  .progress>div{height:100%;background:linear-gradient(90deg,#6ae3ff,#8b5cf6)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+  .side{position:sticky; top:12px; align-self:start}
+  .kbd{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;background:#0d1527;border:1px solid #1b2550;border-radius:8px;padding:2px 6px;font-size:12px}
+  .navgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(44px,1fr));gap:6px}
+  .navgrid button{padding:8px;border-radius:8px;border:1px solid #25356b;background:#0f1a35;color:#eaf3ff;cursor:pointer}
+  .navgrid button.done{background:#122b1a;border-color:#215f34}
+  .navgrid button.flagged{outline:2px dashed #f59e0b}
+  .timer{font-variant-numeric:tabular-nums}
+  .kbd-help{font-size:13px}
+  .tag{font-size:12px;padding:2px 6px;border:1px solid #33407a;border-radius:6px}
   .sticky-footer{position:sticky;bottom:0;background:linear-gradient(180deg,rgba(11,18,32,0),var(--bg) 30%);padding-top:8px}
+  .score{font-weight:600}
+  @media print{
+    .no-print{display:none !important}
+    body{background:white;color:black}
+    .card{box-shadow:none;border:1px solid #ccc}
+    .opt{border-color:#ccc;background:white}
+  }
 </style>
 </head>
 <body>
@@ -39,14 +64,14 @@
     <div class="header">
       <div class="dot"></div>
       <h1>Smart Exam Pro</h1>
-      <span class="pill">Corrections</span>
+      <span class="pill">Attempt → Submit → Review</span>
       <span class="pill">🌗</span>
     </div>
 
-    <!-- CREATE EXAM -->
-    <div class="card">
-      <h2 style="margin-top:0">Create Your Exam</h2>
-      <p class="muted">Paste MCQs (any number of options A–Z). Answers can be <code>Answer: B</code> or <code>Answer: D & E</code>. Optional <code>Explanation:</code> line is supported. You can also import a <b>.docx</b>, <b>.txt</b>, or <b>.md</b> file.</p>
+    <!-- ====== EDITOR / IMPORT ====== -->
+    <div id="editorCard" class="card">
+      <h2>Create Your Exam</h2>
+      <p class="muted">Paste MCQs (A–Z options). Answers like <code>Answer: B</code> or <code>Answer: D & E</code>. Optional <code>Explanation:</code>. Or import a <b>.docx</b>, <b>.txt</b>, or <b>.md</b>.</p>
 
       <div id="example" class="card" style="background:#0d1527;border-color:#1b2550;margin:10px 0 16px 0">
 Q1: What does HTML stand for?
@@ -65,24 +90,100 @@ Explanation: HTML stands for Hyper Text Markup Language, used to structure web p
           Import From File
           <input id="fileInput" type="file" accept=".docx,.txt,.md,.rtf" style="display:none">
         </label>
-        <button id="genBtn" class="btn primary">Generate Exam</button>
+        <button id="parseBtn" class="btn">Parse & Preview</button>
+        <button id="startBtn" class="btn primary">Start Exam</button>
         <button id="clearBtn" class="btn">Clear</button>
         <span class="muted" id="status"></span>
       </div>
+
+      <div class="hr"></div>
+
+      <div class="grid">
+        <div class="card" style="background:#0d1527;border-color:#1b2550">
+          <h3 style="margin:0 0 8px 0">Exam Settings</h3>
+          <div class="row">
+            <label><input type="checkbox" id="shuffleQ" checked> Shuffle questions</label>
+            <label><input type="checkbox" id="shuffleA" checked> Shuffle options</label>
+            <label><input type="checkbox" id="showExplAfter" checked> Show explanations after submit</label>
+            <label><input type="checkbox" id="allowReview"> Allow live review (show correct on select)</label>
+          </div>
+          <div class="row" style="margin-top:8px">
+            <label>Max questions (0 = all): <input id="maxQ" type="number" min="0" value="0" style="width:80px"></label>
+            <label>Time limit (minutes, 0 = no limit): <input id="minutes" type="number" min="0" value="0" style="width:80px"></label>
+          </div>
+        </div>
+        <div class="card" style="background:#0d1527;border-color:#1b2550">
+          <h3 style="margin:0 0 8px 0">Save / Load</h3>
+          <div class="toolbar">
+            <button id="saveJson" class="btn">Download JSON</button>
+            <button id="loadJson" class="btn">Load JSON</button>
+            <input id="jsonFile" type="file" accept=".json" class="hidden">
+            <button id="saveLocal" class="btn">Save Attempt</button>
+            <button id="loadLocal" class="btn">Restore Attempt</button>
+            <button id="clearLocal" class="btn ghost">Clear Saved</button>
+          </div>
+          <p class="muted">Autosave every 10s while taking the exam.</p>
+        </div>
+      </div>
     </div>
 
-    <!-- RENDERED EXAM -->
-    <div id="examCard" class="card hidden" style="margin-top:16px">
-      <h2 style="margin-top:0">Exam Preview</h2>
-      <div id="exam"></div>
-
-      <div class="sticky-footer">
-        <div class="hr"></div>
-        <div class="toolbar">
-          <button id="downloadJson" class="btn">Download JSON</button>
-          <button id="backBtn" class="btn">Back</button>
-          <span class="muted" id="count"></span>
+    <!-- ====== EXAM PANEL ====== -->
+    <div id="examWrap" class="row hidden" style="margin-top:16px">
+      <!-- main -->
+      <div class="card" style="flex:1;min-width:320px">
+        <div class="row no-print" style="justify-content:space-between;align-items:center">
+          <div class="row" style="align-items:center;gap:10px">
+            <h2 id="examTitle" style="margin:0">Exam</h2>
+            <span id="tags" class="tag">Attempt mode</span>
+          </div>
+          <div class="row" style="align-items:center;gap:10px">
+            <span id="timer" class="timer tag hidden">00:00</span>
+            <button id="printBtn" class="btn">Print</button>
+            <button id="backBtn" class="btn">Back to Editor</button>
+          </div>
         </div>
+
+        <div class="meta">
+          <div class="progress" style="flex:1"><div id="bar" style="width:0%"></div></div>
+          <span id="pct" class="muted">0%</span>
+          <span class="muted"> | </span>
+          <span id="answeredCount" class="muted">0 answered</span>
+        </div>
+
+        <div id="exam"></div>
+
+        <div class="sticky-footer no-print">
+          <div class="hr"></div>
+          <div class="toolbar">
+            <button id="submitBtn" class="btn ok">Submit Exam</button>
+            <button id="reviewToggle" class="btn ghost">Review Mode: OFF</button>
+            <button id="scrollTop" class="btn ghost">Top</button>
+            <span class="muted kbd-help">Shortcuts: <span class="kbd">J</span>/<span class="kbd">K</span> next/prev question, <span class="kbd">1–9</span> pick option, <span class="kbd">F</span> flag</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- side -->
+      <div class="side card no-print" style="width:280px;max-height:80vh;overflow:auto">
+        <h3 style="margin:0 0 8px 0">Navigator</h3>
+        <div id="nav" class="navgrid" style="margin-bottom:10px"></div>
+        <div class="row" style="justify-content:space-between;align-items:center">
+          <span id="unanswered" class="muted">Unanswered: 0</span>
+          <button id="jumpUnanswered" class="btn ghost">Jump to next</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====== RESULTS ====== -->
+    <div id="resultCard" class="card hidden" style="margin-top:16px">
+      <h2 style="margin:0">Results</h2>
+      <p id="scoreline" class="score"></p>
+      <p class="muted" id="timeUsed"></p>
+      <div class="toolbar no-print">
+        <button id="reviewAnswers" class="btn">Review Answers</button>
+        <button id="retake" class="btn">Retake (same order)</button>
+        <button id="retakeShuffle" class="btn">Retake (shuffle)</button>
+        <button id="exportReport" class="btn">Download Report (JSON)</button>
       </div>
     </div>
   </div>
@@ -90,44 +191,82 @@ Explanation: HTML stands for Hyper Text Markup Language, used to structure web p
 <!-- Mammoth for .docx → text -->
 <script src="https://unpkg.com/mammoth@1.6.0/mammoth.browser.min.js"></script>
 <script>
+/* ============ STATE ============ */
 const mcqArea = document.getElementById('mcqArea');
 const statusEl = document.getElementById('status');
-const examCard = document.getElementById('examCard');
+const examWrap = document.getElementById('examWrap');
 const examEl = document.getElementById('exam');
-const countEl = document.getElementById('count');
+const navEl = document.getElementById('nav');
+const answeredCountEl = document.getElementById('answeredCount');
+const unansweredEl = document.getElementById('unanswered');
+const barEl = document.getElementById('bar');
+const pctEl = document.getElementById('pct');
+const resultCard = document.getElementById('resultCard');
+const scorelineEl = document.getElementById('scoreline');
+const timeUsedEl = document.getElementById('timeUsed');
+const timerEl = document.getElementById('timer');
 
+let QUESTIONS = [];     // parsed questions [{stem, options:[{tag,text}], answers:[…], explanation}]
+let ATTEMPT = [];       // user answers by index: Set of selected tags
+let FLAGS = new Set();  // flagged question indices
+let REVIEW = false;     // review mode to reveal correctness
+let START_TIME = 0;
+let LIMIT_MS = 0;
+let TIMER_ID = null;
+
+/* ============ EDITOR BUTTONS ============ */
 document.getElementById('clearBtn').onclick = () => { mcqArea.value = ''; status(''); };
-document.getElementById('backBtn').onclick = () => { examCard.classList.add('hidden'); window.scrollTo({top:0,behavior:'smooth'}); };
-document.getElementById('downloadJson').onclick = () => {
-  const set = parseMCQs(mcqArea.value);
-  download('exam.json', JSON.stringify(set, null, 2));
-};
+document.getElementById('parseBtn').onclick = () => previewParse();
+document.getElementById('startBtn').onclick  = () => startExamFlow();
+document.getElementById('backBtn').onclick   = () => goEditor();
+document.getElementById('printBtn').onclick  = () => window.print();
+document.getElementById('saveJson').onclick  = () => download('exam.json', JSON.stringify({questions:parseMCQs(mcqArea.value).questions}, null, 2));
+document.getElementById('loadJson').onclick  = () => document.getElementById('jsonFile').click();
+document.getElementById('jsonFile').addEventListener('change', async (e)=>{
+  const f = e.target.files[0]; if(!f) return;
+  try{
+    const txt = await f.text();
+    const obj = JSON.parse(txt);
+    if (!obj.questions?.length) throw new Error('No questions[]');
+    QUESTIONS = obj.questions;
+    mcqArea.value = toPlain(QUESTIONS);
+    alert('Loaded JSON questions ✔');
+  }catch(err){ alert('Load failed: ' + err.message); }
+  e.target.value = '';
+});
+document.getElementById('saveLocal').onclick = ()=>saveLocal();
+document.getElementById('loadLocal').onclick = ()=>restoreLocal();
+document.getElementById('clearLocal').onclick = ()=>{ localStorage.removeItem('SEP_ATTEMPT'); alert('Cleared saved attempt.'); };
 
-document.getElementById('genBtn').onclick = () => {
-  const set = parseMCQs(mcqArea.value);
-  if (!set.questions.length) {
-    alert("Couldn't find well-formed questions. Keep the pattern:\n\nQ1: Stem\nA) option\nB) option\n...\nAnswer: B or Answer: D & E\nExplanation: ... (optional)");
-    return;
-  }
-  renderExam(set);
-  examCard.classList.remove('hidden');
-  window.scrollTo({top:examCard.offsetTop - 12, behavior:'smooth'});
-};
+document.getElementById('submitBtn').onclick = ()=>submitExam();
+document.getElementById('reviewToggle').onclick = ()=>toggleReview();
+document.getElementById('scrollTop').onclick = ()=>window.scrollTo({top:0,behavior:'smooth'});
+document.getElementById('jumpUnanswered').onclick = ()=>jumpToUnanswered();
+document.getElementById('reviewAnswers').onclick = ()=>{ REVIEW = true; updateReveal(); document.getElementById('tags').textContent='Review mode'; };
+document.getElementById('retake').onclick = ()=>retake(false);
+document.getElementById('retakeShuffle').onclick = ()=>retake(true);
+document.getElementById('exportReport').onclick = ()=>exportReport();
 
 document.getElementById('fileInput').addEventListener('change', handleFile);
 
-/* ---- FILE IMPORT (DOCX/TXT/MD/RTF) ---- */
+/* ============ SETTINGS ============ */
+const shuffleQEl = document.getElementById('shuffleQ');
+const shuffleAEl = document.getElementById('shuffleA');
+const showExplAfterEl = document.getElementById('showExplAfter');
+const allowReviewEl = document.getElementById('allowReview');
+const maxQEl = document.getElementById('maxQ');
+const minutesEl = document.getElementById('minutes');
+
+/* ============ FILE IMPORT ============ */
 async function handleFile(ev){
   const f = ev.target.files[0];
   if(!f) return;
   status('Importing…');
-
   try{
     let text = '';
     if (f.name.toLowerCase().endsWith('.docx')) {
       const arrayBuffer = await f.arrayBuffer();
       const res = await window.mammoth.convertToHtml({arrayBuffer});
-      // Get plain text while preserving newlines between blocks
       const html = res.value
         .replace(/<\/p>/g,'</p>\n')
         .replace(/<br\s*\/?>/g,'\n')
@@ -136,41 +275,28 @@ async function handleFile(ev){
     } else {
       text = await f.text();
     }
-
-    // Normalize bullets like “A )”, “A.”, “(A)”, “A - ”, etc. → “A) ”
     text = normalizeChoices(text);
-
     mcqArea.value = text.trim() + '\n';
     const preview = parseMCQs(text);
-    if (!preview.questions.length) {
-      alert(`${location.host} says\n\nImported, but could not find well-formed questions. You can still edit in the textarea.`);
-    } else {
-      alert(`${location.host} says\n\nImported ${preview.questions.length} questions ✔`);
-    }
-    status('');
+    alert(`${location.host} says\n\nImported ${preview.questions.length || '0'} questions`);
   }catch(err){
     console.error(err);
     alert('Import failed: ' + err.message);
-    status('Import failed.');
   }finally{
+    status('');
     ev.target.value = '';
   }
 }
-
 function stripHtml(html){
   const tmp = document.createElement('div');
   tmp.innerHTML = html;
-  const text = tmp.textContent || tmp.innerText || '';
-  // Collapse multiple blank lines
-  return text.replace(/\u00A0/g,' ')
-             .replace(/\r/g,'')
-             .replace(/[ \t]+\n/g,'\n')
-             .replace(/\n{3,}/g,'\n\n');
+  return (tmp.textContent || tmp.innerText || '')
+    .replace(/\u00A0/g,' ')
+    .replace(/\r/g,'')
+    .replace(/[ \t]+\n/g,'\n')
+    .replace(/\n{3,}/g,'\n\n');
 }
-
 function normalizeChoices(text){
-  // Replace common bullets to a canonical "A) "
-  // Examples handled: (A) , A. , A - , A — , A : , A 】, A】, A】, and stray unicode spaces
   return text
     .replace(/^\s*\((([A-Z]))\)\s+/gm, '$1) ')
     .replace(/^\s*([A-Z])[.\-–—:]\s+/gm, '$1) ')
@@ -178,69 +304,40 @@ function normalizeChoices(text){
     .replace(/^\s*([A-Z])\s+[–—-]\s+/gm, '$1) ');
 }
 
-/* ---- MCQ PARSER (lenient, supports your file) ---- */
+/* ============ PARSER (lenient) ============ */
 function parseMCQs(raw){
-  // Unify line endings / trim right spaces
   let text = raw.replace(/\r/g,'').replace(/[ \t]+\n/g,'\n');
-
-  // Some DOCX exports merge lines awkwardly; guard with a newline after "Answer:" or "Explanation:"
   text = text.replace(/(Answer\s*:.*?)(?=\n[A-Z]\))/g, '$1\n')
              .replace(/(Explanation\s*:.*?)(?=\nQ\d+\s*:|$)/g, '$1\n');
 
-  // Split on Qn: headings. Keep the Q number using a capturing group.
   const blocks = text.split(/\n?(?=Q\s*\d+\s*:)/i);
-
   const questions = [];
   for (const blk of blocks) {
     const mQ = blk.match(/^Q\s*(\d+)\s*:\s*([\s\S]+)$/i);
     if (!mQ) continue;
-
     let body = mQ[2].trim();
-
-    // Pull out Answer and Explanation (optional)
-    let answerRaw = '';
     let explanation = '';
-
-    // Explanation can be on same line or subsequent lines until next Q or EOF
     const expMatch = body.match(/Explanation\s*:\s*([\s\S]*?)$/i);
-    if (expMatch) {
-      explanation = expMatch[1].trim();
-      body = body.slice(0, expMatch.index).trim();
-    }
-
-    // Answer can appear before or after Explanation
+    if (expMatch) { explanation = expMatch[1].trim(); body = body.slice(0, expMatch.index).trim(); }
+    let answerRaw = '';
     const ansMatch = body.match(/Answer\s*:\s*([A-Z](?:\s*&\s*[A-Z]|(?:\s*[,/]\s*[A-Z]))*)/i);
-    if (ansMatch) {
-      answerRaw = ansMatch[1].toUpperCase();
-      body = body.replace(ansMatch[0], '').trim();
-    }
+    if (ansMatch) { answerRaw = ansMatch[1].toUpperCase(); body = body.replace(ansMatch[0],'').trim(); }
 
-    // Collect options A) … Z) lines (allow multi-line options)
-    // We’ll split on lines that *start* with X) and keep text until the next option or end.
-    const optRegex = /^([A-Z])\)\s*(.*)$/gm;
-    const opts = [];
-    let lastIndex = 0, match;
     const lines = body.split('\n');
-
-    // Find all indices where a choice begins
     const starts = [];
     for (let i=0;i<lines.length;i++){
       const mm = lines[i].match(/^([A-Z])\)\s*(.*)$/);
       if (mm) starts.push(i);
     }
-    // If no explicit A)/B) found, try fallback “A ” (bare letter + space) form
     if (!starts.length){
       for (let i=0;i<lines.length;i++){
         const mm = lines[i].match(/^([A-Z])\s{2,}(.*)$/);
         if (mm) starts.push(i);
       }
     }
-
-    // Stem is everything before first option start
     const firstStart = starts.length ? starts[0] : lines.length;
     const stem = lines.slice(0, firstStart).join('\n').trim();
-
-    // Build options by slicing between start indices
+    const opts = [];
     for (let k=0;k<starts.length;k++){
       const start = starts[k];
       const end = (k+1<starts.length) ? starts[k+1] : lines.length;
@@ -250,63 +347,359 @@ function parseMCQs(raw){
         .concat(lines.slice(start+1,end)).join('\n').trim();
       if (tag) opts.push({ tag, text: textChunk });
     }
-
-    // If options still empty, skip this block
     if (!opts.length) continue;
-
-    // Parse answers into array of letters
     let answers = [];
     if (answerRaw){
-      answers = answerRaw
-        .split(/[,/&]/).map(s=>s.trim()).filter(Boolean);
-      // Also handle “D & E” joined by ampersand with spaces
-      answers = answers.flatMap(s => s.split(/\s*&\s*/));
+      answers = answerRaw.split(/[,/&]/).map(s=>s.trim()).filter(Boolean);
+      answers = answers.flatMap(s=>s.split(/\s*&\s*/));
       answers = [...new Set(answers.map(s=>s.replace(/[^A-Z]/g,'')))].filter(Boolean);
-      // Sanity: keep only those that exist as options
       const valid = new Set(opts.map(o=>o.tag));
-      answers = answers.filter(a => valid.has(a));
+      answers = answers.filter(a=>valid.has(a));
     }
-
-    questions.push({ number: +mQ[1], stem, options: opts, answers, explanation });
+    questions.push({ stem, options:opts, answers, explanation });
   }
-
-  // Sort by detected number, then re-index
-  questions.sort((a,b)=>a.number-b.number);
   return { questions };
 }
 
-/* ---- RENDER ---- */
-function renderExam(set){
+/* ============ PREVIEW PARSE ============ */
+function previewParse(){
+  const set = parseMCQs(mcqArea.value);
+  alert(`Parsed ${set.questions.length} questions`);
+}
+
+/* ============ START EXAM FLOW ============ */
+function startExamFlow(){
+  let set = parseMCQs(mcqArea.value);
+  if (!set.questions.length){
+    alert("No well-formed questions found.\nKeep the pattern:\nQ1: Stem\nA) option\n...\nAnswer: B or Answer: D & E");
+    return;
+  }
+
+  // limit & shuffle
+  let qs = structuredClone(set.questions);
+  if (shuffleQEl.checked) qs = shuffle(qs);
+  if (+maxQEl.value>0) qs = qs.slice(0, +maxQEl.value);
+  if (shuffleAEl.checked){
+    for (const q of qs) q.options = shuffle(q.options);
+  }
+  QUESTIONS = qs;
+
+  ATTEMPT = QUESTIONS.map(q=>new Set());
+  FLAGS = new Set();
+  REVIEW = allowReviewEl.checked; // allow live review (else keep false)
+  document.getElementById('reviewToggle').textContent = `Review Mode: ${REVIEW?'ON':'OFF'}`;
+
+  // timer
+  LIMIT_MS = Math.max(0, +minutesEl.value|0) * 60000;
+  START_TIME = Date.now();
+  if (TIMER_ID){ clearInterval(TIMER_ID); TIMER_ID = null; }
+  if (LIMIT_MS>0){
+    timerEl.classList.remove('hidden');
+    TIMER_ID = setInterval(tick, 500);
+  }else{
+    timerEl.classList.add('hidden');
+  }
+
+  // render
+  renderExam();
+  // show UI
+  document.getElementById('editorCard').classList.add('hidden');
+  examWrap.classList.remove('hidden');
+  resultCard.classList.add('hidden');
+  document.getElementById('tags').textContent = 'Attempt mode';
+  updateProgress();
+}
+
+/* ============ RENDER EXAM ============ */
+function renderExam(){
   examEl.innerHTML = '';
-  let n = 0;
-  for (const q of set.questions){
-    n++;
+  navEl.innerHTML = '';
+  for (let i=0;i<QUESTIONS.length;i++){
+    const q = QUESTIONS[i];
     const wrap = document.createElement('div');
     wrap.className = 'q';
+    wrap.dataset.index = i;
+
     const h = document.createElement('h3');
-    h.textContent = `Q${n}: ${q.stem}`;
+    h.textContent = `Q${i+1}: ${q.stem}`;
     wrap.appendChild(h);
 
+    const meta = document.createElement('div');
+    meta.className = 'meta';
+    const mark = document.createElement('button');
+    mark.className = 'flag';
+    mark.textContent = '★ Flag';
+    mark.onclick = ()=>{
+      if (FLAGS.has(i)) FLAGS.delete(i); else FLAGS.add(i);
+      syncNav();
+    };
+    meta.appendChild(mark);
+    wrap.appendChild(meta);
+
     const correct = new Set(q.answers);
+    const multi = (q.answers && q.answers.length>1);
     for (const opt of q.options){
-      const div = document.createElement('label');
-      div.className = 'opt' + (correct.has(opt.tag) ? ' correct':'');
-      div.innerHTML = `<strong>${opt.tag})</strong> ${escapeHtml(opt.text)}`;
-      wrap.appendChild(div);
+      const label = document.createElement('label');
+      label.className = 'opt';
+      label.dataset.tag = opt.tag;
+      const input = document.createElement('input');
+      input.type = multi ? 'checkbox' : 'radio';
+      input.name = 'q'+i;
+      input.value = opt.tag;
+      input.checked = ATTEMPT[i].has(opt.tag);
+      input.onchange = ()=>{
+        if (multi){
+          if (input.checked) ATTEMPT[i].add(opt.tag);
+          else ATTEMPT[i].delete(opt.tag);
+        }else{
+          ATTEMPT[i].clear();
+          if (input.checked) ATTEMPT[i].add(opt.tag);
+        }
+        if (REVIEW){ revealOne(i); }
+        updateProgress();
+        syncNav();
+        autosaveSoon();
+      };
+      label.appendChild(input);
+      const strong = document.createElement('strong');
+      strong.textContent = `${opt.tag}) `;
+      label.appendChild(strong);
+      label.appendChild(document.createTextNode(opt.text));
+      // mark for later reveal
+      if (correct.has(opt.tag)) label.classList.add('correct');
+      else label.classList.add('incorrect');
+      wrap.appendChild(label);
     }
+
     if (q.explanation){
       const ex = document.createElement('div');
       ex.className = 'explain';
       ex.textContent = 'Explanation: ' + q.explanation;
+      ex.style.display = 'none'; // hidden until review/submission
       wrap.appendChild(ex);
     }
+
     examEl.appendChild(wrap);
+
+    // nav button
+    const b = document.createElement('button');
+    b.textContent = (i+1);
+    b.onclick = ()=>wrap.scrollIntoView({behavior:'smooth',block:'start'});
+    navEl.appendChild(b);
   }
-  countEl.textContent = `${set.questions.length} questions parsed`;
+  syncNav();
 }
 
-/* ---- UTIL ---- */
-function status(msg){ statusEl.textContent = msg; }
+/* ============ INTERACTION HELPERS ============ */
+function revealOne(i){
+  const node = examEl.querySelector(`.q[data-index="${i}"]`);
+  if (!node) return;
+  node.querySelectorAll('.opt').forEach(opt=>{
+    const tag = opt.dataset.tag;
+    const selected = ATTEMPT[i].has(tag);
+    opt.classList.add('revealed');
+    // keep visual emphasis
+    if (selected) opt.style.outline = '2px solid #4c8';
+    else opt.style.outline = '';
+  });
+  const ex = node.querySelector('.explain');
+  if (ex && showExplAfterEl.checked) ex.style.display = '';
+}
+function hideAllReveal(){
+  examEl.querySelectorAll('.opt').forEach(opt=>{
+    opt.classList.remove('revealed');
+    opt.style.outline = '';
+  });
+  examEl.querySelectorAll('.explain').forEach(ex=>ex.style.display='none');
+}
+function updateReveal(){
+  if (REVIEW){
+    for (let i=0;i<QUESTIONS.length;i++) revealOne(i);
+  }else{
+    hideAllReveal();
+  }
+}
+function updateProgress(){
+  const answered = ATTEMPT.filter(s=>s.size>0).length;
+  const pct = Math.round(answered/QUESTIONS.length*100);
+  answeredCountEl.textContent = `${answered} answered`;
+  unansweredEl.textContent = `Unanswered: ${QUESTIONS.length - answered}`;
+  barEl.style.width = pct + '%';
+  pctEl.textContent = pct + '%';
+}
+function syncNav(){
+  const nodes = [...navEl.children];
+  for (let i=0;i<nodes.length;i++){
+    const b = nodes[i];
+    const done = ATTEMPT[i].size>0;
+    b.classList.toggle('done', done);
+    b.classList.toggle('flagged', FLAGS.has(i));
+  }
+}
+function jumpToUnanswered(){
+  for (let i=0;i<QUESTIONS.length;i++){
+    if (ATTEMPT[i].size===0){
+      examEl.querySelector(`.q[data-index="${i}"]`).scrollIntoView({behavior:'smooth',block:'start'});
+      return;
+    }
+  }
+  alert('All questions answered 🎉');
+}
+
+/* ============ SUBMIT ============ */
+function submitExam(){
+  if (!confirm('Submit now? You will enter review mode.')) return;
+  if (TIMER_ID){ clearInterval(TIMER_ID); TIMER_ID=null; }
+  const usedMs = Date.now() - START_TIME;
+  const res = grade();
+  scorelineEl.textContent = `Score: ${res.correct} / ${QUESTIONS.length} (${Math.round(res.correct/QUESTIONS.length*100)}%)`;
+  timeUsedEl.textContent = `Time used: ${formatMs(usedMs)}` + (LIMIT_MS?` | Limit: ${formatMs(LIMIT_MS)}`:'');
+  resultCard.classList.remove('hidden');
+  REVIEW = true;
+  updateReveal();
+  document.getElementById('tags').textContent='Review mode';
+  saveLocal(); // store last attempt + result
+  window.scrollTo({top:resultCard.offsetTop - 12, behavior:'smooth'});
+}
+function grade(){
+  let correct = 0;
+  for (let i=0;i<QUESTIONS.length;i++){
+    const expect = new Set(QUESTIONS[i].answers);
+    const got = ATTEMPT[i];
+    if (setEq(expect, got)) correct++;
+  }
+  return { correct };
+}
+function setEq(a,b){
+  if (a.size!==b.size) return false;
+  for (const v of a) if (!b.has(v)) return false;
+  return true;
+}
+
+/* ============ RETAKE / EXPORT REPORT ============ */
+function retake(shuffleAll){
+  if (shuffleAll){
+    QUESTIONS = shuffle(QUESTIONS).map(q=>({ ...q, options: shuffle(q.options) }));
+  }
+  ATTEMPT = QUESTIONS.map(q=>new Set());
+  FLAGS.clear();
+  REVIEW = allowReviewEl.checked;
+  document.getElementById('reviewToggle').textContent = `Review Mode: ${REVIEW?'ON':'OFF'}`;
+  START_TIME = Date.now();
+  if (TIMER_ID){ clearInterval(TIMER_ID); }
+  if (LIMIT_MS>0){
+    timerEl.classList.remove('hidden');
+    TIMER_ID = setInterval(tick, 500);
+  }else{
+    timerEl.classList.add('hidden');
+  }
+  renderExam();
+  resultCard.classList.add('hidden');
+  updateProgress();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function exportReport(){
+  const report = {
+    createdAt: new Date().toISOString(),
+    settings: {
+      shuffleQ: shuffleQEl.checked,
+      shuffleA: shuffleAEl.checked,
+      timeLimitMin: +minutesEl.value|0
+    },
+    questions: QUESTIONS.map((q,i)=>({
+      index: i,
+      stem: q.stem,
+      options: q.options,
+      answers: q.answers,
+      chosen: [...ATTEMPT[i]]
+    }))
+  };
+  download('attempt_report.json', JSON.stringify(report, null, 2));
+}
+
+/* ============ TIMER / AUTOSAVE ============ */
+function tick(){
+  const elapsed = Date.now() - START_TIME;
+  const remain = Math.max(0, LIMIT_MS - elapsed);
+  timerEl.textContent = formatMs(remain);
+  if (remain===0){
+    clearInterval(TIMER_ID); TIMER_ID=null;
+    alert('Time up! Submitting…');
+    submitExam();
+  }
+}
+function formatMs(ms){
+  const s = Math.round(ms/1000);
+  const m = Math.floor(s/60), ss = s%60;
+  const hh = Math.floor(m/60), mm = m%60;
+  return (hh? String(hh).padStart(2,'0')+':':'') + String(mm).padStart(2,'0') + ':' + String(ss).padStart(2,'0');
+}
+let autosaveTimer=null;
+function autosaveSoon(){
+  if (autosaveTimer) return;
+  autosaveTimer = setTimeout(()=>{ autosaveTimer=null; saveLocal(); }, 10000);
+}
+function saveLocal(){
+  const payload = {
+    QUESTIONS, ATTEMPT: ATTEMPT.map(s=>[...s]), FLAGS:[...FLAGS],
+    START_TIME, LIMIT_MS, REVIEW,
+    ts: Date.now()
+  };
+  localStorage.setItem('SEP_ATTEMPT', JSON.stringify(payload));
+}
+function restoreLocal(){
+  const raw = localStorage.getItem('SEP_ATTEMPT');
+  if (!raw){ alert('No saved attempt'); return; }
+  try{
+    const p = JSON.parse(raw);
+    QUESTIONS = p.QUESTIONS;
+    ATTEMPT = p.ATTEMPT.map(arr=>new Set(arr));
+    FLAGS = new Set(p.FLAGS);
+    START_TIME = p.START_TIME || Date.now();
+    LIMIT_MS = p.LIMIT_MS || 0;
+    REVIEW = !!p.REVIEW;
+    if (TIMER_ID){ clearInterval(TIMER_ID); }
+    if (LIMIT_MS>0){
+      timerEl.classList.remove('hidden');
+      TIMER_ID = setInterval(tick, 500);
+    }else{
+      timerEl.classList.add('hidden');
+    }
+    renderExam();
+    document.getElementById('editorCard').classList.add('hidden');
+    examWrap.classList.remove('hidden');
+    resultCard.classList.add('hidden');
+    updateProgress();
+    updateReveal();
+    document.getElementById('reviewToggle').textContent = `Review Mode: ${REVIEW?'ON':'OFF'}`;
+    document.getElementById('tags').textContent = REVIEW?'Review mode':'Attempt mode';
+  }catch(err){ alert('Restore failed: ' + err.message); }
+}
+
+/* ============ REVIEW TOGGLE / NAV ============ */
+function toggleReview(){
+  REVIEW = !REVIEW;
+  document.getElementById('reviewToggle').textContent = `Review Mode: ${REVIEW?'ON':'OFF'}`;
+  document.getElementById('tags').textContent = REVIEW?'Review mode':'Attempt mode';
+  updateReveal();
+}
+
+/* ============ UTILITIES ============ */
+function goEditor(){
+  if (TIMER_ID){ clearInterval(TIMER_ID); TIMER_ID=null; }
+  examWrap.classList.add('hidden');
+  resultCard.classList.add('hidden');
+  document.getElementById('editorCard').classList.remove('hidden');
+  hideAllReveal();
+}
+function shuffle(arr){
+  const a = arr.slice();
+  for (let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
+  }
+  return a;
+}
 function download(name, data){
   const blob = new Blob([data], {type:'application/json'});
   const url = URL.createObjectURL(blob);
@@ -314,7 +707,50 @@ function download(name, data){
   a.href = url; a.download = name; a.click();
   URL.revokeObjectURL(url);
 }
-function escapeHtml(s){ return s.replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])); }
+function toPlain(qs){
+  return qs.map((q,i)=>[
+    `Q${i+1}: ${q.stem}`,
+    ...q.options.map(o=>`${o.tag}) ${o.text}`),
+    q.answers?.length?`Answer: ${q.answers.join(' & ')}`:'',
+    q.explanation?`Explanation: ${q.explanation}`:''
+  ].filter(Boolean).join('\n')).join('\n\n');
+}
+
+/* Keyboard shortcuts */
+document.addEventListener('keydown', (e)=>{
+  if (examWrap.classList.contains('hidden')) return;
+  const visible = getVisibleQuestionIndex();
+  if (e.key==='j' || e.key==='J'){ focusQuestion(Math.min(QUESTIONS.length-1, visible+1)); }
+  if (e.key==='k' || e.key==='K'){ focusQuestion(Math.max(0, visible-1)); }
+  if (e.key==='f' || e.key==='F'){ if (visible>=0){ if (FLAGS.has(visible)) FLAGS.delete(visible); else FLAGS.add(visible); syncNav(); } }
+  // numeric keys 1..9 select option
+  if (/^[1-9]$/.test(e.key) && visible>=0){
+    const node = examEl.querySelector(`.q[data-index="${visible}"]`);
+    const opts = node.querySelectorAll('.opt input');
+    const idx = +e.key - 1;
+    if (opts[idx]){
+      if (opts[idx].type==='radio'){ opts[idx].checked = true; opts[idx].dispatchEvent(new Event('change')); }
+      else{ opts[idx].checked = !opts[idx].checked; opts[idx].dispatchEvent(new Event('change')); }
+    }
+  }
+});
+function getVisibleQuestionIndex(){
+  const nodes = examEl.querySelectorAll('.q');
+  let topIdx = -1, topDist = Infinity;
+  nodes.forEach(n=>{
+    const rect = n.getBoundingClientRect();
+    const d = Math.abs(rect.top);
+    if (d<topDist){ topDist=d; topIdx=+n.dataset.index; }
+  });
+  return topIdx;
+}
+function focusQuestion(i){
+  const node = examEl.querySelector(`.q[data-index="${i}"]`);
+  if (node) node.scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+/* ============ INITIAL ============ */
+function status(msg){ statusEl.textContent = msg; }
 </script>
 </body>
 </html>
