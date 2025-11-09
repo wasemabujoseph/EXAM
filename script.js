@@ -1,5 +1,6 @@
-// Smart Exam Pro — robust parse (A–Z), import (.txt/.docx/.pdf), option-level result view,
-// export PDF (all/wrong-only, with/without answers), and PDF re-import via embedded payload.
+// Smart Exam Pro — robust parser (line-based A–Z), import (.txt/.docx/.pdf),
+// detailed per-option results, export PDF (all/wrong-only; with/without answers),
+// and reliable PDF re-import with embedded payload.
 
 const els = {
   // sections
@@ -66,7 +67,7 @@ els.themeToggle.addEventListener("click", () => {
 })();
 
 // state
-let mcqData = [];          // [{question, options: [{letter,text}], answer, explanation}]
+let mcqData = [];          // [{question, options:[{letter,text}], answer, explanation}]
 let lastResults = null;    // graded results
 
 // flow: student -> input
@@ -92,10 +93,8 @@ els.fileInput.addEventListener("change", async (e) => {
   els.importStatus.textContent = `Reading ${file.name}…`;
   try {
     const text = await readFileAsTextSmart(file);
-    // If our own PDF, it contains embedded payload markers → reconstruct exam directly
     const payload = tryExtractEmbeddedPayload(text);
     if (payload) {
-      // rebuild MCQ in textarea for user review and allow regenerate
       els.mcqInput.value = buildMCQTextFromPayload(payload);
       els.importStatus.textContent = `Imported ${file.name} (recognized Smart Exam Pro format).`;
     } else {
@@ -107,25 +106,22 @@ els.fileInput.addEventListener("change", async (e) => {
     els.importStatus.textContent = "Import failed. Try a .txt, .docx, or .pdf formatted with MCQs.";
     alert("Sorry, that file couldn't be imported. Make sure it contains text MCQs.");
   } finally {
-    e.target.value = ""; // reset for subsequent imports of same filename
+    e.target.value = ""; // reset
   }
 });
 
 async function readFileAsTextSmart(file) {
   const name = file.name.toLowerCase();
   const type = file.type || "";
-  // Plain text
   if (type.startsWith("text/") || name.endsWith(".txt")) {
     return await file.text();
   }
-  // DOCX via Mammoth (raw text keeps structure best)
   if (name.endsWith(".docx") ||
       type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
     const arrayBuffer = await file.arrayBuffer();
     const result = await window.mammoth.extractRawText({ arrayBuffer });
     return (result && result.value) ? normalizeWhitespace(result.value) : "";
   }
-  // PDF via PDF.js (concatenate page text)
   if (name.endsWith(".pdf") || type === "application/pdf") {
     const arrayBuffer = await file.arrayBuffer();
     const loadingTask = window.pdfjsLib.getDocument({ data: arrayBuffer });
@@ -143,8 +139,10 @@ async function readFileAsTextSmart(file) {
 }
 
 function normalizeWhitespace(s) {
-  // PDFs/DOCX often add erratic spacing. Preserve line breaks where they clearly delimit blocks.
-  return s.replace(/\r/g, "").replace(/[ \t]+\n/g, "\n").replace(/[ \t]{2,}/g, " ");
+  return s
+    .replace(/\r/g, "")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/[ \t]{2,}/g, " ");
 }
 
 // generate exam
@@ -231,10 +229,7 @@ els.exportBtn.addEventListener("click", async () => {
 
   const selected = scope === "wrong" ? lastResults.filter(r => !r.isCorrect) : lastResults.slice();
 
-  // Build text in our canonical importable format
   const text = buildExportText(selected, includeAnswers);
-
-  // Build embedded payload for perfect re-import
   const payload = {
     version: 1,
     student: els.studentName.value.trim(),
@@ -254,7 +249,7 @@ els.exportBtn.addEventListener("click", async () => {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ unit: "pt", format: "a4" });
     const margin = 48;
-    const maxWidth = 515; // ~A4 width - 2*margin
+    const maxWidth = 515;
 
     const lines = doc.splitTextToSize(embedded, maxWidth);
     let y = margin;
@@ -289,7 +284,6 @@ function renderExam(questions) {
     const wrap = document.createElement("div");
     wrap.className = "question";
 
-    // Question line (safe)
     const p = document.createElement("p");
     const strong = document.createElement("strong");
     strong.textContent = `Q${i + 1}: `;
@@ -297,7 +291,6 @@ function renderExam(questions) {
     p.appendChild(document.createTextNode(q.question));
     wrap.appendChild(p);
 
-    // Options (safe) – radio list
     q.options.forEach(opt => {
       const letter = (opt.letter || "").toUpperCase();
       const id = `q${i}_${letter}`;
@@ -320,7 +313,6 @@ function renderExam(questions) {
     els.examForm.appendChild(wrap);
   });
 
-  // progress as they answer (once per render)
   els.examForm.addEventListener("change", () => {
     const total = questions.length;
     const answered = Array
@@ -330,22 +322,19 @@ function renderExam(questions) {
   }, { once: true });
 }
 
-// Detailed results view with per-option badges
+// Detailed results with per-option badges
 function showResults(results, percent) {
-  // ring progress
   const deg = Math.round((percent / 100) * 360);
   els.scoreRing.style.background =
     `conic-gradient(var(--accent) ${deg}deg, var(--ring-bg) 0deg)`;
   els.scorePercent.textContent = `${percent}%`;
 
-  // meta
   els.studentNameResult.textContent = els.studentName.value.trim();
   els.qCount.textContent = results.length;
   const correct = results.filter(r => r.isCorrect).length;
   els.qCorrect.textContent = correct;
   els.qWrong.textContent = results.length - correct;
 
-  // details
   els.analysis.innerHTML = "";
   results.forEach((r, i) => {
     const block = document.createElement("div");
@@ -358,7 +347,6 @@ function showResults(results, percent) {
     qp.appendChild(document.createTextNode(r.question));
     block.appendChild(qp);
 
-    // options listing with status badges
     const ul = document.createElement("div");
     r.options.forEach(opt => {
       const row = document.createElement("div");
@@ -397,7 +385,7 @@ function showResults(results, percent) {
     const ansSpan = document.createElement("span");
     ansSpan.className = r.isCorrect ? "result-correct" : "result-wrong";
     ansSpan.textContent = r.isCorrect ? " ✔ Correct" : " ✘ Wrong";
-    ap.appendChild(document.createTextNode(`Correct Answer: ${r.answer} `));
+    ap.appendChild(document.createTextNode(`Correct Answer: ${r.answer || "—"} `));
     ap.appendChild(ansSpan);
     block.appendChild(ap);
 
@@ -417,41 +405,29 @@ function showResults(results, percent) {
   toggle(els.resultSection, true);
 }
 
-/* ========== Parsing ==========
+/* =========================
+   PARSING (line-based, robust)
+   ========================= */
 
-We parse in two passes:
-
-1) Split the whole text into question blocks starting at /^Q\d+:/ (case-insensitive).
-2) Inside each block, extract options by finding sequences like:
-   A) ..., B) ..., up to Z) ..., allowing messy line wraps from DOCX/PDF.
-   We also accept A. or (A) styles.
-3) Extract Answer: <letter> (first A–Z) and optional Explanation: (multi-line).
-
-This survives long exams and odd spacing, and does not require exactly 4 options.
-*/
 function parseMCQs(text) {
   const normalized = text.replace(/\r/g, "");
-  const qSplits = splitQuestions(normalized);
+  const blocks = splitQuestions(normalized);
   const questions = [];
 
-  qSplits.forEach((blk) => {
-    const q = extractQuestion(blk);
+  for (const blk of blocks) {
+    const q = parseQuestionBlock(blk);
     if (q && q.question && q.options.length >= 2) {
-      // Validate answer if present
-      const letters = q.options.map(o => o.letter);
-      if (q.answer && !letters.includes(q.answer)) {
-        // If answer not among options, keep question but blank out answer (user can still practice)
-        q.answer = "";
-      }
+      // ensure answer is among options if provided
+      const letters = new Set(q.options.map(o => o.letter));
+      if (q.answer && !letters.has(q.answer)) q.answer = "";
       questions.push(q);
     }
-  });
-
+  }
   return questions;
 }
 
 function splitQuestions(text) {
-  // Keep the leading Q-number on each block
+  // Keep "Qn:" line with block
   const re = /(^|\n)(Q\d+\s*:)/ig;
   const idxs = [];
   let m;
@@ -467,65 +443,106 @@ function splitQuestions(text) {
   return blocks;
 }
 
-function extractQuestion(block) {
-  // Get the stem after Qn:
-  const stem = block.replace(/^Q\d+\s*:\s*/i, "");
-  // Split off "Answer:" and "Explanation:" anchors (keep text)
-  const answerMatch = /(^|\n)Answer\s*:\s*([A-Za-z])/i.exec(stem);
-  const explanationMatch = /(^|\n)Explanation\s*:\s*/i.exec(stem);
+function parseQuestionBlock(block) {
+  // Split to lines and work line-by-line (handles DOCX/PDF wraps)
+  const lines = block.split("\n").map(l => l.replace(/\t/g, " ").trim());
+  if (!lines.length) return null;
 
-  // For options: run a global regex that finds A)/A./(A) and captures until next label or Answer/Explanation/new Q
-  const opts = [];
-  const optRe = /(?:^|\n|\s)(?:\(?([A-Z])\)?[.)]\s*)([\s\S]*?)(?=(?:\(?[A-Z]\)?[.)]\s)|(?:\nAnswer\s*:)|(?:\nExplanation\s*:)|(?:\nQ\d+\s*:)|$)/g;
-  // Only consider letters A–Z and ignore accidental labels after the answer section
-  let region = stem;
-  if (answerMatch) region = region.slice(0, answerMatch.index);
-  if (explanationMatch && (!answerMatch || explanationMatch.index < answerMatch.index))
-    region = region.slice(0, explanationMatch.index);
+  // first line must start with Qn:
+  const first = lines[0];
+  const qHead = first.replace(/^Q\d+\s*:\s*/i, "").trim();
 
-  let mo;
-  while ((mo = optRe.exec(region)) !== null) {
-    const letter = (mo[1] || "").toUpperCase();
-    const text = collapse(mo[2] || "");
-    if (letter && text) {
-      opts.push({ letter, text });
+  // markers
+  const isOptionStart = (s) => /^\(?([A-Z])\)?[.)]\s*/.test(s);
+  const getOptionLetter = (s) => {
+    const m = s.match(/^\(?([A-Z])\)?[.)]\s*/);
+    return m ? m[1].toUpperCase() : "";
+  };
+  const stripOptionPrefix = (s) => s.replace(/^\(?[A-Z]\)?[.)]\s*/, "");
+
+  const isAnswer = (s) => /^Answer\s*:/i.test(s);
+  const isExplanation = (s) => /^Explanation\s*:/i.test(s);
+  const isNextQ = (s) => /^Q\d+\s*:/i.test(s);
+
+  // find first option line index
+  let i = 1;
+  while (i < lines.length && !isOptionStart(lines[i]) && !isAnswer(lines[i]) && !isExplanation(lines[i])) i++;
+
+  // question stem is: if qHead present use it; otherwise gather lines[1..i-1]
+  let questionStem = qHead || "";
+  if (!questionStem) {
+    questionStem = lines.slice(1, i).filter(Boolean).join(" ").trim();
+  }
+
+  // collect options
+  const options = [];
+  while (i < lines.length && isOptionStart(lines[i])) {
+    let letter = getOptionLetter(lines[i]);
+    let text = stripOptionPrefix(lines[i]).trim();
+
+    // accumulate wrapped lines until next option/Answer/Explanation/next Q or EOF
+    let j = i + 1;
+    const buf = [];
+    while (j < lines.length &&
+           !isOptionStart(lines[j]) &&
+           !isAnswer(lines[j]) &&
+           !isExplanation(lines[j]) &&
+           !isNextQ(lines[j])) {
+      if (lines[j]) buf.push(lines[j]);
+      j++;
     }
+    if (buf.length) text = `${text} ${buf.join(" ")}`.trim();
+
+    options.push({ letter, text });
+    i = j;
   }
 
-  // Determine answer letter
-  let ans = "";
-  if (answerMatch) {
-    ans = (answerMatch[2] || "").toUpperCase();
+  // read Answer (single letter A–Z if present)
+  let answer = "";
+  let explanation = "";
+  // scan remainder for Answer/Explanation
+  while (i < lines.length) {
+    const line = lines[i];
+    if (isAnswer(line)) {
+      const m = line.match(/^Answer\s*:\s*([A-Za-z])/i);
+      if (m) answer = m[1].toUpperCase();
+    } else if (isExplanation(line)) {
+      // explanation can span multiple lines until next Q block (but blocks already split)
+      explanation = line.replace(/^Explanation\s*:\s*/i, "").trim();
+      let k = i + 1;
+      const extra = [];
+      while (k < lines.length && !isNextQ(lines[k])) {
+        if (lines[k]) extra.push(lines[k]);
+        k++;
+      }
+      if (extra.length) explanation = `${explanation} ${extra.join(" ")}`.trim();
+      break; // explanation last
+    }
+    i++;
   }
 
-  // Explanation (multi-line)
-  let expl = "";
-  if (explanationMatch) {
-    const start = explanationMatch.index + explanationMatch[0].length;
-    expl = collapse(stem.slice(start));
+  // fallback: if still no options but T/F lines exist without labels
+  if (options.length === 0) {
+    const tf = guessTFOptions(lines.slice(1).join("\n"));
+    if (tf.length) options.push(...tf);
   }
 
   return {
-    question: collapse(stem.split(/\n/)[0]).replace(/^[A-Z]\)\s*.*$/,'').trim() || collapse(stem).split(/\n/)[0].trim(),
-    options: opts.length ? opts : guessTFOptions(stem), // fallback for True/False lines without labels
-    answer: ans,
-    explanation: expl
+    question: questionStem || qHead || "(untitled question)",
+    options,
+    answer,
+    explanation
   };
 }
 
-function collapse(s) {
-  return s.replace(/[ \t]+/g, " ").replace(/\n{3,}/g, "\n\n").trim();
-}
-
 function guessTFOptions(stem) {
-  // Fallback if no labeled options found but we see 'true'/'false' options on their own lines
   const lines = stem.split("\n").map(l => l.trim()).filter(Boolean);
-  const tf = [];
-  lines.forEach(l => {
-    if (/^true$/i.test(l)) tf.push({ letter: "A", text: "true" });
-    if (/^false$/i.test(l)) tf.push({ letter: tf.length ? "B" : "A", text: "false" });
-  });
-  return tf;
+  const out = [];
+  for (const l of lines) {
+    if (/^true$/i.test(l)) out.push({ letter: out.length ? "B" : "A", text: "true" });
+    if (/^false$/i.test(l)) out.push({ letter: out.length ? "B" : "A", text: "false" });
+  }
+  return out;
 }
 
 /* ===== Export / Import of our own PDFs ===== */
@@ -534,7 +551,6 @@ const PAYLOAD_START = "%%SEP_PAYLOAD_START%%";
 const PAYLOAD_END   = "%%SEP_PAYLOAD_END%%";
 
 function buildExportText(selected, includeAnswers) {
-  // Build in canonical, import-friendly format
   let out = "";
   selected.forEach((q, idx) => {
     out += `Q${idx + 1}: ${q.question}\n`;
@@ -549,7 +565,6 @@ function buildExportText(selected, includeAnswers) {
 }
 
 function embedPayload(humanText, payloadObj) {
-  // Embed a base64 JSON payload delimited by markers for reliable re-import from PDF text layer
   const json = JSON.stringify(payloadObj);
   const b64 = btoa(unescape(encodeURIComponent(json)));
   return humanText
