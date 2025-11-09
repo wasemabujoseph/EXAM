@@ -5,19 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Smart Exam Pro</title>
   <link rel="stylesheet" href="style.css"/>
-
-  <!-- File import libs -->
-  <script src="https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@4.7.76/build/pdf.min.js"></script>
-  <script>
-    if (window.pdfjsLib) {
-      pdfjsLib.GlobalWorkerOptions.workerSrc =
-        "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.7.76/build/pdf.worker.min.js";
-    }
-  </script>
-
-  <!-- PDF export lib -->
-  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 </head>
 <body>
   <header class="navbar">
@@ -26,6 +13,14 @@
       <span>Smart Exam Pro</span>
     </div>
     <div class="actions">
+      <input id="file-input" type="file" accept=".txt,.doc,.docx,.pdf,.sep,.json" hidden />
+      <button id="import-btn" class="icon-btn" title="Import MCQs">📥</button>
+      <button id="export-all-pdf-btn" class="icon-btn" title="Export results (all)">🖨️</button>
+      <button id="export-wrong-pdf-btn" class="icon-btn" title="Export wrong-only">🧾</button>
+      <label class="checkbox sm" title="Show corrections in export">
+        <input id="export-corrections" type="checkbox" checked />
+        <span>Corrections</span>
+      </label>
       <button id="theme-toggle" class="icon-btn" title="Toggle theme">🌗</button>
     </div>
   </header>
@@ -43,41 +38,33 @@
           <input id="student-id" type="text" placeholder="e.g., waseem@example.com or 2025-0012" />
         </label>
       </div>
-      <button id="continue-btn" class="primary-btn">Continue</button>
-    </section>
-
-    <!-- Input -->
-    <section id="input-section" class="card hidden fade-in">
-      <h2>📄 Create Your Exam</h2>
-      <p>Paste MCQs in this format or use “Import from file”. Unlimited options (A–Z) are OK.</p>
-      <pre class="format-example">
-Q1: What does HTML stand for?
-A) Hyperlinks and Text Markup Language
-B) Hyper Text Markup Language
-C) Home Tool Markup Language
-D) Hyperlinking Textual Management Language
-E) (Optional extra option)
-Answer: B
-Explanation: Short explanation here.
-      </pre>
-
-      <div class="row" style="gap:8px;flex-wrap:wrap">
-        <input id="file-input" type="file"
-               accept=".txt,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/pdf"
-               hidden />
-        <button id="import-btn" class="secondary-btn" type="button">Import from file (.txt / .docx / .pdf)</button>
-        <span id="import-status" class="muted" aria-live="polite"></span>
-      </div>
-
-      <textarea id="mcq-input" placeholder="Paste your MCQs here..."></textarea>
-
       <div class="row">
         <label class="checkbox">
           <input id="save-locally" type="checkbox" checked />
           <span>Remember my name and theme on this device</span>
         </label>
       </div>
-      <button id="generate-btn" class="primary-btn" type="button">Generate Exam</button>
+      <button id="continue-btn" class="primary-btn">Continue</button>
+    </section>
+
+    <!-- Input -->
+    <section id="input-section" class="card hidden fade-in">
+      <h2>📄Create Your Exam</h2>
+      <p>Paste MCQs (any number of options A–Z). Answers can be <code>Answer: B</code> or <code>Answer: D & E</code>.</p>
+      <pre class="format-example">
+Q1: What does HTML stand for?
+A) Hyperlinks and Text Markup Language
+B) Hyper Text Markup Language
+C) Home Tool Markup Language
+D) Hyperlinking Textual Management Language
+Answer: B
+Explanation: HTML stands for Hyper Text Markup Language, used to structure web pages.
+      </pre>
+      <textarea id="mcq-input" placeholder="Paste your MCQs or use 📥 Import..."></textarea>
+      <div class="row">
+        <button id="generate-btn" class="primary-btn">Generate Exam</button>
+        <button id="import-here-btn" class="secondary-btn">Import From File</button>
+      </div>
     </section>
 
     <!-- Exam -->
@@ -114,33 +101,8 @@ Explanation: Short explanation here.
           <div class="kv"><span>Wrong:</span><strong id="q-wrong"></strong></div>
         </div>
       </div>
-
-      <div class="card" style="margin-top:16px">
-        <h3 style="margin:0 0 8px">Export options</h3>
-        <div class="grid" style="grid-template-columns: 1fr 1fr">
-          <label>Scope
-            <select id="export-scope">
-              <option value="all">All questions</option>
-              <option value="wrong">Wrong answers only</option>
-            </select>
-          </label>
-          <label>
-            <span>Include correct answers & explanations</span>
-            <div class="row">
-              <input id="export-include-answers" type="checkbox" checked />
-              <span class="muted">If unchecked, PDF won’t reveal answers</span>
-            </div>
-          </label>
-        </div>
-        <div class="row" style="margin-top:8px">
-          <button id="export-pdf-btn" class="secondary-btn" type="button">Export Results to PDF</button>
-          <span class="muted" id="export-status" aria-live="polite"></span>
-        </div>
-      </div>
-
       <hr/>
       <div id="analysis"></div>
-
       <div class="actions-row">
         <button id="retest-wrong-btn" class="primary-btn" type="button">Retest Wrong Only</button>
         <button id="retry-btn" class="secondary-btn" type="button">Retry Full Exam</button>
