@@ -1,58 +1,68 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Smart Exam Pro</title>
 <link rel="icon" href="data:,">
-<link rel="preconnect" href="https://unpkg.com">
 <style>
-  :root { --bg:#0b1220; --panel:#111a2b; --muted:#99a3b3; --text:#e9eef7; --brand:#6ae3ff; --accent:#8b5cf6; --ok:#16a34a; --warn:#eab308; --err:#ef4444; }
-  html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font:16px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial}
-  .container{max-width:1024px;margin:24px auto;padding:0 16px}
-  .header{display:flex;align-items:center;gap:10px;margin-bottom:16px}
-  .dot{width:10px;height:10px;border-radius:50%;background:var(--brand);box-shadow:0 0 16px var(--brand)}
+  :root{
+    --bg:#0b1020; --panel:#0f1730; --panel-2:#0c142b; --stroke:#1c2b55;
+    --text:#ecf3ff; --muted:#9fb0cc; --brand:#6ae3ff; --accent:#8b5cf6; --ok:#16a34a; --warn:#f59e0b; --err:#ef4444;
+    --shadow: 0 12px 30px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.05);
+    --radius:14px;
+  }
+  [data-theme="light"]{
+    --bg:#f6f9ff; --panel:#ffffff; --panel-2:#f3f6ff; --stroke:#dfe6ff;
+    --text:#0f172a; --muted:#4b5563; --brand:#0ea5e9; --accent:#7c3aed;
+    --shadow: 0 8px 24px rgba(2,6,23,.08);
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;background:linear-gradient(160deg,var(--bg),#090f21 70%);color:var(--text);font:15.5px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Inter,Arial}
+  .container{max-width:1100px;margin:24px auto;padding:0 16px}
+  .header{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+  .logo{width:12px;height:12px;border-radius:50%;background:conic-gradient(from 160deg at 50% 50%,var(--accent),var(--brand));box-shadow:0 0 20px var(--brand)}
   h1{font-size:22px;margin:0}
-  h2{margin:0 0 10px 0}
-  .card{background:var(--panel);border:1px solid #1c2740;border-radius:14px;padding:18px;box-shadow:0 10px 25px rgba(0,0,0,.25)}
+  .chip{font-size:12px;padding:4px 8px;border:1px solid var(--stroke);border-radius:999px;background:linear-gradient(180deg,rgba(255,255,255,.04),transparent)}
   .row{display:flex;gap:12px;flex-wrap:wrap}
-  textarea{width:100%;min-height:160px;background:#0d1527;color:var(--text);border:1px solid #1b2550;border-radius:12px;padding:12px;resize:vertical}
-  .btn{cursor:pointer;border:1px solid #2a3570;background:#162044;color:#eaf3ff;border-radius:12px;padding:10px 14px}
-  .btn:hover{background:#1a284f}
+  .card{background:radial-gradient(90% 120% at 10% 5%,rgba(255,255,255,.05),transparent 40%),var(--panel); border:1px solid var(--stroke); border-radius:var(--radius); padding:18px; box-shadow:var(--shadow); backdrop-filter:saturate(130%) blur(2px)}
+  .ghost{background:transparent!important}
+  textarea{width:100%;min-height:160px;background:var(--panel-2);color:var(--text);border:1px solid var(--stroke);border-radius:12px;padding:12px;resize:vertical}
+  .btn{cursor:pointer;border:1px solid var(--stroke);background:linear-gradient(180deg,rgba(255,255,255,.06),transparent);color:var(--text);border-radius:12px;padding:10px 14px;transition:transform .08s ease, background .2s ease}
+  .btn:hover{transform:translateY(-1px)}
   .btn.primary{background-image:linear-gradient(135deg,var(--accent),#4cc9f0);border-color:transparent;color:white}
-  .btn.ghost{background:transparent;border-color:#2a3570}
+  .btn.ok{background:#10341c;border-color:#1b6a3e}
   .btn.warn{background:#3a2a05;border-color:#8b6b0f}
-  .btn.ok{background:#11331b;border-color:#1f7a41}
-  .muted{color:var(--muted);font-size:14px}
-  .toolbar{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}
-  .pill{font-size:12px;border:1px solid #2b386e;padding:2px 8px;border-radius:999px;color:#c9d6ff}
-  .hidden{display:none}
-  .hr{height:1px;background:#1b254b;margin:16px 0}
-  .q{padding:14px;border:1px solid #21305f;border-radius:12px;margin:10px 0;background:#0e1730}
+  .muted{color:var(--muted)}
+  .hr{height:1px;background:var(--stroke);margin:16px 0;opacity:.6}
+
+  .q{padding:14px;border:1px solid var(--stroke);border-radius:12px;margin:12px 0;background:var(--panel-2)}
   .q h3{margin:0 0 8px 0;font-size:16px}
-  .opt{display:block;margin:8px 0;padding:10px;border:1px solid #223264;border-radius:10px;background:#0c1530}
+  .opt{display:block;margin:8px 0;padding:10px;border:1px solid var(--stroke);border-radius:10px;background:linear-gradient(180deg,rgba(255,255,255,.02),transparent)}
   .opt input{margin-right:8px;transform:translateY(1px)}
-  .opt.correct.revealed{border-color:#1e8b4d;background:#0d1f16}
-  .opt.incorrect.revealed{border-color:#7a1f1f;background:#1a0f12}
-  .explain{margin-top:6px;color:#b9c6ff;font-size:14px}
+  .opt.correct.revealed{border-color:#1e8b4d;background:linear-gradient(180deg,rgba(22,163,74,.08),transparent)}
+  .opt.incorrect.revealed{border-color:#7a1f1f;background:linear-gradient(180deg,rgba(239,68,68,.06),transparent)}
+  .explain{margin-top:6px;color:#cdd8ff;font-size:14px}
   .meta{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:6px 0}
-  .flag{cursor:pointer;margin-left:auto;font-size:12px;border:1px dashed #40508f;padding:2px 8px;border-radius:999px}
-  .progress{height:10px;border-radius:8px;background:#0c152d;overflow:hidden}
+  .flag{cursor:pointer;margin-left:auto;font-size:12px;border:1px dashed var(--stroke);padding:2px 8px;border-radius:999px}
+  .progress{height:10px;border-radius:8px;background:rgba(255,255,255,.06);overflow:hidden}
   .progress>div{height:100%;background:linear-gradient(90deg,#6ae3ff,#8b5cf6)}
-  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
-  .side{position:sticky; top:12px; align-self:start}
-  .kbd{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;background:#0d1527;border:1px solid #1b2550;border-radius:8px;padding:2px 6px;font-size:12px}
   .navgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(44px,1fr));gap:6px}
-  .navgrid button{padding:8px;border-radius:8px;border:1px solid #25356b;background:#0f1a35;color:#eaf3ff;cursor:pointer}
-  .navgrid button.done{background:#122b1a;border-color:#215f34}
-  .navgrid button.flagged{outline:2px dashed #f59e0b}
+  .navgrid button{padding:8px;border-radius:8px;border:1px solid var(--stroke);background:linear-gradient(180deg,rgba(255,255,255,.03),transparent);color:var(--text);cursor:pointer}
+  .navgrid button.done{background:linear-gradient(180deg,rgba(16,98,60,.25),transparent);border-color:#1c5e3d}
+  .navgrid button.flagged{outline:2px dashed var(--warn)}
   .timer{font-variant-numeric:tabular-nums}
-  .kbd-help{font-size:13px}
-  .tag{font-size:12px;padding:2px 6px;border:1px solid #33407a;border-radius:6px}
-  .sticky-footer{position:sticky;bottom:0;background:linear-gradient(180deg,rgba(11,18,32,0),var(--bg) 30%);padding-top:8px}
-  .score{font-weight:600}
+  .kbd{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;background:var(--panel-2);border:1px solid var(--stroke);border-radius:8px;padding:2px 6px;font-size:12px}
+  .sticky-footer{position:sticky;bottom:0;background:linear-gradient(180deg,rgba(0,0,0,0),rgba(0,0,0,.25));padding-top:8px}
+  .score{font-weight:700}
+  .note{width:100%;min-height:60px;border-radius:10px;border:1px solid var(--stroke);background:var(--panel);color:var(--text);padding:8px}
+  .toolbar{display:flex;gap:10px;flex-wrap:wrap}
+  .switch{margin-left:auto}
+  @media (prefers-reduced-motion:no-preference){
+    .btn:active{transform:translateY(0)}
+  }
   @media print{
-    .no-print{display:none !important}
+    .no-print{display:none!important}
     body{background:white;color:black}
     .card{box-shadow:none;border:1px solid #ccc}
     .opt{border-color:#ccc;background:white}
@@ -60,20 +70,21 @@
 </style>
 </head>
 <body>
-  <div class="container">
+  <div class="container" id="app">
     <div class="header">
-      <div class="dot"></div>
+      <div class="logo" aria-hidden="true"></div>
       <h1>Smart Exam Pro</h1>
-      <span class="pill">Attempt → Submit → Review</span>
-      <span class="pill">🌗</span>
+      <span class="chip">Modern • Accessible • Fast</span>
+      <span class="chip" id="modeChip">Attempt → Submit → Review</span>
+      <button id="themeBtn" class="btn switch no-print" title="Toggle theme">🌗</button>
     </div>
 
-    <!-- ====== EDITOR / IMPORT ====== -->
+    <!-- EDITOR -->
     <div id="editorCard" class="card">
-      <h2>Create Your Exam</h2>
-      <p class="muted">Paste MCQs (A–Z options). Answers like <code>Answer: B</code> or <code>Answer: D & E</code>. Optional <code>Explanation:</code>. Or import a <b>.docx</b>, <b>.txt</b>, or <b>.md</b>.</p>
+      <h2 style="margin:0 0 6px 0">Create Your Exam</h2>
+      <p class="muted">Paste MCQs (A–Z options). Answers like <code>Answer: B</code> or <code>Answer: D & E</code>. Optional <code>Explanation:</code>. Import <b>.docx/.txt/.md</b>.</p>
 
-      <div id="example" class="card" style="background:#0d1527;border-color:#1b2550;margin:10px 0 16px 0">
+      <div class="card ghost" style="margin:8px 0 12px 0;border-style:dashed">
 Q1: What does HTML stand for?
 A) Hyperlinks and Text Markup Language
 B) Hyper Text Markup Language
@@ -84,66 +95,70 @@ Explanation: HTML stands for Hyper Text Markup Language, used to structure web p
       </div>
 
       <textarea id="mcqArea" placeholder="Paste your MCQs or use Import…"></textarea>
-
       <div class="toolbar">
         <label class="btn">
           Import From File
-          <input id="fileInput" type="file" accept=".docx,.txt,.md,.rtf" style="display:none">
+          <input id="fileInput" type="file" accept=".docx,.txt,.md,.rtf" hidden>
         </label>
         <button id="parseBtn" class="btn">Parse & Preview</button>
         <button id="startBtn" class="btn primary">Start Exam</button>
         <button id="clearBtn" class="btn">Clear</button>
-        <span class="muted" id="status"></span>
+        <span id="status" class="muted"></span>
       </div>
 
       <div class="hr"></div>
 
-      <div class="grid">
-        <div class="card" style="background:#0d1527;border-color:#1b2550">
+      <div class="row">
+        <div class="card ghost" style="flex:1;min-width:280px">
           <h3 style="margin:0 0 8px 0">Exam Settings</h3>
           <div class="row">
             <label><input type="checkbox" id="shuffleQ" checked> Shuffle questions</label>
             <label><input type="checkbox" id="shuffleA" checked> Shuffle options</label>
             <label><input type="checkbox" id="showExplAfter" checked> Show explanations after submit</label>
-            <label><input type="checkbox" id="allowReview"> Allow live review (show correct on select)</label>
+            <label><input type="checkbox" id="allowReview"> Allow live review (reveal as you answer)</label>
           </div>
-          <div class="row" style="margin-top:8px">
-            <label>Max questions (0 = all): <input id="maxQ" type="number" min="0" value="0" style="width:80px"></label>
-            <label>Time limit (minutes, 0 = no limit): <input id="minutes" type="number" min="0" value="0" style="width:80px"></label>
+          <div class="row" style="margin-top:6px">
+            <label>Max questions (0=all): <input id="maxQ" type="number" min="0" value="0" style="width:80px"></label>
+            <label>Time limit (minutes, 0=none): <input id="minutes" type="number" min="0" value="0" style="width:90px"></label>
           </div>
         </div>
-        <div class="card" style="background:#0d1527;border-color:#1b2550">
+
+        <div class="card ghost" style="flex:1;min-width:280px">
           <h3 style="margin:0 0 8px 0">Save / Load</h3>
           <div class="toolbar">
-            <button id="saveJson" class="btn">Download JSON</button>
-            <button id="loadJson" class="btn">Load JSON</button>
-            <input id="jsonFile" type="file" accept=".json" class="hidden">
+            <button id="saveJson" class="btn">Download Questions (JSON)</button>
+            <button id="loadJson" class="btn">Load Questions (JSON)</button>
+            <input id="jsonFile" type="file" accept=".json" hidden>
             <button id="saveLocal" class="btn">Save Attempt</button>
             <button id="loadLocal" class="btn">Restore Attempt</button>
-            <button id="clearLocal" class="btn ghost">Clear Saved</button>
+            <button id="clearLocal" class="btn warn">Clear Saved</button>
           </div>
-          <p class="muted">Autosave every 10s while taking the exam.</p>
+          <p class="muted">Autosaves every 10s during attempts.</p>
         </div>
       </div>
     </div>
 
-    <!-- ====== EXAM PANEL ====== -->
+    <!-- EXAM -->
     <div id="examWrap" class="row hidden" style="margin-top:16px">
-      <!-- main -->
       <div class="card" style="flex:1;min-width:320px">
         <div class="row no-print" style="justify-content:space-between;align-items:center">
           <div class="row" style="align-items:center;gap:10px">
             <h2 id="examTitle" style="margin:0">Exam</h2>
-            <span id="tags" class="tag">Attempt mode</span>
+            <span id="tags" class="chip">Attempt mode</span>
           </div>
           <div class="row" style="align-items:center;gap:10px">
-            <span id="timer" class="timer tag hidden">00:00</span>
+            <span id="timer" class="timer chip hidden">00:00</span>
+            <select id="reviewFilter" class="chip no-print">
+              <option value="all">Show: All</option>
+              <option value="incorrect">Show: Incorrect</option>
+              <option value="flagged">Show: Flagged</option>
+            </select>
             <button id="printBtn" class="btn">Print</button>
-            <button id="backBtn" class="btn">Back to Editor</button>
+            <button id="backBtn" class="btn">Back</button>
           </div>
         </div>
 
-        <div class="meta">
+        <div class="row" style="align-items:center;gap:10px">
           <div class="progress" style="flex:1"><div id="bar" style="width:0%"></div></div>
           <span id="pct" class="muted">0%</span>
           <span class="muted"> | </span>
@@ -156,556 +171,495 @@ Explanation: HTML stands for Hyper Text Markup Language, used to structure web p
           <div class="hr"></div>
           <div class="toolbar">
             <button id="submitBtn" class="btn ok">Submit Exam</button>
-            <button id="reviewToggle" class="btn ghost">Review Mode: OFF</button>
-            <button id="scrollTop" class="btn ghost">Top</button>
-            <span class="muted kbd-help">Shortcuts: <span class="kbd">J</span>/<span class="kbd">K</span> next/prev question, <span class="kbd">1–9</span> pick option, <span class="kbd">F</span> flag</span>
+            <button id="reviewToggle" class="btn">Review Mode: OFF</button>
+            <button id="scrollTop" class="btn">Top</button>
+            <span class="muted">Shortcuts <span class="kbd">J</span>/<span class="kbd">K</span>, <span class="kbd">1–9</span>, <span class="kbd">F</span></span>
           </div>
         </div>
       </div>
 
-      <!-- side -->
-      <div class="side card no-print" style="width:280px;max-height:80vh;overflow:auto">
+      <div class="card no-print" style="width:300px;max-height:80vh;overflow:auto">
         <h3 style="margin:0 0 8px 0">Navigator</h3>
         <div id="nav" class="navgrid" style="margin-bottom:10px"></div>
-        <div class="row" style="justify-content:space-between;align-items:center">
+        <div class="row" style="align-items:center;justify-content:space-between">
           <span id="unanswered" class="muted">Unanswered: 0</span>
-          <button id="jumpUnanswered" class="btn ghost">Jump to next</button>
+          <button id="jumpUnanswered" class="btn">Next Unanswered</button>
         </div>
       </div>
     </div>
 
-    <!-- ====== RESULTS ====== -->
+    <!-- RESULTS -->
     <div id="resultCard" class="card hidden" style="margin-top:16px">
       <h2 style="margin:0">Results</h2>
       <p id="scoreline" class="score"></p>
       <p class="muted" id="timeUsed"></p>
       <div class="toolbar no-print">
-        <button id="reviewAnswers" class="btn">Review Answers</button>
-        <button id="retake" class="btn">Retake (same order)</button>
+        <button id="reviewAnswers" class="btn">Enter Review</button>
+        <button id="retake" class="btn">Retake (same)</button>
         <button id="retakeShuffle" class="btn">Retake (shuffle)</button>
-        <button id="exportReport" class="btn">Download Report (JSON)</button>
+        <button id="retryWrong" class="btn ok">Retry Incorrect Only</button>
+      </div>
+      <div class="toolbar no-print" style="margin-top:6px">
+        <button id="exportRedo" class="btn">Download Redo (TXT)</button>
+        <button id="exportCorrections" class="btn">Download Corrections (TXT)</button>
+        <button id="exportKey" class="btn">Answer Key (CSV)</button>
+        <button id="exportAnki" class="btn">Anki Flashcards (TSV)</button>
+        <button id="exportReport" class="btn">Attempt Report (JSON)</button>
       </div>
     </div>
   </div>
 
-<!-- Mammoth for .docx → text -->
+<!-- Mammoth for .docx -->
 <script src="https://unpkg.com/mammoth@1.6.0/mammoth.browser.min.js"></script>
 <script>
-/* ============ STATE ============ */
-const mcqArea = document.getElementById('mcqArea');
-const statusEl = document.getElementById('status');
-const examWrap = document.getElementById('examWrap');
-const examEl = document.getElementById('exam');
-const navEl = document.getElementById('nav');
-const answeredCountEl = document.getElementById('answeredCount');
-const unansweredEl = document.getElementById('unanswered');
-const barEl = document.getElementById('bar');
-const pctEl = document.getElementById('pct');
-const resultCard = document.getElementById('resultCard');
-const scorelineEl = document.getElementById('scoreline');
-const timeUsedEl = document.getElementById('timeUsed');
-const timerEl = document.getElementById('timer');
+/* ================== STATE ================== */
+const D = (id)=>document.getElementById(id);
+const app = document.getElementById('app');
+const mcqArea = D('mcqArea'); const statusEl = D('status');
+const examWrap = D('examWrap'); const examEl = D('exam'); const navEl = D('nav');
+const answeredCountEl = D('answeredCount'); const unansweredEl = D('unanswered');
+const barEl = D('bar'); const pctEl = D('pct'); const resultCard = D('resultCard');
+const scorelineEl = D('scoreline'); const timeUsedEl = D('timeUsed'); const timerEl = D('timer');
+const reviewFilterEl = D('reviewFilter');
 
-let QUESTIONS = [];     // parsed questions [{stem, options:[{tag,text}], answers:[…], explanation}]
-let ATTEMPT = [];       // user answers by index: Set of selected tags
-let FLAGS = new Set();  // flagged question indices
-let REVIEW = false;     // review mode to reveal correctness
+let QUESTIONS = [];
+let ATTEMPT = [];
+let FLAGS = new Set();
+let NOTES = {};               // { qIndex: string }
+let REVIEW = false;
 let START_TIME = 0;
 let LIMIT_MS = 0;
 let TIMER_ID = null;
+let LAST_GRADE = null;
 
-/* ============ EDITOR BUTTONS ============ */
-document.getElementById('clearBtn').onclick = () => { mcqArea.value = ''; status(''); };
-document.getElementById('parseBtn').onclick = () => previewParse();
-document.getElementById('startBtn').onclick  = () => startExamFlow();
-document.getElementById('backBtn').onclick   = () => goEditor();
-document.getElementById('printBtn').onclick  = () => window.print();
-document.getElementById('saveJson').onclick  = () => download('exam.json', JSON.stringify({questions:parseMCQs(mcqArea.value).questions}, null, 2));
-document.getElementById('loadJson').onclick  = () => document.getElementById('jsonFile').click();
-document.getElementById('jsonFile').addEventListener('change', async (e)=>{
-  const f = e.target.files[0]; if(!f) return;
+/* ================== THEME ================== */
+(function initTheme(){
+  const saved = localStorage.getItem('SEP_THEME') || 'dark';
+  if (saved==='light') document.documentElement.setAttribute('data-theme','light');
+  D('themeBtn').textContent = saved==='light' ? '🌞' : '🌗';
+})();
+D('themeBtn').onclick = ()=>{
+  const isLight = document.documentElement.getAttribute('data-theme')==='light';
+  document.documentElement.setAttribute('data-theme', isLight?'':'light');
+  localStorage.setItem('SEP_THEME', isLight?'dark':'light');
+  D('themeBtn').textContent = isLight?'🌗':'🌞';
+};
+
+/* ================== EDITOR BUTTONS ================== */
+D('clearBtn').onclick = ()=>{ mcqArea.value=''; status(''); };
+D('parseBtn').onclick = ()=>{ const set=parseMCQs(mcqArea.value); alert(`Parsed ${set.questions.length} questions`); };
+D('startBtn').onclick  = ()=>startExamFlow();
+D('backBtn').onclick   = ()=>goEditor();
+D('printBtn').onclick  = ()=>window.print();
+
+D('saveJson').onclick  = ()=>download('questions.json', JSON.stringify({questions:parseMCQs(mcqArea.value).questions},null,2));
+D('loadJson').onclick  = ()=>D('jsonFile').click();
+D('jsonFile').addEventListener('change', async e=>{
+  const f=e.target.files[0]; if(!f) return;
   try{
-    const txt = await f.text();
-    const obj = JSON.parse(txt);
-    if (!obj.questions?.length) throw new Error('No questions[]');
-    QUESTIONS = obj.questions;
-    mcqArea.value = toPlain(QUESTIONS);
-    alert('Loaded JSON questions ✔');
-  }catch(err){ alert('Load failed: ' + err.message); }
-  e.target.value = '';
+    const txt=await f.text(); const obj=JSON.parse(txt);
+    if(!obj.questions?.length) throw new Error('No questions[]');
+    QUESTIONS=obj.questions; mcqArea.value=toPlain(QUESTIONS);
+    alert('Loaded JSON ✔');
+  }catch(err){ alert('Load failed: '+err.message); }
+  e.target.value='';
 });
-document.getElementById('saveLocal').onclick = ()=>saveLocal();
-document.getElementById('loadLocal').onclick = ()=>restoreLocal();
-document.getElementById('clearLocal').onclick = ()=>{ localStorage.removeItem('SEP_ATTEMPT'); alert('Cleared saved attempt.'); };
+D('saveLocal').onclick = ()=>saveLocal();
+D('loadLocal').onclick = ()=>restoreLocal();
+D('clearLocal').onclick= ()=>{ localStorage.removeItem('SEP_ATTEMPT'); alert('Cleared saved attempt.'); };
 
-document.getElementById('submitBtn').onclick = ()=>submitExam();
-document.getElementById('reviewToggle').onclick = ()=>toggleReview();
-document.getElementById('scrollTop').onclick = ()=>window.scrollTo({top:0,behavior:'smooth'});
-document.getElementById('jumpUnanswered').onclick = ()=>jumpToUnanswered();
-document.getElementById('reviewAnswers').onclick = ()=>{ REVIEW = true; updateReveal(); document.getElementById('tags').textContent='Review mode'; };
-document.getElementById('retake').onclick = ()=>retake(false);
-document.getElementById('retakeShuffle').onclick = ()=>retake(true);
-document.getElementById('exportReport').onclick = ()=>exportReport();
+D('submitBtn').onclick = ()=>submitExam();
+D('reviewToggle').onclick = ()=>toggleReview();
+D('scrollTop').onclick = ()=>window.scrollTo({top:0,behavior:'smooth'});
+D('jumpUnanswered').onclick = ()=>jumpToUnanswered();
+D('reviewAnswers').onclick = ()=>{ REVIEW=true; updateReveal(); D('tags').textContent='Review mode'; };
+D('retake').onclick = ()=>retake(false);
+D('retakeShuffle').onclick = ()=>retake(true);
 
-document.getElementById('fileInput').addEventListener('change', handleFile);
+D('retryWrong').onclick = ()=>retryIncorrectOnly();
 
-/* ============ SETTINGS ============ */
-const shuffleQEl = document.getElementById('shuffleQ');
-const shuffleAEl = document.getElementById('shuffleA');
-const showExplAfterEl = document.getElementById('showExplAfter');
-const allowReviewEl = document.getElementById('allowReview');
-const maxQEl = document.getElementById('maxQ');
-const minutesEl = document.getElementById('minutes');
+D('exportReport').onclick = ()=>exportReport();
+D('exportRedo').onclick = ()=>exportRedoTxt();
+D('exportCorrections').onclick = ()=>exportCorrectionsTxt();
+D('exportKey').onclick = ()=>exportAnswerKeyCSV();
+D('exportAnki').onclick = ()=>exportAnkiTSV();
 
-/* ============ FILE IMPORT ============ */
+D('fileInput').addEventListener('change', handleFile);
+reviewFilterEl.onchange = ()=>applyReviewFilter();
+
+/* ================== SETTINGS ================== */
+const shuffleQEl = D('shuffleQ'); const shuffleAEl = D('shuffleA');
+const showExplAfterEl = D('showExplAfter'); const allowReviewEl = D('allowReview');
+const maxQEl = D('maxQ'); const minutesEl = D('minutes');
+
+/* ================== IMPORT ================== */
 async function handleFile(ev){
-  const f = ev.target.files[0];
-  if(!f) return;
+  const f=ev.target.files[0]; if(!f) return;
   status('Importing…');
   try{
-    let text = '';
-    if (f.name.toLowerCase().endsWith('.docx')) {
-      const arrayBuffer = await f.arrayBuffer();
-      const res = await window.mammoth.convertToHtml({arrayBuffer});
-      const html = res.value
-        .replace(/<\/p>/g,'</p>\n')
-        .replace(/<br\s*\/?>/g,'\n')
-        .replace(/<\/h\d>/g,'\n');
+    let text='';
+    if (f.name.toLowerCase().endsWith('.docx')){
+      const arrayBuffer=await f.arrayBuffer();
+      const res=await window.mammoth.convertToHtml({arrayBuffer});
+      const html=res.value.replace(/<\/p>/g,'</p>\n').replace(/<br\s*\/?>/g,'\n').replace(/<\/h\d>/g,'\n');
       text = stripHtml(html);
-    } else {
+    }else{
       text = await f.text();
     }
     text = normalizeChoices(text);
-    mcqArea.value = text.trim() + '\n';
-    const preview = parseMCQs(text);
-    alert(`${location.host} says\n\nImported ${preview.questions.length || '0'} questions`);
-  }catch(err){
-    console.error(err);
-    alert('Import failed: ' + err.message);
-  }finally{
-    status('');
-    ev.target.value = '';
-  }
+    mcqArea.value = text.trim()+'\n';
+    const preview=parseMCQs(text);
+    alert(`${location.host} says\n\nImported ${preview.questions.length||'0'} questions`);
+  }catch(err){ console.error(err); alert('Import failed: '+err.message); }
+  finally{ status(''); ev.target.value=''; }
 }
 function stripHtml(html){
-  const tmp = document.createElement('div');
-  tmp.innerHTML = html;
-  return (tmp.textContent || tmp.innerText || '')
-    .replace(/\u00A0/g,' ')
-    .replace(/\r/g,'')
-    .replace(/[ \t]+\n/g,'\n')
-    .replace(/\n{3,}/g,'\n\n');
+  const tmp=document.createElement('div'); tmp.innerHTML=html;
+  return (tmp.textContent||tmp.innerText||'').replace(/\u00A0/g,' ')
+    .replace(/\r/g,'').replace(/[ \t]+\n/g,'\n').replace(/\n{3,}/g,'\n\n');
 }
 function normalizeChoices(text){
-  return text
-    .replace(/^\s*\((([A-Z]))\)\s+/gm, '$1) ')
-    .replace(/^\s*([A-Z])[.\-–—:]\s+/gm, '$1) ')
-    .replace(/^\s*([A-Z])\s*[)\]]\s+/gm, '$1) ')
-    .replace(/^\s*([A-Z])\s+[–—-]\s+/gm, '$1) ');
+  return text.replace(/^\s*\((([A-Z]))\)\s+/gm,'$1) ')
+             .replace(/^\s*([A-Z])[.\-–—:]\s+/gm,'$1) ')
+             .replace(/^\s*([A-Z])\s*[)\]]\s+/gm,'$1) ')
+             .replace(/^\s*([A-Z])\s+[–—-]\s+/gm,'$1) ');
 }
 
-/* ============ PARSER (lenient) ============ */
+/* ================== PARSER ================== */
 function parseMCQs(raw){
-  let text = raw.replace(/\r/g,'').replace(/[ \t]+\n/g,'\n');
-  text = text.replace(/(Answer\s*:.*?)(?=\n[A-Z]\))/g, '$1\n')
-             .replace(/(Explanation\s*:.*?)(?=\nQ\d+\s*:|$)/g, '$1\n');
+  let text=raw.replace(/\r/g,'').replace(/[ \t]+\n/g,'\n');
+  text=text.replace(/(Answer\s*:.*?)(?=\n[A-Z]\))/g,'$1\n')
+           .replace(/(Explanation\s*:.*?)(?=\nQ\d+\s*:|$)/g,'$1\n');
+  const blocks=text.split(/\n?(?=Q\s*\d+\s*:)/i);
+  const questions=[];
+  for (const blk of blocks){
+    const mQ=blk.match(/^Q\s*(\d+)\s*:\s*([\s\S]+)$/i);
+    if(!mQ) continue;
+    let body=mQ[2].trim();
+    let explanation='';
+    const expMatch=body.match(/Explanation\s*:\s*([\s\S]*?)$/i);
+    if(expMatch){ explanation=expMatch[1].trim(); body=body.slice(0,expMatch.index).trim(); }
+    let answerRaw='';
+    const ansMatch=body.match(/Answer\s*:\s*([A-Z](?:\s*&\s*[A-Z]|(?:\s*[,/]\s*[A-Z]))*)/i);
+    if(ansMatch){ answerRaw=ansMatch[1].toUpperCase(); body=body.replace(ansMatch[0],'').trim(); }
 
-  const blocks = text.split(/\n?(?=Q\s*\d+\s*:)/i);
-  const questions = [];
-  for (const blk of blocks) {
-    const mQ = blk.match(/^Q\s*(\d+)\s*:\s*([\s\S]+)$/i);
-    if (!mQ) continue;
-    let body = mQ[2].trim();
-    let explanation = '';
-    const expMatch = body.match(/Explanation\s*:\s*([\s\S]*?)$/i);
-    if (expMatch) { explanation = expMatch[1].trim(); body = body.slice(0, expMatch.index).trim(); }
-    let answerRaw = '';
-    const ansMatch = body.match(/Answer\s*:\s*([A-Z](?:\s*&\s*[A-Z]|(?:\s*[,/]\s*[A-Z]))*)/i);
-    if (ansMatch) { answerRaw = ansMatch[1].toUpperCase(); body = body.replace(ansMatch[0],'').trim(); }
-
-    const lines = body.split('\n');
-    const starts = [];
-    for (let i=0;i<lines.length;i++){
-      const mm = lines[i].match(/^([A-Z])\)\s*(.*)$/);
-      if (mm) starts.push(i);
+    const lines=body.split('\n');
+    const starts=[];
+    for(let i=0;i<lines.length;i++){ if (/^([A-Z])\)\s+/.test(lines[i])) starts.push(i); }
+    if(!starts.length){
+      for(let i=0;i<lines.length;i++){ if (/^([A-Z])\s{2,}/.test(lines[i])) starts.push(i); }
     }
-    if (!starts.length){
-      for (let i=0;i<lines.length;i++){
-        const mm = lines[i].match(/^([A-Z])\s{2,}(.*)$/);
-        if (mm) starts.push(i);
-      }
+    const firstStart = starts.length?starts[0]:lines.length;
+    const stem = lines.slice(0,firstStart).join('\n').trim();
+    const opts=[];
+    for(let k=0;k<starts.length;k++){
+      const start=starts[k]; const end=(k+1<starts.length)?starts[k+1]:lines.length;
+      const firstLine=lines[start]; const tag=(firstLine.match(/^([A-Z])/)||[,])[1];
+      const textChunk=[firstLine.replace(/^[A-Z]\)\s*/,'').trim()].concat(lines.slice(start+1,end)).join('\n').trim();
+      if(tag) opts.push({tag,text:textChunk});
     }
-    const firstStart = starts.length ? starts[0] : lines.length;
-    const stem = lines.slice(0, firstStart).join('\n').trim();
-    const opts = [];
-    for (let k=0;k<starts.length;k++){
-      const start = starts[k];
-      const end = (k+1<starts.length) ? starts[k+1] : lines.length;
-      const firstLine = lines[start];
-      const tag = (firstLine.match(/^([A-Z])/) || [,''])[1];
-      const textChunk = [firstLine.replace(/^[A-Z]\)\s*/,'').trim()]
-        .concat(lines.slice(start+1,end)).join('\n').trim();
-      if (tag) opts.push({ tag, text: textChunk });
+    if(!opts.length) continue;
+    let answers=[];
+    if(answerRaw){
+      answers=answerRaw.split(/[,/&]/).map(s=>s.trim()).filter(Boolean);
+      answers=answers.flatMap(s=>s.split(/\s*&\s*/));
+      answers=[...new Set(answers.map(s=>s.replace(/[^A-Z]/g,'')))];
+      const valid=new Set(opts.map(o=>o.tag)); answers=answers.filter(a=>valid.has(a));
     }
-    if (!opts.length) continue;
-    let answers = [];
-    if (answerRaw){
-      answers = answerRaw.split(/[,/&]/).map(s=>s.trim()).filter(Boolean);
-      answers = answers.flatMap(s=>s.split(/\s*&\s*/));
-      answers = [...new Set(answers.map(s=>s.replace(/[^A-Z]/g,'')))].filter(Boolean);
-      const valid = new Set(opts.map(o=>o.tag));
-      answers = answers.filter(a=>valid.has(a));
-    }
-    questions.push({ stem, options:opts, answers, explanation });
+    questions.push({stem,options:opts,answers,explanation});
   }
-  return { questions };
+  return {questions};
 }
 
-/* ============ PREVIEW PARSE ============ */
-function previewParse(){
-  const set = parseMCQs(mcqArea.value);
-  alert(`Parsed ${set.questions.length} questions`);
-}
-
-/* ============ START EXAM FLOW ============ */
+/* ================== START / RENDER ================== */
 function startExamFlow(){
-  let set = parseMCQs(mcqArea.value);
-  if (!set.questions.length){
-    alert("No well-formed questions found.\nKeep the pattern:\nQ1: Stem\nA) option\n...\nAnswer: B or Answer: D & E");
-    return;
-  }
+  let set=parseMCQs(mcqArea.value);
+  if(!set.questions.length){ alert("No well-formed questions found.\nUse: Q1: Stem\nA) ...\nAnswer: B  (or D & E)"); return; }
 
-  // limit & shuffle
   let qs = structuredClone(set.questions);
-  if (shuffleQEl.checked) qs = shuffle(qs);
-  if (+maxQEl.value>0) qs = qs.slice(0, +maxQEl.value);
-  if (shuffleAEl.checked){
-    for (const q of qs) q.options = shuffle(q.options);
-  }
-  QUESTIONS = qs;
+  if (D('shuffleQ').checked) qs = shuffle(qs);
+  if (+D('maxQ').value>0) qs = qs.slice(0,+D('maxQ').value);
+  if (D('shuffleA').checked) for(const q of qs) q.options = shuffle(q.options);
 
-  ATTEMPT = QUESTIONS.map(q=>new Set());
-  FLAGS = new Set();
-  REVIEW = allowReviewEl.checked; // allow live review (else keep false)
-  document.getElementById('reviewToggle').textContent = `Review Mode: ${REVIEW?'ON':'OFF'}`;
+  QUESTIONS=qs;
+  ATTEMPT=QUESTIONS.map(_=>new Set());
+  FLAGS.clear(); NOTES={};
+  REVIEW = D('allowReview').checked;
+  D('reviewToggle').textContent = `Review Mode: ${REVIEW?'ON':'OFF'}`;
 
-  // timer
-  LIMIT_MS = Math.max(0, +minutesEl.value|0) * 60000;
+  LIMIT_MS = Math.max(0,+D('minutes').value|0)*60000;
   START_TIME = Date.now();
-  if (TIMER_ID){ clearInterval(TIMER_ID); TIMER_ID = null; }
-  if (LIMIT_MS>0){
-    timerEl.classList.remove('hidden');
-    TIMER_ID = setInterval(tick, 500);
-  }else{
-    timerEl.classList.add('hidden');
-  }
+  if (TIMER_ID){ clearInterval(TIMER_ID); TIMER_ID=null; }
+  if (LIMIT_MS>0){ timerEl.classList.remove('hidden'); TIMER_ID=setInterval(tick,500); }
+  else timerEl.classList.add('hidden');
 
-  // render
   renderExam();
-  // show UI
-  document.getElementById('editorCard').classList.add('hidden');
-  examWrap.classList.remove('hidden');
-  resultCard.classList.add('hidden');
-  document.getElementById('tags').textContent = 'Attempt mode';
-  updateProgress();
+  D('editorCard').classList.add('hidden'); examWrap.classList.remove('hidden'); resultCard.classList.add('hidden');
+  D('tags').textContent='Attempt mode';
+  D('modeChip').textContent='Attempt → Submit → Review';
+  updateProgress(); applyReviewFilter();
 }
-
-/* ============ RENDER EXAM ============ */
 function renderExam(){
-  examEl.innerHTML = '';
-  navEl.innerHTML = '';
-  for (let i=0;i<QUESTIONS.length;i++){
-    const q = QUESTIONS[i];
-    const wrap = document.createElement('div');
-    wrap.className = 'q';
-    wrap.dataset.index = i;
+  examEl.innerHTML=''; navEl.innerHTML='';
+  for(let i=0;i<QUESTIONS.length;i++){
+    const q=QUESTIONS[i];
+    const wrap=document.createElement('div'); wrap.className='q'; wrap.dataset.index=i;
 
-    const h = document.createElement('h3');
-    h.textContent = `Q${i+1}: ${q.stem}`;
-    wrap.appendChild(h);
+    const h=document.createElement('h3'); h.textContent=`Q${i+1}: ${q.stem}`; wrap.appendChild(h);
 
-    const meta = document.createElement('div');
-    meta.className = 'meta';
-    const mark = document.createElement('button');
-    mark.className = 'flag';
-    mark.textContent = '★ Flag';
-    mark.onclick = ()=>{
-      if (FLAGS.has(i)) FLAGS.delete(i); else FLAGS.add(i);
-      syncNav();
-    };
+    const meta=document.createElement('div'); meta.className='meta';
+    const typeChip=document.createElement('span'); typeChip.className='chip'; typeChip.textContent = q.answers.length>1?'Multiple':'Single'; meta.appendChild(typeChip);
+    const mark=document.createElement('button'); mark.className='flag'; mark.textContent='★ Flag'; mark.onclick=()=>{ if(FLAGS.has(i)) FLAGS.delete(i); else FLAGS.add(i); syncNav(); };
     meta.appendChild(mark);
     wrap.appendChild(meta);
 
-    const correct = new Set(q.answers);
-    const multi = (q.answers && q.answers.length>1);
-    for (const opt of q.options){
-      const label = document.createElement('label');
-      label.className = 'opt';
-      label.dataset.tag = opt.tag;
-      const input = document.createElement('input');
-      input.type = multi ? 'checkbox' : 'radio';
-      input.name = 'q'+i;
-      input.value = opt.tag;
-      input.checked = ATTEMPT[i].has(opt.tag);
-      input.onchange = ()=>{
-        if (multi){
-          if (input.checked) ATTEMPT[i].add(opt.tag);
-          else ATTEMPT[i].delete(opt.tag);
-        }else{
-          ATTEMPT[i].clear();
-          if (input.checked) ATTEMPT[i].add(opt.tag);
-        }
-        if (REVIEW){ revealOne(i); }
-        updateProgress();
-        syncNav();
-        autosaveSoon();
+    const correct=new Set(q.answers); const multi=q.answers.length>1;
+
+    for(const opt of q.options){
+      const label=document.createElement('label'); label.className='opt'; label.dataset.tag=opt.tag;
+      const input=document.createElement('input'); input.type=multi?'checkbox':'radio'; input.name='q'+i; input.value=opt.tag; input.checked=ATTEMPT[i].has(opt.tag);
+      input.onchange=()=>{
+        if (multi){ if(input.checked) ATTEMPT[i].add(opt.tag); else ATTEMPT[i].delete(opt.tag); }
+        else { ATTEMPT[i].clear(); if(input.checked) ATTEMPT[i].add(opt.tag); }
+        if(REVIEW) revealOne(i);
+        updateProgress(); syncNav(); autosaveSoon();
       };
       label.appendChild(input);
-      const strong = document.createElement('strong');
-      strong.textContent = `${opt.tag}) `;
-      label.appendChild(strong);
+      const strong=document.createElement('strong'); strong.textContent=`${opt.tag}) `; label.appendChild(strong);
       label.appendChild(document.createTextNode(opt.text));
-      // mark for later reveal
-      if (correct.has(opt.tag)) label.classList.add('correct');
-      else label.classList.add('incorrect');
+      if (correct.has(opt.tag)) label.classList.add('correct'); else label.classList.add('incorrect');
       wrap.appendChild(label);
     }
 
-    if (q.explanation){
-      const ex = document.createElement('div');
-      ex.className = 'explain';
-      ex.textContent = 'Explanation: ' + q.explanation;
-      ex.style.display = 'none'; // hidden until review/submission
-      wrap.appendChild(ex);
-    }
+    // personal note (autosaved)
+    const note=document.createElement('textarea'); note.placeholder='Your note for this question (saved locally)…'; note.className='note no-print';
+    note.value=NOTES[i]||''; note.oninput=()=>{ NOTES[i]=note.value; autosaveSoon(); };
+    wrap.appendChild(note);
 
+    if (q.explanation){
+      const ex=document.createElement('div'); ex.className='explain'; ex.textContent='Explanation: '+q.explanation; ex.style.display='none'; wrap.appendChild(ex);
+    }
     examEl.appendChild(wrap);
 
-    // nav button
-    const b = document.createElement('button');
-    b.textContent = (i+1);
-    b.onclick = ()=>wrap.scrollIntoView({behavior:'smooth',block:'start'});
-    navEl.appendChild(b);
+    const b=document.createElement('button'); b.textContent=(i+1); b.onclick=()=>wrap.scrollIntoView({behavior:'smooth',block:'start'}); navEl.appendChild(b);
   }
   syncNav();
 }
 
-/* ============ INTERACTION HELPERS ============ */
+/* ================== REVEAL / FILTER ================== */
 function revealOne(i){
-  const node = examEl.querySelector(`.q[data-index="${i}"]`);
-  if (!node) return;
+  const node=examEl.querySelector(`.q[data-index="${i}"]`); if(!node) return;
   node.querySelectorAll('.opt').forEach(opt=>{
-    const tag = opt.dataset.tag;
-    const selected = ATTEMPT[i].has(tag);
     opt.classList.add('revealed');
-    // keep visual emphasis
-    if (selected) opt.style.outline = '2px solid #4c8';
-    else opt.style.outline = '';
+    const tag=opt.dataset.tag; const selected=ATTEMPT[i].has(tag);
+    opt.style.outline = selected ? '2px solid #4c8' : '';
   });
-  const ex = node.querySelector('.explain');
-  if (ex && showExplAfterEl.checked) ex.style.display = '';
+  const ex=node.querySelector('.explain');
+  if (ex && D('showExplAfter').checked) ex.style.display='';
 }
 function hideAllReveal(){
-  examEl.querySelectorAll('.opt').forEach(opt=>{
-    opt.classList.remove('revealed');
-    opt.style.outline = '';
-  });
+  examEl.querySelectorAll('.opt').forEach(opt=>{ opt.classList.remove('revealed'); opt.style.outline=''; });
   examEl.querySelectorAll('.explain').forEach(ex=>ex.style.display='none');
 }
-function updateReveal(){
-  if (REVIEW){
-    for (let i=0;i<QUESTIONS.length;i++) revealOne(i);
-  }else{
-    hideAllReveal();
-  }
+function updateReveal(){ REVIEW ? [...QUESTIONS.keys()].forEach(revealOne) : hideAllReveal(); }
+function applyReviewFilter(){
+  if (!REVIEW){ [...examEl.children].forEach(c=>c.style.display=''); return; }
+  const mode=reviewFilterEl.value;
+  const wrongIdxs = (LAST_GRADE?.wrongIdxs)||[];
+  const flagged = new Set(FLAGS);
+  [...examEl.children].forEach(node=>{
+    const i=+node.dataset.index;
+    let show=true;
+    if (mode==='incorrect') show = wrongIdxs.includes(i);
+    if (mode==='flagged')   show = flagged.has(i);
+    node.style.display = show?'':'none';
+  });
 }
+
+/* ================== PROGRESS / NAV ================== */
 function updateProgress(){
   const answered = ATTEMPT.filter(s=>s.size>0).length;
-  const pct = Math.round(answered/QUESTIONS.length*100);
+  const pct = Math.round(answered/Math.max(1,QUESTIONS.length)*100);
   answeredCountEl.textContent = `${answered} answered`;
-  unansweredEl.textContent = `Unanswered: ${QUESTIONS.length - answered}`;
-  barEl.style.width = pct + '%';
-  pctEl.textContent = pct + '%';
+  unansweredEl.textContent = `Unanswered: ${QUESTIONS.length-answered}`;
+  barEl.style.width = pct+'%'; pctEl.textContent=pct+'%';
 }
 function syncNav(){
-  const nodes = [...navEl.children];
-  for (let i=0;i<nodes.length;i++){
-    const b = nodes[i];
-    const done = ATTEMPT[i].size>0;
+  const btns=[...navEl.children];
+  for(let i=0;i<btns.length;i++){
+    const b=btns[i]; const done=ATTEMPT[i].size>0;
     b.classList.toggle('done', done);
     b.classList.toggle('flagged', FLAGS.has(i));
   }
 }
 function jumpToUnanswered(){
-  for (let i=0;i<QUESTIONS.length;i++){
-    if (ATTEMPT[i].size===0){
-      examEl.querySelector(`.q[data-index="${i}"]`).scrollIntoView({behavior:'smooth',block:'start'});
-      return;
+  for(let i=0;i<QUESTIONS.length;i++){
+    if(ATTEMPT[i].size===0){
+      examEl.querySelector(`.q[data-index="${i}"]`).scrollIntoView({behavior:'smooth',block:'start'}); return;
     }
   }
   alert('All questions answered 🎉');
 }
 
-/* ============ SUBMIT ============ */
+/* ================== SUBMIT / GRADE ================== */
 function submitExam(){
   if (!confirm('Submit now? You will enter review mode.')) return;
   if (TIMER_ID){ clearInterval(TIMER_ID); TIMER_ID=null; }
   const usedMs = Date.now() - START_TIME;
   const res = grade();
   scorelineEl.textContent = `Score: ${res.correct} / ${QUESTIONS.length} (${Math.round(res.correct/QUESTIONS.length*100)}%)`;
-  timeUsedEl.textContent = `Time used: ${formatMs(usedMs)}` + (LIMIT_MS?` | Limit: ${formatMs(LIMIT_MS)}`:'');
+  timeUsedEl.textContent  = `Time used: ${formatMs(usedMs)}` + (LIMIT_MS?` • Limit: ${formatMs(LIMIT_MS)}`:'');
   resultCard.classList.remove('hidden');
-  REVIEW = true;
-  updateReveal();
-  document.getElementById('tags').textContent='Review mode';
-  saveLocal(); // store last attempt + result
-  window.scrollTo({top:resultCard.offsetTop - 12, behavior:'smooth'});
+  REVIEW = true; updateReveal();
+  D('tags').textContent='Review mode';
+  D('modeChip').textContent='Submitted • Review mode';
+  saveLocal();
+  applyReviewFilter();
+  window.scrollTo({top:resultCard.offsetTop-12,behavior:'smooth'});
 }
 function grade(){
-  let correct = 0;
+  let correct=0; const wrongIdxs=[];
   for (let i=0;i<QUESTIONS.length;i++){
-    const expect = new Set(QUESTIONS[i].answers);
-    const got = ATTEMPT[i];
-    if (setEq(expect, got)) correct++;
+    const expect=new Set(QUESTIONS[i].answers); const got=ATTEMPT[i];
+    if (setEq(expect,got)) correct++; else wrongIdxs.push(i);
   }
-  return { correct };
+  LAST_GRADE = { correct, wrongIdxs };
+  return LAST_GRADE;
 }
-function setEq(a,b){
-  if (a.size!==b.size) return false;
-  for (const v of a) if (!b.has(v)) return false;
-  return true;
-}
+function setEq(a,b){ if(a.size!==b.size) return false; for(const v of a) if(!b.has(v)) return false; return true; }
 
-/* ============ RETAKE / EXPORT REPORT ============ */
+/* ================== RETAKE / RETRY WRONG ================== */
 function retake(shuffleAll){
   if (shuffleAll){
-    QUESTIONS = shuffle(QUESTIONS).map(q=>({ ...q, options: shuffle(q.options) }));
+    QUESTIONS = shuffle(QUESTIONS).map(q=>({...q, options:shuffle(q.options)}));
   }
-  ATTEMPT = QUESTIONS.map(q=>new Set());
-  FLAGS.clear();
-  REVIEW = allowReviewEl.checked;
-  document.getElementById('reviewToggle').textContent = `Review Mode: ${REVIEW?'ON':'OFF'}`;
-  START_TIME = Date.now();
+  ATTEMPT=QUESTIONS.map(_=>new Set()); FLAGS.clear(); NOTES={};
+  REVIEW = D('allowReview').checked; D('reviewToggle').textContent=`Review Mode: ${REVIEW?'ON':'OFF'}`;
+  START_TIME=Date.now();
   if (TIMER_ID){ clearInterval(TIMER_ID); }
-  if (LIMIT_MS>0){
-    timerEl.classList.remove('hidden');
-    TIMER_ID = setInterval(tick, 500);
-  }else{
-    timerEl.classList.add('hidden');
-  }
-  renderExam();
-  resultCard.classList.add('hidden');
-  updateProgress();
+  if (LIMIT_MS>0){ timerEl.classList.remove('hidden'); TIMER_ID=setInterval(tick,500); } else timerEl.classList.add('hidden');
+  renderExam(); resultCard.classList.add('hidden'); updateProgress(); window.scrollTo({top:0,behavior:'smooth'});
+}
+function retryIncorrectOnly(){
+  if (!LAST_GRADE){ alert('Submit once first to know which were incorrect.'); return; }
+  const wrong = LAST_GRADE.wrongIdxs;
+  if (!wrong.length){ alert('Nothing to retry — all correct! 🎉'); return; }
+  QUESTIONS = wrong.map(i=>structuredClone(QUESTIONS[i]));
+  for (const q of QUESTIONS) q.options = shuffle(q.options);
+  ATTEMPT = QUESTIONS.map(_=>new Set()); FLAGS.clear(); NOTES={};
+  REVIEW = D('allowReview').checked; D('reviewToggle').textContent=`Review Mode: ${REVIEW?'ON':'OFF'}`;
+  START_TIME = Date.now();
+  renderExam(); resultCard.classList.add('hidden'); updateProgress();
+  reviewFilterEl.value='all'; applyReviewFilter();
   window.scrollTo({top:0,behavior:'smooth'});
 }
+
+/* ================== EXPORTS ================== */
 function exportReport(){
   const report = {
-    createdAt: new Date().toISOString(),
-    settings: {
-      shuffleQ: shuffleQEl.checked,
-      shuffleA: shuffleAEl.checked,
-      timeLimitMin: +minutesEl.value|0
-    },
-    questions: QUESTIONS.map((q,i)=>({
-      index: i,
-      stem: q.stem,
-      options: q.options,
-      answers: q.answers,
-      chosen: [...ATTEMPT[i]]
-    }))
+    createdAt:new Date().toISOString(),
+    settings:{shuffleQ: D('shuffleQ').checked, shuffleA: D('shuffleA').checked, timeLimitMin: +D('minutes').value|0},
+    score: LAST_GRADE ? (LAST_GRADE.correct+'/'+QUESTIONS.length) : null,
+    questions: QUESTIONS.map((q,i)=>({index:i,stem:q.stem,options:q.options,answers:q.answers,chosen:[...ATTEMPT[i]],note:NOTES[i]||''}))
   };
-  download('attempt_report.json', JSON.stringify(report, null, 2));
+  download('attempt_report.json', JSON.stringify(report,null,2));
+}
+function exportRedoTxt(){
+  // Only incorrect; no answers/explanations
+  const wrong = LAST_GRADE?.wrongIdxs || [];
+  const list = (wrong.length? wrong : [...QUESTIONS.keys()]);
+  const txt = list.map((i,idx)=> {
+    const q=QUESTIONS[i];
+    return [
+      `Q${idx+1}: ${q.stem}`,
+      ...q.options.map(o=>`${o.tag}) ${o.text}`),
+      `Answer: `, // intentionally blank
+      ``
+    ].join('\n');
+  }).join('\n');
+  download('redo_pack.txt', txt);
+}
+function exportCorrectionsTxt(){
+  // Only incorrect; include correct answers + explanations
+  const wrong = LAST_GRADE?.wrongIdxs || [];
+  if (!wrong.length){ alert('All correct — nothing to correct!'); return; }
+  const txt = wrong.map((i,idx)=>{
+    const q=QUESTIONS[i];
+    return [
+      `Q${idx+1}: ${q.stem}`,
+      ...q.options.map(o=>`${o.tag}) ${o.text}`),
+      `Answer: ${q.answers.join(' & ')}`,
+      q.explanation?`Explanation: ${q.explanation}`:''
+    ].filter(Boolean).join('\n');
+  }).join('\n\n');
+  download('corrections_pack.txt', txt);
+}
+function exportAnswerKeyCSV(){
+  let csv = 'index,stem,answers\n';
+  for (let i=0;i<QUESTIONS.length;i++){
+    const q=QUESTIONS[i];
+    const stem=(q.stem||'').replace(/"/g,'""');
+    const ans=q.answers.join('&');
+    csv += `${i+1},"${stem}","${ans}"\n`;
+  }
+  download('answer_key.csv', csv);
+}
+function exportAnkiTSV(){
+  // Front: stem + options; Back: correct letters (+ explanation if present)
+  const rows = QUESTIONS.map(q=>{
+    const front = [q.stem, ...q.options.map(o=>`${o.tag}) ${o.text}`)].join('<br>');
+    const back  = [q.answers.join(' & '), q.explanation||''].filter(Boolean).join('<br>');
+    return front + '\t' + back;
+  }).join('\n');
+  download('anki_cards.tsv', rows);
 }
 
-/* ============ TIMER / AUTOSAVE ============ */
+/* ================== TIMER / AUTOSAVE ================== */
 function tick(){
-  const elapsed = Date.now() - START_TIME;
-  const remain = Math.max(0, LIMIT_MS - elapsed);
+  const elapsed=Date.now()-START_TIME;
+  const remain=Math.max(0, LIMIT_MS - elapsed);
   timerEl.textContent = formatMs(remain);
-  if (remain===0){
-    clearInterval(TIMER_ID); TIMER_ID=null;
-    alert('Time up! Submitting…');
-    submitExam();
-  }
+  if (remain===0){ clearInterval(TIMER_ID); TIMER_ID=null; alert('Time up! Submitting…'); submitExam(); }
 }
-function formatMs(ms){
-  const s = Math.round(ms/1000);
-  const m = Math.floor(s/60), ss = s%60;
-  const hh = Math.floor(m/60), mm = m%60;
-  return (hh? String(hh).padStart(2,'0')+':':'') + String(mm).padStart(2,'0') + ':' + String(ss).padStart(2,'0');
-}
+function formatMs(ms){ const s=Math.round(ms/1000); const m=Math.floor(s/60), ss=s%60; const hh=Math.floor(m/60), mm=m%60; return (hh?String(hh).padStart(2,'0')+':':'')+String(mm).padStart(2,'0')+':'+String(ss).padStart(2,'0'); }
 let autosaveTimer=null;
-function autosaveSoon(){
-  if (autosaveTimer) return;
-  autosaveTimer = setTimeout(()=>{ autosaveTimer=null; saveLocal(); }, 10000);
-}
+function autosaveSoon(){ if(autosaveTimer) return; autosaveTimer=setTimeout(()=>{ autosaveTimer=null; saveLocal(); }, 10000); }
 function saveLocal(){
-  const payload = {
-    QUESTIONS, ATTEMPT: ATTEMPT.map(s=>[...s]), FLAGS:[...FLAGS],
-    START_TIME, LIMIT_MS, REVIEW,
-    ts: Date.now()
-  };
+  const payload={QUESTIONS, ATTEMPT:ATTEMPT.map(s=>[...s]), FLAGS:[...FLAGS], NOTES, START_TIME, LIMIT_MS, REVIEW, ts:Date.now()};
   localStorage.setItem('SEP_ATTEMPT', JSON.stringify(payload));
 }
 function restoreLocal(){
-  const raw = localStorage.getItem('SEP_ATTEMPT');
-  if (!raw){ alert('No saved attempt'); return; }
+  const raw=localStorage.getItem('SEP_ATTEMPT'); if(!raw){ alert('No saved attempt'); return; }
   try{
-    const p = JSON.parse(raw);
-    QUESTIONS = p.QUESTIONS;
-    ATTEMPT = p.ATTEMPT.map(arr=>new Set(arr));
-    FLAGS = new Set(p.FLAGS);
-    START_TIME = p.START_TIME || Date.now();
-    LIMIT_MS = p.LIMIT_MS || 0;
-    REVIEW = !!p.REVIEW;
-    if (TIMER_ID){ clearInterval(TIMER_ID); }
-    if (LIMIT_MS>0){
-      timerEl.classList.remove('hidden');
-      TIMER_ID = setInterval(tick, 500);
-    }else{
-      timerEl.classList.add('hidden');
-    }
+    const p=JSON.parse(raw);
+    QUESTIONS=p.QUESTIONS; ATTEMPT=p.ATTEMPT.map(a=>new Set(a)); FLAGS=new Set(p.FLAGS||[]); NOTES=p.NOTES||{};
+    START_TIME=p.START_TIME||Date.now(); LIMIT_MS=p.LIMIT_MS||0; REVIEW=!!p.REVIEW;
+    if(TIMER_ID){ clearInterval(TIMER_ID); }
+    if(LIMIT_MS>0){ timerEl.classList.remove('hidden'); TIMER_ID=setInterval(tick,500); } else timerEl.classList.add('hidden');
     renderExam();
-    document.getElementById('editorCard').classList.add('hidden');
-    examWrap.classList.remove('hidden');
-    resultCard.classList.add('hidden');
-    updateProgress();
-    updateReveal();
-    document.getElementById('reviewToggle').textContent = `Review Mode: ${REVIEW?'ON':'OFF'}`;
-    document.getElementById('tags').textContent = REVIEW?'Review mode':'Attempt mode';
-  }catch(err){ alert('Restore failed: ' + err.message); }
+    D('editorCard').classList.add('hidden'); examWrap.classList.remove('hidden'); resultCard.classList.add('hidden');
+    updateProgress(); updateReveal();
+    D('reviewToggle').textContent=`Review Mode: ${REVIEW?'ON':'OFF'}`; D('tags').textContent=REVIEW?'Review mode':'Attempt mode';
+  }catch(err){ alert('Restore failed: '+err.message); }
 }
 
-/* ============ REVIEW TOGGLE / NAV ============ */
+/* ================== REVIEW / NAV HELPERS ================== */
 function toggleReview(){
-  REVIEW = !REVIEW;
-  document.getElementById('reviewToggle').textContent = `Review Mode: ${REVIEW?'ON':'OFF'}`;
-  document.getElementById('tags').textContent = REVIEW?'Review mode':'Attempt mode';
-  updateReveal();
+  REVIEW=!REVIEW;
+  D('reviewToggle').textContent=`Review Mode: ${REVIEW?'ON':'OFF'}`;
+  D('tags').textContent=REVIEW?'Review mode':'Attempt mode';
+  updateReveal(); applyReviewFilter();
 }
-
-/* ============ UTILITIES ============ */
 function goEditor(){
   if (TIMER_ID){ clearInterval(TIMER_ID); TIMER_ID=null; }
-  examWrap.classList.add('hidden');
-  resultCard.classList.add('hidden');
-  document.getElementById('editorCard').classList.remove('hidden');
-  hideAllReveal();
+  examWrap.classList.add('hidden'); resultCard.classList.add('hidden'); D('editorCard').classList.remove('hidden'); hideAllReveal();
 }
-function shuffle(arr){
-  const a = arr.slice();
-  for (let i=a.length-1;i>0;i--){
-    const j = Math.floor(Math.random()*(i+1));
-    [a[i],a[j]]=[a[j],a[i]];
-  }
-  return a;
-}
+
+/* ================== UTILS ================== */
+function shuffle(arr){ const a=arr.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
 function download(name, data){
-  const blob = new Blob([data], {type:'application/json'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = name; a.click();
-  URL.revokeObjectURL(url);
+  const blob=new Blob([data], {type: name.endsWith('.json')?'application/json':'text/plain'});
+  const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=name; a.click(); URL.revokeObjectURL(url);
 }
 function toPlain(qs){
   return qs.map((q,i)=>[
@@ -716,41 +670,32 @@ function toPlain(qs){
   ].filter(Boolean).join('\n')).join('\n\n');
 }
 
-/* Keyboard shortcuts */
-document.addEventListener('keydown', (e)=>{
+/* ================== KEYBOARD ================== */
+document.addEventListener('keydown',(e)=>{
   if (examWrap.classList.contains('hidden')) return;
-  const visible = getVisibleQuestionIndex();
-  if (e.key==='j' || e.key==='J'){ focusQuestion(Math.min(QUESTIONS.length-1, visible+1)); }
-  if (e.key==='k' || e.key==='K'){ focusQuestion(Math.max(0, visible-1)); }
-  if (e.key==='f' || e.key==='F'){ if (visible>=0){ if (FLAGS.has(visible)) FLAGS.delete(visible); else FLAGS.add(visible); syncNav(); } }
-  // numeric keys 1..9 select option
+  const visible=getVisibleQuestionIndex();
+  if (e.key==='j'||e.key==='J'){ focusQuestion(Math.min(QUESTIONS.length-1,visible+1)); }
+  if (e.key==='k'||e.key==='K'){ focusQuestion(Math.max(0,visible-1)); }
+  if (e.key==='f'||e.key==='F'){ if(visible>=0){ if(FLAGS.has(visible)) FLAGS.delete(visible); else FLAGS.add(visible); syncNav(); } }
   if (/^[1-9]$/.test(e.key) && visible>=0){
-    const node = examEl.querySelector(`.q[data-index="${visible}"]`);
-    const opts = node.querySelectorAll('.opt input');
-    const idx = +e.key - 1;
+    const node=examEl.querySelector(`.q[data-index="${visible}"]`);
+    const opts=node.querySelectorAll('.opt input'); const idx=+e.key-1;
     if (opts[idx]){
-      if (opts[idx].type==='radio'){ opts[idx].checked = true; opts[idx].dispatchEvent(new Event('change')); }
-      else{ opts[idx].checked = !opts[idx].checked; opts[idx].dispatchEvent(new Event('change')); }
+      if (opts[idx].type==='radio'){ opts[idx].checked=true; opts[idx].dispatchEvent(new Event('change')); }
+      else { opts[idx].checked=!opts[idx].checked; opts[idx].dispatchEvent(new Event('change')); }
     }
   }
 });
 function getVisibleQuestionIndex(){
-  const nodes = examEl.querySelectorAll('.q');
-  let topIdx = -1, topDist = Infinity;
-  nodes.forEach(n=>{
-    const rect = n.getBoundingClientRect();
-    const d = Math.abs(rect.top);
-    if (d<topDist){ topDist=d; topIdx=+n.dataset.index; }
-  });
+  const nodes=examEl.querySelectorAll('.q');
+  let topIdx=-1, topDist=Infinity;
+  nodes.forEach(n=>{ const r=n.getBoundingClientRect(); const d=Math.abs(r.top); if(d<topDist){ topDist=d; topIdx=+n.dataset.index; } });
   return topIdx;
 }
-function focusQuestion(i){
-  const node = examEl.querySelector(`.q[data-index="${i}"]`);
-  if (node) node.scrollIntoView({behavior:'smooth', block:'start'});
-}
+function focusQuestion(i){ const node=examEl.querySelector(`.q[data-index="${i}"]`); if(node) node.scrollIntoView({behavior:'smooth',block:'start'}); }
 
-/* ============ INITIAL ============ */
-function status(msg){ statusEl.textContent = msg; }
+/* ================== STATUS ================== */
+function status(msg){ statusEl.textContent=msg; }
 </script>
 </body>
 </html>
