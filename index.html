@@ -5,6 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Smart Exam Pro</title>
   <link rel="stylesheet" href="style.css" />
+  <!-- Libraries for file import -->
+  <script src="https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@4.7.76/build/pdf.min.js"></script>
+  <script>
+    // Configure PDF.js worker
+    if (window.pdfjsLib) {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.7.76/build/pdf.worker.min.js";
+    }
+  </script>
 </head>
 <body>
   <header class="navbar">
@@ -36,16 +45,25 @@
     <!-- Input Section -->
     <section id="input-section" class="card hidden fade-in">
       <h2>📄Create Your Exam</h2>
-      <p>Paste MCQs using this <strong>enhanced format</strong> (with explanation):</p>
+      <p>Paste MCQs using this <strong>enhanced format</strong> (with explanation). You can also import a file.</p>
       <pre class="format-example">
 Q1: What does HTML stand for?
 A) Hyperlinks and Text Markup Language
 B) Hyper Text Markup Language
 C) Home Tool Markup Language
 D) Hyperlinking Textual Management Language
+E) (Optional extra option)
 Answer: B
 Explanation: HTML stands for Hyper Text Markup Language, used to structure web pages.
       </pre>
+
+      <!-- Import controls -->
+      <div class="row" style="gap:8px; flex-wrap:wrap;">
+        <input id="file-input" type="file" accept=".txt,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/pdf" hidden />
+        <button id="import-btn" class="secondary-btn">Import from file (.txt, .docx, .pdf)</button>
+        <span id="import-status" class="muted" aria-live="polite"></span>
+      </div>
+
       <textarea id="mcq-input" placeholder="Paste your MCQs here..."></textarea>
       <div class="row">
         <label class="checkbox">
