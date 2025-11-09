@@ -2,18 +2,22 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Smart Exam Pro</title>
-  <link rel="stylesheet" href="style.css" />
-  <!-- Libraries for file import -->
+  <link rel="stylesheet" href="style.css"/>
+
+  <!-- File import libs -->
   <script src="https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@4.7.76/build/pdf.min.js"></script>
   <script>
-    // Configure PDF.js worker
     if (window.pdfjsLib) {
-      pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.7.76/build/pdf.worker.min.js";
+      pdfjsLib.GlobalWorkerOptions.workerSrc =
+        "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.7.76/build/pdf.worker.min.js";
     }
   </script>
+
+  <!-- PDF export lib -->
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 </head>
 <body>
   <header class="navbar">
@@ -27,7 +31,7 @@
   </header>
 
   <main class="main">
-    <!-- Student Info Section -->
+    <!-- Student Info -->
     <section id="student-section" class="card fade-in">
       <h2>👤 Student Information</h2>
       <p class="muted">Please enter your details to begin.</p>
@@ -42,10 +46,10 @@
       <button id="continue-btn" class="primary-btn">Continue</button>
     </section>
 
-    <!-- Input Section -->
+    <!-- Input -->
     <section id="input-section" class="card hidden fade-in">
-      <h2>📄Create Your Exam</h2>
-      <p>Paste MCQs using this <strong>enhanced format</strong> (with explanation). You can also import a file.</p>
+      <h2>📄 Create Your Exam</h2>
+      <p>Paste MCQs in this format or use “Import from file”. Unlimited options (A–Z) are OK.</p>
       <pre class="format-example">
 Q1: What does HTML stand for?
 A) Hyperlinks and Text Markup Language
@@ -54,27 +58,29 @@ C) Home Tool Markup Language
 D) Hyperlinking Textual Management Language
 E) (Optional extra option)
 Answer: B
-Explanation: HTML stands for Hyper Text Markup Language, used to structure web pages.
+Explanation: Short explanation here.
       </pre>
 
-      <!-- Import controls -->
-      <div class="row" style="gap:8px; flex-wrap:wrap;">
-        <input id="file-input" type="file" accept=".txt,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/pdf" hidden />
-        <button id="import-btn" class="secondary-btn">Import from file (.txt, .docx, .pdf)</button>
+      <div class="row" style="gap:8px;flex-wrap:wrap">
+        <input id="file-input" type="file"
+               accept=".txt,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/pdf"
+               hidden />
+        <button id="import-btn" class="secondary-btn" type="button">Import from file (.txt / .docx / .pdf)</button>
         <span id="import-status" class="muted" aria-live="polite"></span>
       </div>
 
       <textarea id="mcq-input" placeholder="Paste your MCQs here..."></textarea>
+
       <div class="row">
         <label class="checkbox">
           <input id="save-locally" type="checkbox" checked />
           <span>Remember my name and theme on this device</span>
         </label>
       </div>
-      <button id="generate-btn" class="primary-btn">Generate Exam</button>
+      <button id="generate-btn" class="primary-btn" type="button">Generate Exam</button>
     </section>
 
-    <!-- Exam Section -->
+    <!-- Exam -->
     <section id="exam-section" class="card hidden fade-in">
       <div class="exam-header">
         <div>
@@ -87,12 +93,12 @@ Explanation: HTML stands for Hyper Text Markup Language, used to structure web p
       </div>
       <form id="exam-form"></form>
       <div class="actions-row">
-        <button id="submit-btn" class="primary-btn">Submit Answers</button>
-        <button id="cancel-btn" class="secondary-btn">Back</button>
+        <button id="submit-btn" class="primary-btn" type="button">Submit Answers</button>
+        <button id="cancel-btn" class="secondary-btn" type="button">Back</button>
       </div>
     </section>
 
-    <!-- Result Section -->
+    <!-- Results -->
     <section id="result-section" class="card hidden fade-in">
       <h2>📝 Exam Results</h2>
       <div class="result-top">
@@ -108,12 +114,37 @@ Explanation: HTML stands for Hyper Text Markup Language, used to structure web p
           <div class="kv"><span>Wrong:</span><strong id="q-wrong"></strong></div>
         </div>
       </div>
-      <hr />
+
+      <div class="card" style="margin-top:16px">
+        <h3 style="margin:0 0 8px">Export options</h3>
+        <div class="grid" style="grid-template-columns: 1fr 1fr">
+          <label>Scope
+            <select id="export-scope">
+              <option value="all">All questions</option>
+              <option value="wrong">Wrong answers only</option>
+            </select>
+          </label>
+          <label>
+            <span>Include correct answers & explanations</span>
+            <div class="row">
+              <input id="export-include-answers" type="checkbox" checked />
+              <span class="muted">If unchecked, PDF won’t reveal answers</span>
+            </div>
+          </label>
+        </div>
+        <div class="row" style="margin-top:8px">
+          <button id="export-pdf-btn" class="secondary-btn" type="button">Export Results to PDF</button>
+          <span class="muted" id="export-status" aria-live="polite"></span>
+        </div>
+      </div>
+
+      <hr/>
       <div id="analysis"></div>
+
       <div class="actions-row">
-        <button id="retest-wrong-btn" class="primary-btn">Retest Wrong Only</button>
-        <button id="retry-btn" class="secondary-btn">Retry Full Exam</button>
-        <button id="back-btn" class="secondary-btn">Create New Exam</button>
+        <button id="retest-wrong-btn" class="primary-btn" type="button">Retest Wrong Only</button>
+        <button id="retry-btn" class="secondary-btn" type="button">Retry Full Exam</button>
+        <button id="back-btn" class="secondary-btn" type="button">Create New Exam</button>
       </div>
     </section>
   </main>
