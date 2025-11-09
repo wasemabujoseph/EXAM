@@ -2,26 +2,28 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"/>
   <title>Smart Exam Pro</title>
   <link rel="stylesheet" href="style.css"/>
 </head>
 <body>
   <header class="navbar">
     <div class="brand">
-      <div class="logo-dot"></div>
+      <div class="logo-dot" aria-hidden="true"></div>
       <span>Smart Exam Pro</span>
     </div>
     <div class="actions">
       <input id="file-input" type="file" accept=".txt,.doc,.docx,.pdf,.sep,.json" hidden />
-      <button id="import-btn" class="icon-btn" title="Import MCQs">📥</button>
-      <button id="export-all-pdf-btn" class="icon-btn" title="Export results (all)">🖨️</button>
-      <button id="export-wrong-pdf-btn" class="icon-btn" title="Export wrong-only">🧾</button>
+      <button id="import-btn" class="icon-btn" title="Import MCQs" type="button" aria-label="Import">📥</button>
+      <button id="export-all-pdf-btn" class="icon-btn" title="Export results (all)" type="button" aria-label="Export all">🖨️</button>
+      <button id="export-wrong-pdf-btn" class="icon-btn" title="Export wrong-only" type="button" aria-label="Export wrong only">🧾</button>
       <label class="checkbox sm" title="Show corrections in export">
         <input id="export-corrections" type="checkbox" checked />
         <span>Corrections</span>
       </label>
-      <button id="theme-toggle" class="icon-btn" title="Toggle theme">🌗</button>
+      <button id="theme-toggle" class="icon-btn" title="Toggle theme" type="button" aria-label="Toggle theme">🌗</button>
     </div>
   </header>
 
@@ -30,27 +32,30 @@
     <section id="student-section" class="card fade-in">
       <h2>👤 Student Information</h2>
       <p class="muted">Please enter your details to begin.</p>
-      <div class="grid">
-        <label>Full Name <span class="req">*</span>
-          <input id="student-name" type="text" placeholder="e.g., Waseem Khallaf" required />
-        </label>
-        <label>Email / ID (optional)
-          <input id="student-id" type="text" placeholder="e.g., waseem@example.com or 2025-0012" />
-        </label>
-      </div>
-      <div class="row">
-        <label class="checkbox">
-          <input id="save-locally" type="checkbox" checked />
-          <span>Remember my name and theme on this device</span>
-        </label>
-      </div>
-      <button id="continue-btn" class="primary-btn">Continue</button>
+
+      <form id="student-form" autocomplete="on">
+        <div class="grid">
+          <label>Full Name <span class="req">*</span>
+            <input id="student-name" name="student-name" type="text" placeholder="e.g., Waseem Khallaf" required />
+          </label>
+          <label>Email / ID (optional)
+            <input id="student-id" name="student-id" type="text" placeholder="e.g., waseem@example.com or 2025-0012" />
+          </label>
+        </div>
+        <div class="row">
+          <label class="checkbox">
+            <input id="save-locally" type="checkbox" checked />
+            <span>Remember my name and theme on this device</span>
+          </label>
+        </div>
+        <button id="continue-btn" class="primary-btn" type="submit">Continue</button>
+      </form>
     </section>
 
     <!-- Input -->
     <section id="input-section" class="card hidden fade-in">
       <h2>📄Create Your Exam</h2>
-      <p>Paste MCQs (any number of options A–Z). Answers can be <code>Answer: B</code> or <code>Answer: D & E</code>.</p>
+      <p>Paste MCQs (any number of options A–Z). Answers can be <code>Answer: B</code> or <code>Answer: D &amp; E</code>.</p>
       <pre class="format-example">
 Q1: What does HTML stand for?
 A) Hyperlinks and Text Markup Language
@@ -62,8 +67,8 @@ Explanation: HTML stands for Hyper Text Markup Language, used to structure web p
       </pre>
       <textarea id="mcq-input" placeholder="Paste your MCQs or use 📥 Import..."></textarea>
       <div class="row">
-        <button id="generate-btn" class="primary-btn">Generate Exam</button>
-        <button id="import-here-btn" class="secondary-btn">Import From File</button>
+        <button id="generate-btn" class="primary-btn" type="button">Generate Exam</button>
+        <button id="import-here-btn" class="secondary-btn" type="button">Import From File</button>
       </div>
     </section>
 
