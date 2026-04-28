@@ -1,0 +1,62 @@
+{
+  "id": "sample",
+  "title": "Sample MCQ Exam",
+  "description": "A polished demo exam for testing repository loading, grading, review, and exports.",
+  "questions": [
+    {
+      "text": "What does HTML stand for?",
+      "options": [
+        "Hyperlinks and Text Markup Language",
+        "Hyper Text Markup Language",
+        "Home Tool Markup Language",
+        "Hyperlinking Textual Management Language"
+      ],
+      "answer": 1,
+      "explanation": "HTML stands for Hyper Text Markup Language and defines the structure of a web page."
+    },
+    {
+      "text": "Which CSS property controls the space inside an element border?",
+      "options": [
+        "margin",
+        "padding",
+        "outline",
+        "gap"
+      ],
+      "answer": 1,
+      "explanation": "Padding is the internal space between content and the element border."
+    },
+    {
+      "text": "Which JavaScript method converts a JSON string into an object?",
+      "options": [
+        "JSON.parse",
+        "JSON.stringify",
+        "Object.assign",
+        "Array.from"
+      ],
+      "answer": 0,
+      "explanation": "JSON.parse reads a JSON string and returns the matching JavaScript value."
+    },
+    {
+      "text": "Which attributes help make form controls easier to use with assistive technology?",
+      "options": [
+        "aria-label",
+        "placeholder",
+        "data-id",
+        "class"
+      ],
+      "answers": [0],
+      "explanation": "ARIA labels can provide an accessible name when visible text is not enough."
+    },
+    {
+      "text": "Which files are required for this static app to run on GitHub Pages?",
+      "options": [
+        "index.html",
+        "style.css",
+        "script.js",
+        "server.py"
+      ],
+      "answers": [0, 1, 2],
+      "explanation": "The deployed app is static, so the HTML, CSS, and JavaScript files are enough for the browser runtime."
+    }
+  ]
+}
