@@ -3,6 +3,7 @@ export interface ResourceItem {
   url: string;
   type: 'pdf' | 'exam' | 'note';
   year: string;
+  questions?: any[];
 }
 
 export interface SubjectResources {

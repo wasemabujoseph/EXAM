@@ -1,141 +1,112 @@
 import React, { useState } from 'react';
-import { Routes, Route, Link, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Outlet, Link, NavLink } from 'react-router-dom';
+import { useVault } from '../context/VaultContext';
 import { 
   LayoutDashboard, 
   BookOpen, 
+  History, 
+  Trophy, 
+  Settings as SettingsIcon, 
   LogOut, 
-  Search, 
-  Filter,
-  GraduationCap,
-  Calendar,
-  Layers,
-  ChevronRight,
-  Menu,
-  X
+  Menu, 
+  X,
+  PlusCircle,
+  FileText,
+  User as UserIcon,
+  Search
 } from 'lucide-react';
-import CurriculumOverview from './CurriculumOverview';
-import YearView from './YearView';
-import SubjectDetails from './SubjectDetails';
-import { curriculum } from '../data/curriculum';
 
-interface DashboardProps {
-  onLogout: () => void;
-}
-
-const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
+const Dashboard: React.FC = () => {
+  const { vault, logout } = useVault();
+  const navigate = useNavigate();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const location = useLocation();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
 
   const navItems = [
-    { name: 'Overview', path: '/dashboard', icon: LayoutDashboard },
-    { name: 'Full Curriculum', path: '/dashboard/curriculum', icon: BookOpen },
+    { icon: <LayoutDashboard size={20} />, label: 'Dashboard', path: '/dashboard/curriculum' },
+    { icon: <PlusCircle size={20} />, label: 'Generate Exam', path: '/dashboard/generate' },
+    { icon: <FileText size={20} />, label: 'My Exams', path: '/dashboard/my-exams' },
+    { icon: <History size={20} />, label: 'Results History', path: '/dashboard/history' },
+    { icon: <Trophy size={20} />, label: 'Leaderboard', path: '/dashboard/leaderboard' },
+    { icon: <SettingsIcon size={20} />, label: 'Settings', path: '/dashboard/settings' },
   ];
 
   return (
     <div className="dashboard-layout">
       {/* Mobile Header */}
       <header className="mobile-header">
-        <button onClick={() => setIsSidebarOpen(true)}>
+        <button onClick={() => setIsSidebarOpen(true)} className="icon-btn">
           <Menu size={24} />
         </button>
-        <span className="mobile-brand">MD Exam Hub</span>
-        <div style={{ width: 24 }}></div>
+        <span className="mobile-logo">MD Exam Hub</span>
+        <div className="avatar-small">
+          {vault?.profile.name.charAt(0)}
+        </div>
       </header>
 
       {/* Sidebar */}
       <aside className={`sidebar ${isSidebarOpen ? 'is-open' : ''}`}>
         <div className="sidebar-header">
-          <div className="brand">
-            <GraduationCap size={28} className="brand-icon" />
-            <span>MD Hub</span>
+          <div className="logo-box">
+            <BookOpen size={24} />
+            <span>MD Exam Hub</span>
           </div>
-          <button className="mobile-close" onClick={() => setIsSidebarOpen(false)}>
+          <button onClick={() => setIsSidebarOpen(false)} className="close-btn md-hidden">
             <X size={24} />
           </button>
         </div>
 
-        <nav className="sidebar-nav">
-          <div className="nav-section">
-            <p className="section-label">Navigation</p>
-            {navItems.map((item) => (
-              <Link 
-                key={item.path} 
-                to={item.path}
-                className={`nav-link ${location.pathname === item.path ? 'active' : ''}`}
-                onClick={() => setIsSidebarOpen(false)}
-              >
-                <item.icon size={20} />
-                <span>{item.name}</span>
-              </Link>
-            ))}
+        <div className="user-profile">
+          <div className="avatar">
+            {vault?.profile.name.charAt(0)}
           </div>
+          <div className="user-info">
+            <span className="user-name">{vault?.profile.name}</span>
+            <span className="user-email">{vault?.profile.email}</span>
+          </div>
+        </div>
 
-          <div className="nav-section">
-            <p className="section-label">Years / Courses</p>
-            {curriculum.years.map((year) => (
-              <Link 
-                key={year.year} 
-                to={`/dashboard/year/${year.year}`}
-                className={`nav-link ${location.pathname.includes(`/year/${encodeURIComponent(year.year)}`) ? 'active' : ''}`}
-                onClick={() => setIsSidebarOpen(false)}
-              >
-                <Calendar size={20} />
-                <span>{year.year}</span>
-              </Link>
-            ))}
-          </div>
+        <nav className="sidebar-nav">
+          {navItems.map((item) => (
+            <NavLink 
+              key={item.path} 
+              to={item.path} 
+              className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
+              onClick={() => setIsSidebarOpen(false)}
+            >
+              {item.icon}
+              <span>{item.label}</span>
+            </NavLink>
+          ))}
         </nav>
 
         <div className="sidebar-footer">
-          <button onClick={onLogout} className="logout-btn">
+          <button onClick={handleLogout} className="logout-btn">
             <LogOut size={20} />
-            <span>Logout</span>
+            <span>Sign Out</span>
           </button>
         </div>
       </aside>
 
       {/* Main Content */}
       <main className="main-content">
-        <Routes>
-          <Route path="/" element={<CurriculumOverview />} />
-          <Route path="/curriculum" element={<CurriculumOverview />} />
-          <Route path="/year/:yearId" element={<YearView />} />
-          <Route path="/subject/:yearId/:semesterId/:subjectName" element={<SubjectDetails />} />
-        </Routes>
+        <div className="content-container">
+          <Outlet />
+        </div>
       </main>
+
+      {/* Mobile Overlay */}
+      {isSidebarOpen && <div className="sidebar-overlay" onClick={() => setIsSidebarOpen(false)}></div>}
 
       <style>{`
         .dashboard-layout {
           display: flex;
           min-height: 100vh;
-          background-color: var(--background);
-        }
-
-        .mobile-header {
-          display: none;
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          height: 64px;
-          background: white;
-          border-bottom: 1px solid var(--border);
-          padding: 0 1rem;
-          align-items: center;
-          justify-content: space-between;
-          z-index: 40;
-        }
-
-        .mobile-header button {
-          background: none;
-          border: none;
-          color: var(--text-main);
-        }
-
-        .mobile-brand {
-          font-weight: 800;
-          font-size: 1.125rem;
-          color: var(--primary);
+          background-color: #f8fafc;
         }
 
         .sidebar {
@@ -144,11 +115,10 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
           border-right: 1px solid var(--border);
           display: flex;
           flex-direction: column;
-          position: sticky;
-          top: 0;
+          position: fixed;
           height: 100vh;
           z-index: 50;
-          transition: transform 0.3s ease;
+          transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .sidebar-header {
@@ -158,70 +128,90 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
           justify-content: space-between;
         }
 
-        .brand {
+        .logo-box {
           display: flex;
           align-items: center;
           gap: 0.75rem;
           font-weight: 800;
           font-size: 1.25rem;
-          color: var(--text-main);
-        }
-
-        .brand-icon {
           color: var(--primary);
         }
 
-        .mobile-close {
-          display: none;
-          background: none;
-          border: none;
+        .user-profile {
+          padding: 1.5rem;
+          margin: 0 1rem 1rem;
+          background: #f1f5f9;
+          border-radius: 1rem;
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+        }
+
+        .avatar {
+          width: 40px;
+          height: 40px;
+          background: var(--primary);
+          color: white;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: 700;
+          font-size: 1.125rem;
+        }
+
+        .user-info {
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+        }
+
+        .user-name {
+          font-weight: 700;
+          color: var(--text-main);
+          font-size: 0.9rem;
+        }
+
+        .user-email {
+          font-size: 0.75rem;
           color: var(--text-muted);
+          white-space: nowrap;
+          text-overflow: ellipsis;
+          overflow: hidden;
         }
 
         .sidebar-nav {
           flex: 1;
-          padding: 1rem;
-          overflow-y: auto;
+          padding: 0 1rem;
+          display: flex;
+          flex-direction: column;
+          gap: 0.25rem;
         }
 
-        .nav-section {
-          margin-bottom: 2rem;
-        }
-
-        .section-label {
-          font-size: 0.75rem;
-          font-weight: 700;
-          text-transform: uppercase;
-          color: var(--text-muted);
-          margin-bottom: 0.75rem;
-          padding-left: 0.75rem;
-          letter-spacing: 0.05em;
-        }
-
-        .nav-link {
+        .nav-item {
           display: flex;
           align-items: center;
           gap: 0.75rem;
-          padding: 0.75rem;
-          color: var(--secondary);
-          border-radius: 0.5rem;
+          padding: 0.75rem 1rem;
+          color: #64748b;
+          text-decoration: none;
           font-weight: 600;
+          border-radius: 0.75rem;
           transition: all 0.2s;
-          margin-bottom: 0.25rem;
         }
 
-        .nav-link:hover {
-          background: var(--primary-light);
+        .nav-item:hover {
+          background: #f1f5f9;
           color: var(--primary);
         }
 
-        .nav-link.active {
+        .nav-item.active {
           background: var(--primary-light);
           color: var(--primary);
         }
 
         .sidebar-footer {
-          padding: 1.5rem;
+          padding: 1rem;
           border-top: 1px solid var(--border);
         }
 
@@ -230,49 +220,77 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
           display: flex;
           align-items: center;
           gap: 0.75rem;
-          padding: 0.75rem;
+          padding: 0.75rem 1rem;
           color: var(--danger);
-          background: #fff5f5;
-          border: 1px solid #fee2e2;
-          border-radius: 0.5rem;
-          font-weight: 700;
-          transition: all 0.2s;
+          background: none;
+          border: none;
+          font-weight: 600;
+          border-radius: 0.75rem;
+          cursor: pointer;
+          transition: background 0.2s;
         }
 
         .logout-btn:hover {
-          background: #fecaca;
+          background: #fef2f2;
         }
 
         .main-content {
           flex: 1;
-          padding: 2.5rem;
-          max-width: 1400px;
+          margin-left: 280px;
+          padding: 2rem;
+        }
+
+        .content-container {
+          max-width: 1100px;
           margin: 0 auto;
-          width: 100%;
+        }
+
+        .mobile-header {
+          display: none;
+          padding: 1rem;
+          background: white;
+          border-bottom: 1px solid var(--border);
+          align-items: center;
+          justify-content: space-between;
+          position: sticky;
+          top: 0;
+          z-index: 40;
+        }
+
+        .avatar-small {
+          width: 32px;
+          height: 32px;
+          background: var(--primary);
+          color: white;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 0.875rem;
+          font-weight: 700;
         }
 
         @media (max-width: 1024px) {
-          .mobile-header {
-            display: flex;
-          }
-
           .sidebar {
-            position: fixed;
             transform: translateX(-100%);
           }
-
           .sidebar.is-open {
             transform: translateX(0);
           }
-
-          .mobile-close {
-            display: block;
-          }
-
           .main-content {
-            padding: 1.5rem;
-            padding-top: 5rem;
+            margin-left: 0;
+            padding: 1rem;
           }
+          .mobile-header {
+            display: flex;
+          }
+          .sidebar-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.4);
+            z-index: 45;
+          }
+          .md-hidden { display: block; }
         }
       `}</style>
     </div>

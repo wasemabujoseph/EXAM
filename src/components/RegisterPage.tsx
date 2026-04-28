@@ -1,25 +1,38 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useVault } from '../context/VaultContext';
-import { Lock, Mail, Eye, EyeOff, Loader2, GraduationCap, AlertCircle } from 'lucide-react';
+import { Lock, Mail, User, Eye, EyeOff, Loader2, GraduationCap, AlertCircle, ShieldCheck } from 'lucide-react';
 
-const LoginPage: React.FC = () => {
-  const { login } = useVault();
+const RegisterPage: React.FC = () => {
+  const { register } = useVault();
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     setError('');
 
+    if (password !== confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters');
+      return;
+    }
+
+    setIsLoading(true);
+
     try {
-      await login(email, password);
+      await register(name, email, password);
     } catch (err: any) {
-      setError(err.message || 'Invalid email or password');
+      setError(err.message || 'Registration failed');
       setIsLoading(false);
     }
   };
@@ -29,13 +42,28 @@ const LoginPage: React.FC = () => {
       <div className="login-card animate-fade-in">
         <div className="login-header">
           <div className="logo-circle">
-            <GraduationCap size={32} />
+            <ShieldCheck size={32} />
           </div>
-          <h1>MD Exam Hub</h1>
-          <p>Login to your local encrypted vault</p>
+          <h1>Create Local Account</h1>
+          <p>Initialize your private encrypted vault</p>
         </div>
 
         <form onSubmit={handleSubmit} className="login-form">
+          <div className="form-group">
+            <label htmlFor="name">Display Name</label>
+            <div className="input-wrapper">
+              <User className="input-icon" size={20} />
+              <input
+                id="name"
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Dr. Smith"
+                required
+              />
+            </div>
+          </div>
+
           <div className="form-group">
             <label htmlFor="email">Email Address</label>
             <div className="input-wrapper">
@@ -52,7 +80,7 @@ const LoginPage: React.FC = () => {
           </div>
 
           <div className="form-group">
-            <label htmlFor="password">Password</label>
+            <label htmlFor="password">Vault Password</label>
             <div className="input-wrapper">
               <Lock className="input-icon" size={20} />
               <input
@@ -60,7 +88,7 @@ const LoginPage: React.FC = () => {
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
+                placeholder="Minimum 8 characters"
                 required
               />
               <button
@@ -73,6 +101,21 @@ const LoginPage: React.FC = () => {
             </div>
           </div>
 
+          <div className="form-group">
+            <label htmlFor="confirmPassword">Confirm Password</label>
+            <div className="input-wrapper">
+              <Lock className="input-icon" size={20} />
+              <input
+                id="confirmPassword"
+                type={showPassword ? 'text' : 'password'}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Re-enter password"
+                required
+              />
+            </div>
+          </div>
+
           {error && (
             <div className="error-message">
               <AlertCircle size={16} />
@@ -80,17 +123,18 @@ const LoginPage: React.FC = () => {
             </div>
           )}
 
+          <div className="warning-box">
+            <AlertCircle size={16} />
+            <p><strong>Important:</strong> There is no password recovery. If you lose your password, your local data cannot be decrypted.</p>
+          </div>
+
           <button type="submit" className="login-button" disabled={isLoading}>
-            {isLoading ? <Loader2 className="spinner" size={20} /> : 'Sign In'}
+            {isLoading ? <Loader2 className="spinner" size={20} /> : 'Create Vault'}
           </button>
         </form>
 
         <div className="login-footer">
-          <p>Don't have an account? <Link to="/register">Register locally</Link></p>
-          <div className="security-info">
-            <Lock size={12} />
-            <span>Data is encrypted locally using AES-GCM. We never see your password.</span>
-          </div>
+          <p>Already have a vault? <Link to="/login">Sign in</Link></p>
         </div>
       </div>
 
@@ -109,7 +153,7 @@ const LoginPage: React.FC = () => {
           border-radius: 1.5rem;
           box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
           width: 100%;
-          max-width: 450px;
+          max-width: 480px;
         }
         .login-header {
           text-align: center;
@@ -118,7 +162,7 @@ const LoginPage: React.FC = () => {
         .logo-circle {
           width: 64px;
           height: 64px;
-          background: var(--primary);
+          background: var(--success);
           color: white;
           border-radius: 50%;
           display: flex;
@@ -138,15 +182,15 @@ const LoginPage: React.FC = () => {
         .login-form {
           display: flex;
           flex-direction: column;
-          gap: 1.25rem;
+          gap: 1.1rem;
         }
         .form-group {
           display: flex;
           flex-direction: column;
-          gap: 0.5rem;
+          gap: 0.4rem;
         }
         .form-group label {
-          font-size: 0.875rem;
+          font-size: 0.8rem;
           font-weight: 600;
           color: #475569;
         }
@@ -162,10 +206,10 @@ const LoginPage: React.FC = () => {
         }
         .input-wrapper input {
           width: 100%;
-          padding: 0.75rem 1rem 0.75rem 3rem;
+          padding: 0.7rem 1rem 0.7rem 2.75rem;
           border: 1px solid var(--border);
           border-radius: 0.75rem;
-          font-size: 1rem;
+          font-size: 0.95rem;
           transition: all 0.2s;
         }
         .input-wrapper input:focus {
@@ -185,7 +229,7 @@ const LoginPage: React.FC = () => {
         .login-button {
           margin-top: 1rem;
           padding: 0.875rem;
-          background: var(--primary);
+          background: var(--success);
           color: white;
           border: none;
           border-radius: 0.75rem;
@@ -197,12 +241,22 @@ const LoginPage: React.FC = () => {
           justify-content: center;
         }
         .login-button:hover:not(:disabled) {
-          background: var(--primary-hover);
+          background: #059669;
           transform: translateY(-1px);
         }
-        .login-button:disabled {
-          opacity: 0.7;
-          cursor: not-allowed;
+        .warning-box {
+          background: #fffbeb;
+          border: 1px solid #fef3c7;
+          border-radius: 0.75rem;
+          padding: 1rem;
+          display: flex;
+          gap: 0.75rem;
+          color: #92400e;
+          font-size: 0.8rem;
+          line-height: 1.4;
+        }
+        .warning-box strong {
+          color: #b45309;
         }
         .error-message {
           color: var(--danger);
@@ -225,15 +279,6 @@ const LoginPage: React.FC = () => {
           color: var(--primary);
           font-weight: 600;
         }
-        .security-info {
-          margin-top: 1.5rem;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 0.5rem;
-          font-size: 0.7rem;
-          color: #94a3b8;
-        }
         .spinner {
           animation: spin 1s linear infinite;
         }
@@ -246,4 +291,4 @@ const LoginPage: React.FC = () => {
   );
 };
 
-export default LoginPage;
+export default RegisterPage;

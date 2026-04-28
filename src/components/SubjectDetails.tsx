@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { curriculum } from '../data/curriculum';
 import { 
   ChevronRight, 
@@ -8,7 +8,8 @@ import {
   StickyNote, 
   ExternalLink,
   Layers,
-  ArrowLeft
+  ArrowLeft,
+  Play
 } from 'lucide-react';
 
 const SubjectDetails: React.FC = () => {
@@ -17,12 +18,23 @@ const SubjectDetails: React.FC = () => {
     semesterId: string; 
     subjectName: string; 
   }>();
+  const navigate = useNavigate();
 
   const yearData = curriculum.years.find(y => y.year === yearId);
   const semesterData = yearData?.semesters.find(s => s.semester === semesterId);
   const subjectData = semesterData?.subjects.find(s => s.name === subjectName);
 
   const [activeTab, setActiveTab] = useState<'exams' | 'pdf' | 'note'>('exams');
+
+  const handleStartExam = () => {
+    if (!subjectData) return;
+    const exam = {
+      id: `${yearId}|${semesterId}|${subjectName}`,
+      title: subjectData.name,
+      questions: subjectData.sub.exams.flatMap(e => e.questions || [])
+    };
+    navigate(`/dashboard/exam/curriculum/${encodeURIComponent(exam.id)}`, { state: { exam } });
+  };
 
   if (!subjectData) {
     return <div>Subject not found</div>;
@@ -137,7 +149,10 @@ const SubjectDetails: React.FC = () => {
           <div className="info-card">
             <h3>Quick Actions</h3>
             <div className="action-buttons">
-              <button className="sidebar-btn primary">Enroll for Exam</button>
+              <button className="sidebar-btn primary" onClick={handleStartExam}>
+                <Play size={16} style={{ marginRight: '8px' }} />
+                Start Exam
+              </button>
               <button className="sidebar-btn">Download Syllabus</button>
               <button className="sidebar-btn">View Schedule</button>
             </div>
