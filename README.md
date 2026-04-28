@@ -1,91 +1,48 @@
-# EXAM
+# MD Curriculum Exam Hub
 
-EXAM is a production-ready static exam workspace for creating, running, saving, reviewing, and exporting multiple-choice exams directly in the browser.
+A professional medical curriculum dashboard and exam resource hub. Browse subjects, credits, and academic materials organized by year and semester.
 
-Live site:
+## Features
+- **Full MD Curriculum**: Complete Grade 1-6 curriculum structure.
+- **Interactive Dashboard**: Navigate by Year and Semester.
+- **Subject Details**: View ECTS credits, components, and resources.
+- **Resource Hub**: Ready for Exams, PDFs, and Notes.
+- **Premium UI**: Clean, medical-grade academic interface.
+- **Mobile Responsive**: Works on all devices.
 
-https://wasemabujoseph.github.io/EXAM/
+## Curriculum Data
+The curriculum is structured in `src/data/curriculum.ts`. It includes:
+- Faculty Information
+- Years/Courses (I-VI)
+- Semesters (I-II per year)
+- Subjects with ECTS credits and components
+- Resource arrays for future content (exams, pdfs, notes)
 
-## What It Does
+## Demo Login
+The dashboard is protected by a frontend access gate.
+- **URL**: `/login` (redirects automatically if not logged in)
+- **Email**: `admin@exam.com`
+- **Password**: `exam12345`
 
-- Load curated exams from `exams/index.json`.
-- Paste MCQs in a simple `Q1 / A) / Answer:` format.
-- Import `.json`, `.txt`, `.md`, `.sep`, and `.docx` files.
-- Save reusable exams locally in the browser.
-- Run timed or untimed attempts with shuffled questions and choices.
-- Support single-answer and multi-answer questions.
-- Review answers, retry wrong questions, print results, and export reports.
+## Adding Resources
+To add new exams or PDFs:
+1. Open `src/data/curriculum.ts`.
+2. Locate the specific subject.
+3. Add a new object to the `sub.exams`, `sub.pdf`, or `sub.note` array:
+   ```ts
+   {
+     title: "Midterm 2024",
+     url: "/resources/year-1/anatomy/midterm-2024.pdf",
+     type: "pdf",
+     year: "2024"
+   }
+   ```
 
-## Local Development
-
-```bash
-npm install
-npm run build
-npm run serve
-```
-
-The local server prints a URL, usually `http://localhost:4173/`.
-
-## Build
-
-```bash
-npm run build
-```
-
-The build validates the static files and exam JSON, then writes the deployable site to `dist/`.
+## Development
+- **Run Locally**: `npm run dev`
+- **Build**: `npm run build`
+- **Preview**: `npm run preview`
 
 ## Deployment
-
-GitHub Pages deployment is handled by `.github/workflows/deploy.yml`.
-
-The workflow:
-
-1. Installs with `npm ci`.
-2. Runs `npm run build`.
-3. Uploads `dist/` to GitHub Pages.
-
-Expected production URL:
-
-https://wasemabujoseph.github.io/EXAM/
-
-## Repository Exam Manifest
-
-`exams/index.json` lists exams that can be loaded by the app:
-
-```json
-{
-  "exams": [
-    {
-      "id": "sample",
-      "title": "Sample MCQ Exam",
-      "file": "sample.json",
-      "description": "A short demo exam hosted from this repo."
-    }
-  ]
-}
-```
-
-## Exam JSON Schema
-
-```json
-{
-  "id": "sample",
-  "title": "Sample MCQ Exam",
-  "description": "Optional description",
-  "questions": [
-    {
-      "text": "What does HTML stand for?",
-      "options": [
-        "Hyperlinks and Text Markup Language",
-        "Hyper Text Markup Language",
-        "Home Tool Markup Language",
-        "Hyperlinking Textual Management Language"
-      ],
-      "answer": 1,
-      "explanation": "HTML stands for Hyper Text Markup Language."
-    }
-  ]
-}
-```
-
-`answer` can be a zero-based number, a letter, or an array for multiple correct answers.
+The project is automatically deployed to GitHub Pages via GitHub Actions:
+[https://wasemabujoseph.github.io/EXAM/](https://wasemabujoseph.github.io/EXAM/)
