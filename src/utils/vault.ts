@@ -24,6 +24,11 @@ export interface UserVault {
   myExams: any[];
   attempts: ExamAttempt[];
   settings: Record<string, any>;
+  githubSettings?: {
+    token?: string;
+    repo?: string;
+    branch?: string;
+  };
 }
 
 const USERS_KEY = 'exam_users_index';

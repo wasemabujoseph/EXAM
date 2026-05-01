@@ -5,6 +5,12 @@
       "title": "Sample MCQ Exam",
       "file": "sample.json",
       "description": "A polished demo exam hosted from this repository."
+    },
+    {
+      "id": "test-exam-20",
+      "title": "Medical Knowledge Test (20 MCQs)",
+      "file": "test_exam_20.json",
+      "description": "A comprehensive test exam with 20 questions covering various medical topics for flow testing."
     }
   ]
 }

@@ -1,0 +1,127 @@
+{
+  "id": "test-exam-20",
+  "title": "Medical Knowledge Test (20 MCQs)",
+  "description": "A comprehensive test exam with 20 questions covering various medical topics for flow testing.",
+  "questions": [
+    {
+      "text": "Which organ is primarily responsible for detoxifying chemicals and metabolizing drugs?",
+      "options": ["Heart", "Liver", "Kidney", "Lungs"],
+      "answer": 1,
+      "explanation": "The liver is the body's primary site for detoxification and metabolism."
+    },
+    {
+      "text": "What is the normal resting heart rate for a healthy adult?",
+      "options": ["40-60 bpm", "60-100 bpm", "100-120 bpm", "120-150 bpm"],
+      "answer": 1,
+      "explanation": "A normal resting heart rate for adults ranges from 60 to 100 beats per minute."
+    },
+    {
+      "text": "Which vitamin is synthesized when the skin is exposed to sunlight?",
+      "options": ["Vitamin A", "Vitamin B12", "Vitamin C", "Vitamin D"],
+      "answer": 3,
+      "explanation": "Vitamin D is produced in the skin in response to UV radiation from sunlight."
+    },
+    {
+      "text": "What is the largest bone in the human body?",
+      "options": ["Tibia", "Fibula", "Femur", "Humerus"],
+      "answer": 2,
+      "explanation": "The femur, or thigh bone, is the longest and strongest bone in the body."
+    },
+    {
+      "text": "Which part of the brain controls balance and coordination?",
+      "options": ["Cerebrum", "Cerebellum", "Brainstem", "Thalamus"],
+      "answer": 1,
+      "explanation": "The cerebellum is responsible for coordinating voluntary movements and maintaining balance."
+    },
+    {
+      "text": "What is the primary function of white blood cells?",
+      "options": ["Transport oxygen", "Clot blood", "Fight infection", "Regulate temperature"],
+      "answer": 2,
+      "explanation": "White blood cells (leukocytes) are part of the immune system and help fight infections."
+    },
+    {
+      "text": "Which hormone regulates blood sugar levels?",
+      "options": ["Adrenaline", "Estrogen", "Insulin", "Thyroxine"],
+      "answer": 2,
+      "explanation": "Insulin, produced by the pancreas, allows the body to use glucose for energy or store it for future use."
+    },
+    {
+      "text": "What is the main gas inhaled by humans during respiration?",
+      "options": ["Carbon dioxide", "Nitrogen", "Oxygen", "Hydrogen"],
+      "answer": 2,
+      "explanation": "Oxygen is essential for cellular respiration and is the primary gas absorbed from the air."
+    },
+    {
+      "text": "Where in the human body is the pituitary gland located?",
+      "options": ["Neck", "Abdomen", "Brain", "Chest"],
+      "answer": 2,
+      "explanation": "The pituitary gland is located at the base of the brain, below the hypothalamus."
+    },
+    {
+      "text": "Which blood type is known as the universal donor?",
+      "options": ["A positive", "B negative", "AB positive", "O negative"],
+      "answer": 3,
+      "explanation": "O negative blood can be given to patients of any blood type in emergencies."
+    },
+    {
+      "text": "How many chambers does the human heart have?",
+      "options": ["Two", "Three", "Four", "Five"],
+      "answer": 2,
+      "explanation": "The human heart consists of four chambers: two atria and two ventricles."
+    },
+    {
+      "text": "What is the most common cause of a stroke?",
+      "options": ["Bacterial infection", "Blood clot", "Low blood sugar", "Vitamin deficiency"],
+      "answer": 1,
+      "explanation": "An ischemic stroke occurs when a blood clot blocks an artery to the brain."
+    },
+    {
+      "text": "Which organ produces bile?",
+      "options": ["Gallbladder", "Pancreas", "Stomach", "Liver"],
+      "answer": 3,
+      "explanation": "The liver produces bile, which is then stored and concentrated in the gallbladder."
+    },
+    {
+      "text": "What is the medical term for high blood pressure?",
+      "options": ["Hypotension", "Hypertension", "Hyperglycemia", "Hypoxia"],
+      "answer": 1,
+      "explanation": "Hypertension is the clinical term for consistently high blood pressure."
+    },
+    {
+      "text": "Which system is responsible for the transport of nutrients and gases throughout the body?",
+      "options": ["Digestive system", "Respiratory system", "Circulatory system", "Endocrine system"],
+      "answer": 2,
+      "explanation": "The circulatory system (cardiovascular system) transports blood containing nutrients and oxygen."
+    },
+    {
+      "text": "What is the approximate total volume of blood in an average adult?",
+      "options": ["2 liters", "5 liters", "8 liters", "10 liters"],
+      "answer": 1,
+      "explanation": "An average adult has about 4.5 to 5.5 liters of blood."
+    },
+    {
+      "text": "Which nutrient is the primary source of energy for the body?",
+      "options": ["Proteins", "Fats", "Carbohydrates", "Minerals"],
+      "answer": 2,
+      "explanation": "Carbohydrates are the body's main source of fuel, especially for the brain and muscles."
+    },
+    {
+      "text": "What is the function of the alveoli in the lungs?",
+      "options": ["Filter dust", "Produce mucus", "Gas exchange", "Warm the air"],
+      "answer": 2,
+      "explanation": "Alveoli are tiny air sacs where oxygen enters the blood and carbon dioxide leaves it."
+    },
+    {
+      "text": "Which enzyme in saliva starts the digestion of starch?",
+      "options": ["Pepsin", "Lipase", "Amylase", "Trypsin"],
+      "answer": 2,
+      "explanation": "Salivary amylase breaks down complex carbohydrates into simpler sugars."
+    },
+    {
+      "text": "What is the outer layer of the skin called?",
+      "options": ["Dermis", "Hypodermis", "Epidermis", "Subcutis"],
+      "answer": 2,
+      "explanation": "The epidermis is the outermost layer of the skin, providing a waterproof barrier."
+    }
+  ]
+}

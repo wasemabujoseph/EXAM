@@ -125,6 +125,50 @@ const Settings: React.FC = () => {
           </div>
         </section>
 
+        <section className="settings-section card">
+          <div className="section-head">
+            <Upload size={20} />
+            <h2>GitHub Integration</h2>
+          </div>
+          <p className="section-desc">Configure your private GitHub repository for encrypted cloud backups.</p>
+          <div className="form-group">
+            <label>GitHub Token (PAT)</label>
+            <input 
+              type="password" 
+              placeholder="ghp_xxxxxxxxxxxx"
+              value={vault?.githubSettings?.token || ''}
+              onChange={(e) => {
+                if (!vault) return;
+                updateVault({
+                  ...vault,
+                  githubSettings: { ...(vault.githubSettings || {}), token: e.target.value }
+                });
+              }}
+              className="settings-input"
+            />
+          </div>
+          <div className="form-group">
+            <label>Repository (user/repo)</label>
+            <input 
+              type="text" 
+              placeholder="wasemabujoseph/EXAM-Vault"
+              value={vault?.githubSettings?.repo || ''}
+              onChange={(e) => {
+                if (!vault) return;
+                updateVault({
+                  ...vault,
+                  githubSettings: { ...(vault.githubSettings || {}), repo: e.target.value }
+                });
+              }}
+              className="settings-input"
+            />
+          </div>
+          <div className="hint-box">
+            <Info size={16} />
+            <span>Tokens are stored only in your encrypted local vault.</span>
+          </div>
+        </section>
+
         <section className="settings-section card danger-zone">
           <div className="section-head">
             <Trash2 size={20} />
