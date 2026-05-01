@@ -36,8 +36,26 @@ The "Generate Exam" tool supports flexible formats:
 - **Preview**: `npm run preview`
 
 ## Deployment
+
+### GitHub Pages
 The project is automatically deployed to GitHub Pages via GitHub Actions:
 [https://wasemabujoseph.github.io/EXAM/](https://wasemabujoseph.github.io/EXAM/)
 
+### Cloudflare Pages
+The project is also optimized for Cloudflare Pages:
+[https://exam-cyx.pages.dev/](https://exam-cyx.pages.dev/)
+
+**Required Cloudflare Pages Settings:**
+- **Build command**: `npm run build`
+- **Build output directory**: `dist`
+- **Root directory**: `/`
+- **Node.js version**: `20` (specified via `.nvmrc`)
+
+*Deployment steps:*
+1. Connect your GitHub repository to Cloudflare Pages.
+2. In the **Build configuration**, set the output directory to `dist`.
+3. In **Settings > Builds & deployments**, ensure the Node.js version is set to 20.
+4. If the site shows a white page, verify the **Build output directory** is set to `dist` and NOT the project root.
+
 ---
-*Note: This app is hosted on GitHub Pages. Private user data is encrypted and stored locally in the user's browser. It is not uploaded to GitHub automatically because doing so securely would require a backend. Never put GitHub tokens or encryption keys into frontend code.*
+*Note: This app is hosted on static providers. Private user data is encrypted and stored locally in the user's browser. Never put GitHub tokens or encryption keys into frontend code.*
