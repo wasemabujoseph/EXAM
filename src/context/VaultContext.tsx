@@ -6,6 +6,10 @@ interface User {
   username: string;
   email: string;
   role: string;
+  status: string;
+  plan: string;
+  trial_limit: number;
+  attempt_count: number;
 }
 
 interface VaultContextType {
@@ -14,6 +18,7 @@ interface VaultContextType {
   login: (username: string, pass: string) => Promise<void>;
   register: (name: string, email: string, pass: string) => Promise<void>;
   logout: () => void;
+  refreshUser: () => Promise<void>;
 }
 
 const VaultContext = createContext<VaultContextType | undefined>(undefined);
@@ -132,6 +137,17 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setUser(response.user);
   };
 
+  const refreshUser = async () => {
+    if (!user) return;
+    try {
+      const userData = await api.getMe();
+      setUser(userData);
+      safeStorage.setItem(KEYS.USER, JSON.stringify(userData));
+    } catch (e) {
+      console.error('Failed to refresh user', e);
+    }
+  };
+
   const logout = () => {
     api.logout().catch(() => {}); // Fire and forget
     safeStorage.removeItem(KEYS.TOKEN);
@@ -157,7 +173,8 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       isLoading, 
       login, 
       register, 
-      logout
+      logout,
+      refreshUser
     }}>
       {children}
     </VaultContext.Provider>

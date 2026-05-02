@@ -1,61 +1,60 @@
-# MD Curriculum Exam Hub
+# EXAM CLOUD
 
-A professional medical curriculum dashboard and encrypted exam resource hub. Browse subjects, credits, and academic materials organized by year and semester, and generate your own private exams.
+A professional, cloud-powered medical examination platform built with **React**, **Vite**, and **Google Apps Script**.
 
-## Features
-- **Full MD Curriculum**: Complete Grade 1-6 curriculum structure.
-- **Interactive Dashboard**: Navigate by Year and Semester.
-- **Exam Generator**: Paste MCQ text to create your own private exams.
-- **Encrypted Local Storage**: All user data (profile, exams, results, history) is encrypted locally using **AES-GCM**.
-- **Results History**: Detailed review of past attempts with score, time, and question-by-question analysis.
-- **Local Leaderboard**: Track your personal best scores.
-- **Secure Static Hosting**: Designed for GitHub Pages. No backend required.
+## 🚀 Overview
+EXAM CLOUD transforms the traditional static exam experience into a robust, centralized, and secure assessment ecosystem. By leveraging **Google Sheets** as a database and **Google Apps Script** as a backend API, it provides a seamless cross-device experience without sacrificing the simplicity of serverless hosting.
 
-## Security Model
-This application uses a **Zero-Knowledge** local encryption model:
-1. **No Backend**: Data is never uploaded to a central server.
-2. **Client-Side Encryption**: Your password is used to derive a 256-bit AES key via **PBKDF2**.
-3. **Encrypted Vault**: All private data is stored in your browser's `localStorage` as an encrypted blob.
-4. **No Password Recovery**: Since we don't store your password or data, we cannot recover it. If you forget your password, you must reset your local vault.
+## ✨ Key Features
 
-## MCQ Parser
-The "Generate Exam" tool supports flexible formats:
-- Supports `Q1:`, `Question 1:`, or simple numbered questions.
-- Detects options like `A)`, `B)`, `1.`, `(A)`.
-- Detects answers like `Answer: A`, `Correct: B`, `Ans: C`.
-- Allows editing and previewing before saving.
+### 🛡️ Secure Cloud Backend
+- **Authentication**: JWT-based secure login and registration system.
+- **Role-Based Access Control (RBAC)**: Distinct permissions for Students and Administrators.
+- **Google Sheets Database**: Transparent, accessible, and high-availability data storage.
 
-## Backup & Portability
-- **Export Backup**: Download your entire encrypted vault as a JSON file.
-- **Import Backup**: Restore your vault on another device or browser.
-- **Manual GitHub Backup**: You can manually upload your exported encrypted JSON to a private GitHub repository for safekeeping.
+### 🎓 Advanced Exam Runner
+- **Dual Display Modes**: Toggle between focused **Single Question** view and comprehensive **Full Page** view.
+- **Session Control**: Pause/Resume timer functionality for flexible test-taking.
+- **Smart Retries**: Redo entire exams or target only the questions you missed.
+- **Snapshot Persistence**: Historical results preserve the exact question state at the time of the attempt.
 
-## Development
-- **Run Locally**: `npm run dev`
-- **Build**: `npm run build`
-- **Preview**: `npm run preview`
+### 🛠️ Professional Admin Suite
+- **System Dashboard**: Real-time KPI monitoring (Users, Exams, Attempts, Accuracy).
+- **User Management**: Grant PRO status, manage roles (Admin/Student), and block/unblock accounts.
+- **MCQ Parser**: Rapidly create public exams by pasting raw text; auto-detects questions, options, and keys.
+- **Audit Trail**: Track every submission across the entire platform.
 
-## Deployment
+### 💎 Premium User Experience
+- **PRO vs FREE Plans**: Built-in subscription model with attempt limits for trial users.
+- **Modern Aesthetics**: Sleek glassmorphism design using a custom Slate & Indigo palette.
+- **Zero-Local Leak**: No exam data is stored in `localStorage`, ensuring data integrity and security.
 
-### GitHub Pages
-The project is automatically deployed to GitHub Pages via GitHub Actions:
-[https://wasemabujoseph.github.io/EXAM/](https://wasemabujoseph.github.io/EXAM/)
+## 🛠️ Technical Stack
+- **Frontend**: React 18, Vite, TypeScript, Lucide Icons.
+- **Styling**: Vanilla CSS with modern tokens and utility classes.
+- **Backend**: Google Apps Script (Version 3.0).
+- **Database**: Google Sheets (Users, Sessions, Exams, Attempts, AuditLog).
+- **Hosting**: Cloudflare Pages / GitHub Pages.
 
-### Cloudflare Pages
-The project is also optimized for Cloudflare Pages:
-[https://exam-cyx.pages.dev/](https://exam-cyx.pages.dev/)
+## 🔧 Deployment Guide
 
-**Required Cloudflare Pages Settings:**
-- **Build command**: `npm run build`
-- **Build output directory**: `dist`
-- **Root directory**: `/`
-- **Node.js version**: `20` (specified via `.nvmrc`)
+### 1. Apps Script Setup
+1. Create a new Google Sheet.
+2. Open **Extensions > Apps Script**.
+3. Copy the content of `google-apps-script/Code.gs` into the editor.
+4. Set the `ADMIN_PASSWORD` and `JWT_SECRET` variables.
+5. Deploy as **Web App** (Execute as: Me, Access: Anyone).
+6. Note the provided Deployment URL.
 
-*Deployment steps:*
-1. Connect your GitHub repository to Cloudflare Pages.
-2. In the **Build configuration**, set the output directory to `dist`.
-3. In **Settings > Builds & deployments**, ensure the Node.js version is set to 20.
-4. If the site shows a white page, verify the **Build output directory** is set to `dist` and NOT the project root.
+### 2. Frontend Configuration
+1. Clone the repository.
+2. Create/Update environment variables (e.g., in Cloudflare dashboard):
+   - `VITE_APPS_SCRIPT_API_URL`: [Your Apps Script Deployment URL]
+3. Run `npm install` and `npm run dev`.
+
+## 📦 Maintenance
+- **Database**: All data is stored in the `Exams` and `Users` tabs of your linked Google Sheet.
+- **Migrations**: Version 3.0 includes an automatic schema migration tool within `Code.gs`.
 
 ---
-*Note: This app is hosted on static providers. Private user data is encrypted and stored locally in the user's browser. Never put GitHub tokens or encryption keys into frontend code.*
+*Built with ❤️ for Medical Professionals.*

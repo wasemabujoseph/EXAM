@@ -21,6 +21,8 @@ const ExamRunner: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  const { user, refreshUser } = useVault();
+  
   const [exam, setExam] = useState<any>(null);
   const [questions, setQuestions] = useState<any[]>([]);
   const [answers, setAnswers] = useState<Record<number, string[]>>({});
@@ -28,9 +30,21 @@ const ExamRunner: React.FC = () => {
   const [notes, setNotes] = useState<Record<number, string>>({});
   const [currentIndex, setCurrentIndex] = useState(0);
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
+  const [isTimerPaused, setIsTimerPaused] = useState(false);
+  const [displayMode, setDisplayMode] = useState<'single' | 'full'>('single');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [startedAt] = useState(Date.now());
+
+  // Plan Limit Check
+  useEffect(() => {
+    if (user && user.role !== 'admin' && user.plan === 'free') {
+      if (user.attempt_count >= user.trial_limit) {
+        alert('You have reached your 4 free exam attempts. Please upgrade to PRO to continue.');
+        navigate('/dashboard');
+      }
+    }
+  }, [user]);
 
   useEffect(() => {
     const fetchExam = async () => {
@@ -38,7 +52,17 @@ const ExamRunner: React.FC = () => {
       let foundExam: any = null;
       
       try {
-        if (type === 'curriculum') {
+        // Handle Redo Modes
+        if (location.state?.redoMode) {
+          foundExam = location.state.exam;
+          if (location.state.redoMode === 'wrong-only' && location.state.wrongQuestions) {
+            foundExam = {
+              ...foundExam,
+              title: `Retry Wrong Questions - ${foundExam.title}`,
+              questions: location.state.wrongQuestions
+            };
+          }
+        } else if (type === 'curriculum') {
           foundExam = location.state?.exam;
           if (!foundExam) {
             const [yearId, semesterId, subjectName] = (id || '').split('|');
@@ -53,7 +77,7 @@ const ExamRunner: React.FC = () => {
               };
             }
           }
-        } else if ((type === 'my' || type === 'cloud') && id) {
+        } else if ((type === 'my' || type === 'cloud' || type === 'public') && id) {
           foundExam = await api.getExamById(id);
         }
       } catch (err) {
@@ -62,8 +86,11 @@ const ExamRunner: React.FC = () => {
 
       if (foundExam) {
         setExam(foundExam);
-        setQuestions(foundExam.examData?.questions || foundExam.questions || []);
-        setTimeRemaining((foundExam.examData?.questions?.length || foundExam.questions?.length || 0) * 60);
+        const qs = foundExam.examData?.questions || foundExam.questions || [];
+        setQuestions(qs);
+        // Default time: 1 min per question unless exam has time_limit
+        const limit = foundExam.time_limit_minutes || foundExam.timeLimit || (qs.length * 1);
+        setTimeRemaining(limit > 0 ? limit * 60 : null);
       }
       setIsLoading(false);
     };
@@ -73,12 +100,12 @@ const ExamRunner: React.FC = () => {
 
   // Timer logic
   useEffect(() => {
-    if (timeRemaining === null || timeRemaining <= 0 || isSubmitting) return;
+    if (timeRemaining === null || timeRemaining <= 0 || isSubmitting || isTimerPaused) return;
     const timer = setInterval(() => {
       setTimeRemaining(prev => (prev !== null ? prev - 1 : null));
     }, 1000);
     return () => clearInterval(timer);
-  }, [timeRemaining, isSubmitting]);
+  }, [timeRemaining, isSubmitting, isTimerPaused]);
 
   useEffect(() => {
     if (timeRemaining === 0) {
@@ -88,7 +115,9 @@ const ExamRunner: React.FC = () => {
 
   const handleAnswerChange = (qIndex: number, optionId: string, checked: boolean) => {
     const q = questions[qIndex];
-    const isMultiple = q.answers.length > 1;
+    // Some exams might have answers array, some might have correct_answers
+    const correctCount = (q.answers || q.correct_answers || [q.correctAnswer]).length;
+    const isMultiple = correctCount > 1;
     
     setAnswers(prev => {
       const current = prev[qIndex] || [];
@@ -119,7 +148,9 @@ const ExamRunner: React.FC = () => {
     let correctCount = 0;
     questions.forEach((q, i) => {
       const userAns = (answers[i] || []).sort().join(',');
-      const correctAns = q.answers.sort().join(',');
+      // Handle both formats
+      const qAnswers = q.answers || q.correct_answers || [q.correctAnswer];
+      const correctAns = qAnswers.sort().join(',');
       if (userAns === correctAns) correctCount++;
     });
 
@@ -127,15 +158,18 @@ const ExamRunner: React.FC = () => {
 
     try {
       const response = await api.saveAttempt({
-        examId: exam.id,
+        examId: exam.id || id,
         score: correctCount,
         totalQuestions: questions.length,
         answers,
-        durationSeconds
+        questionsSnapshot: questions,
+        durationSeconds,
+        mode: location.state?.redoMode || 'normal'
       });
+      await refreshUser(); // Update attempt count locally
       navigate(`/dashboard/review/${response.id}`);
-    } catch (err) {
-      alert('Failed to save attempt. Please try again.');
+    } catch (err: any) {
+      alert(err.message || 'Failed to save attempt. Please try again.');
       setIsSubmitting(false);
     }
   };
@@ -164,10 +198,24 @@ const ExamRunner: React.FC = () => {
         </div>
 
         <div className="runner-stats">
-          <div className="stat-item timer">
+          <button 
+            className="mode-btn" 
+            onClick={() => setDisplayMode(prev => prev === 'single' ? 'full' : 'single')}
+          >
+            {displayMode === 'single' ? 'Full Page View' : 'Single Question View'}
+          </button>
+
+          <div className={`stat-item timer ${isTimerPaused ? 'paused' : ''}`}>
             <Timer size={20} />
             <span>{timeRemaining !== null ? formatTime(timeRemaining) : '--:--'}</span>
+            <button 
+              className="pause-btn" 
+              onClick={() => setIsTimerPaused(!isTimerPaused)}
+            >
+              {isTimerPaused ? 'Resume' : 'Pause'}
+            </button>
           </div>
+
           <button className="submit-btn" onClick={() => handleSubmit()} disabled={isSubmitting}>
             {isSubmitting ? <Loader2 className="spinner" size={18} /> : 'Submit Exam'}
           </button>
@@ -175,71 +223,105 @@ const ExamRunner: React.FC = () => {
       </header>
 
       <div className="runner-layout">
-        <main className="question-area">
-          <div className="question-card-run">
-            <div className="q-header">
-              <span className="q-num">Q{currentIndex + 1}</span>
-              <p className="q-text">{currentQ.text}</p>
-            </div>
+        <main className={`question-area ${displayMode}-mode`}>
+          {displayMode === 'single' ? (
+            <>
+              <div className="question-card-run">
+                <div className="q-header">
+                  <span className="q-num">Q{currentIndex + 1}</span>
+                  <p className="q-text">{currentQ.text || currentQ.question}</p>
+                </div>
 
-            <div className="options-list-run">
-              {currentQ.options.map((opt: any) => (
-                <label key={opt.id} className={`opt-row-run ${(answers[currentIndex] || []).includes(opt.id) ? 'active' : ''}`}>
-                  <input 
-                    type={currentQ.answers.length > 1 ? 'checkbox' : 'radio'}
-                    name={`q-${currentIndex}`}
-                    checked={(answers[currentIndex] || []).includes(opt.id)}
-                    onChange={(e) => handleAnswerChange(currentIndex, opt.id, e.target.checked)}
-                  />
-                  <span className="opt-badge-run">{opt.label || opt.display}</span>
-                  <span className="opt-text-run">{opt.text}</span>
-                </label>
+                <div className="options-list-run">
+                  {currentQ.options.map((opt: any) => (
+                    <label key={opt.id} className={`opt-row-run ${(answers[currentIndex] || []).includes(opt.id) ? 'active' : ''}`}>
+                      <input 
+                        type={(currentQ.answers || currentQ.correct_answers || [currentQ.correctAnswer]).length > 1 ? 'checkbox' : 'radio'}
+                        name={`q-${currentIndex}`}
+                        checked={(answers[currentIndex] || []).includes(opt.id)}
+                        onChange={(e) => handleAnswerChange(currentIndex, opt.id, e.target.checked)}
+                      />
+                      <span className="opt-badge-run">{opt.id}</span>
+                      <span className="opt-text-run">{opt.text}</span>
+                    </label>
+                  ))}
+                </div>
+
+                <div className="q-footer-run">
+                  <button 
+                    className={`flag-btn ${flags.has(currentIndex) ? 'active' : ''}`}
+                    onClick={() => toggleFlag(currentIndex)}
+                  >
+                    <Flag size={18} />
+                    {flags.has(currentIndex) ? 'Flagged' : 'Flag Question'}
+                  </button>
+                  
+                  <div className="notes-area">
+                    <StickyNote size={18} />
+                    <input 
+                      type="text" 
+                      placeholder="Private note for this question..." 
+                      value={notes[currentIndex] || ''}
+                      onChange={(e) => setNotes({...notes, [currentIndex]: e.target.value})}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="nav-controls-run">
+                <button 
+                  disabled={currentIndex === 0}
+                  onClick={() => setCurrentIndex(prev => prev - 1)}
+                  className="nav-btn"
+                >
+                  <ChevronLeft size={20} /> Previous
+                </button>
+                <div className="progress-track">
+                  <div 
+                    className="progress-bar-run" 
+                    style={{ width: `${((currentIndex + 1) / (questions.length || 1)) * 100}%` }}
+                  ></div>
+                </div>
+                <button 
+                  disabled={currentIndex === questions.length - 1}
+                  onClick={() => setCurrentIndex(prev => prev + 1)}
+                  className="nav-btn"
+                >
+                  Next <ChevronRight size={20} />
+                </button>
+              </div>
+            </>
+          ) : (
+            <div className="full-page-scroll">
+              {questions.map((q, idx) => (
+                <div key={idx} id={`q-anchor-${idx}`} className="question-card-run full-mode-card">
+                  <div className="q-header">
+                    <span className="q-num">Question {idx + 1}</span>
+                    <p className="q-text">{q.text || q.question}</p>
+                  </div>
+                  <div className="options-list-run">
+                    {q.options.map((opt: any) => (
+                      <label key={opt.id} className={`opt-row-run ${(answers[idx] || []).includes(opt.id) ? 'active' : ''}`}>
+                        <input 
+                          type={(q.answers || q.correct_answers || [q.correctAnswer]).length > 1 ? 'checkbox' : 'radio'}
+                          name={`q-${idx}`}
+                          checked={(answers[idx] || []).includes(opt.id)}
+                          onChange={(e) => handleAnswerChange(idx, opt.id, e.target.checked)}
+                        />
+                        <span className="opt-badge-run">{opt.id}</span>
+                        <span className="opt-text-run">{opt.text}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
               ))}
-            </div>
-
-            <div className="q-footer-run">
-              <button 
-                className={`flag-btn ${flags.has(currentIndex) ? 'active' : ''}`}
-                onClick={() => toggleFlag(currentIndex)}
-              >
-                <Flag size={18} />
-                {flags.has(currentIndex) ? 'Flagged' : 'Flag Question'}
-              </button>
-              
-              <div className="notes-area">
-                <StickyNote size={18} />
-                <input 
-                  type="text" 
-                  placeholder="Private note for this question..." 
-                  value={notes[currentIndex] || ''}
-                  onChange={(e) => setNotes({...notes, [currentIndex]: e.target.value})}
-                />
+              <div className="p-10 text-center">
+                <button className="submit-btn large mx-auto" onClick={() => handleSubmit()} disabled={isSubmitting}>
+                  {isSubmitting ? <Loader2 className="spinner" size={24} /> : 'Final Submission'}
+                </button>
               </div>
             </div>
-          </div>
-
-          <div className="nav-controls-run">
-            <button 
-              disabled={currentIndex === 0}
-              onClick={() => setCurrentIndex(prev => prev - 1)}
-              className="nav-btn"
-            >
-              <ChevronLeft size={20} /> Previous
-            </button>
-            <div className="progress-track">
-              <div 
-                className="progress-bar-run" 
-                style={{ width: `${((currentIndex + 1) / (questions.length || 1)) * 100}%` }}
-              ></div>
-            </div>
-            <button 
-              disabled={currentIndex === questions.length - 1}
-              onClick={() => setCurrentIndex(prev => prev + 1)}
-              className="nav-btn"
-            >
-              Next <ChevronRight size={20} />
-            </button>
-          </div>
+          )}
         </main>
 
         <aside className="navigator-sidebar">
@@ -490,6 +572,53 @@ const ExamRunner: React.FC = () => {
         @media (max-width: 1024px) {
           .navigator-sidebar { display: none; }
           .runner-layout { padding: 1rem; }
+        }
+
+        .mode-btn {
+          background: #f1f5f9;
+          color: #64748b;
+          border: 1px solid #e2e8f0;
+          padding: 0.5rem 1rem;
+          border-radius: 0.5rem;
+          font-weight: 700;
+          font-size: 0.75rem;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        .mode-btn:hover { background: #e2e8f0; color: var(--primary); }
+
+        .pause-btn {
+          margin-left: 0.5rem;
+          background: #fef2f2;
+          color: #ef4444;
+          border: 1px solid #fee2e2;
+          padding: 0.25rem 0.75rem;
+          border-radius: 0.4rem;
+          font-size: 0.7rem;
+          font-weight: 800;
+          cursor: pointer;
+        }
+        .timer.paused { opacity: 0.6; }
+        .timer.paused span { animation: blink 1s step-end infinite; }
+        @keyframes blink { 50% { opacity: 0; } }
+
+        .full-page-scroll {
+          flex: 1;
+          overflow-y: auto;
+          padding-right: 1rem;
+          scroll-behavior: smooth;
+        }
+        .full-mode-card {
+          margin-bottom: 2rem;
+        }
+        .question-area.full-mode {
+          max-width: 900px;
+        }
+        .submit-btn.large {
+          padding: 1.25rem 3rem;
+          font-size: 1.25rem;
+          border-radius: 1rem;
+          box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.4);
         }
       `}</style>
     </div>

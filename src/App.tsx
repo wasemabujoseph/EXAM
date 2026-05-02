@@ -15,6 +15,12 @@ import Settings from './components/Settings';
 import CurriculumOverview from './components/CurriculumOverview';
 import YearView from './components/YearView';
 import SubjectDetails from './components/SubjectDetails';
+import AdminLayout from './components/AdminLayout';
+import AdminDashboard from './components/AdminDashboard';
+import AdminUsers from './components/AdminUsers';
+import AdminExams from './components/AdminExams';
+import AdminAttempts from './components/AdminAttempts';
+import { AdminAnalytics, AdminSettings } from './components/AdminPlaceholders';
 
 const AppContent = () => {
   const { user, isLoading } = useVault();
@@ -42,6 +48,16 @@ const AppContent = () => {
         <Route path="review/:attemptId" element={<ReviewAttempt />} />
         <Route path="leaderboard" element={<Leaderboard />} />
         <Route path="settings" element={<Settings />} />
+      </Route>
+
+      <Route path="/admin" element={<ProtectedRoute><AdminLayout /></ProtectedRoute>}>
+        <Route index element={<Navigate to="dashboard" replace />} />
+        <Route path="dashboard" element={<AdminDashboard />} />
+        <Route path="users" element={<AdminUsers />} />
+        <Route path="exams" element={<AdminExams />} />
+        <Route path="attempts" element={<AdminAttempts />} />
+        <Route path="analytics" element={<AdminAnalytics />} />
+        <Route path="settings" element={<AdminSettings />} />
       </Route>
 
       <Route path="/" element={<Navigate to="/dashboard" />} />

@@ -111,6 +111,13 @@ export const api = {
   getMyAttempts: () => request<any[]>('getMyAttempts'),
   getAttemptReview: (id: string) => request<any>('getAttemptReview', { id }),
   getLeaderboard: (examId?: string) => request<any[]>('getLeaderboard', { examId }),
+
+  // Admin Actions
+  adminGetStats: () => request<any>('adminGetStats'),
+  adminGetUsers: () => request<any[]>('adminGetUsers'),
+  adminUpdateUser: (userId: string, updates: any) => request<any>('adminUpdateUser', { userId, updates }),
+  adminGetAllExams: () => request<any[]>('adminGetAllExams'),
+  adminGetAllAttempts: () => request<any[]>('adminGetAllAttempts'),
 };
 
 export const isApiConfigured = !!API_URL;

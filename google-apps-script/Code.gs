@@ -1,5 +1,5 @@
 /**
- * EXAM Backend - Google Apps Script
+ * EXAM Backend - Google Apps Script (Version 3.0 - Admin & Plans)
  * This script acts as the backend for the EXAM project, using Google Sheets as a database.
  */
 
@@ -15,10 +15,10 @@ const TABLES = {
 };
 
 const HEADERS = {
-  [TABLES.USERS]: ['id', 'username', 'email', 'password_hash', 'salt', 'role', 'created_at'],
+  [TABLES.USERS]: ['id', 'username', 'email', 'password_hash', 'salt', 'role', 'status', 'plan', 'trial_limit', 'attempt_count', 'created_at', 'updated_at', 'last_login'],
   [TABLES.SESSIONS]: ['id', 'user_id', 'token_hash', 'expires_at', 'created_at'],
-  [TABLES.EXAMS]: ['id', 'user_id', 'title', 'description', 'grade', 'subject', 'exam_data_json', 'is_public', 'created_at'],
-  [TABLES.EXAM_ATTEMPTS]: ['id', 'user_id', 'exam_id', 'score', 'total_questions', 'answers_json', 'duration_seconds', 'created_at'],
+  [TABLES.EXAMS]: ['id', 'user_id', 'title', 'description', 'grade', 'subject', 'tags_json', 'difficulty', 'time_limit_minutes', 'exam_data_json', 'is_public', 'status', 'featured', 'created_at', 'updated_at'],
+  [TABLES.EXAM_ATTEMPTS]: ['id', 'user_id', 'exam_id', 'score', 'total_questions', 'percentage', 'answers_json', 'questions_snapshot_json', 'duration_seconds', 'mode', 'created_at'],
   [TABLES.PASSWORD_RESETS]: ['id', 'user_id', 'token_hash', 'expires_at', 'created_at'],
   [TABLES.AUDIT_LOG]: ['id', 'user_id', 'action', 'details', 'ip_address', 'created_at']
 };
@@ -29,7 +29,7 @@ const HEADERS = {
 function doPost(e) {
   try {
     if (!e || !e.postData || !e.postData.contents) {
-      throw new Error('No data received in request body. Ensure you are sending a POST request with a body.');
+      throw new Error('No data received in request body.');
     }
 
     const data = JSON.parse(e.postData.contents);
@@ -39,6 +39,7 @@ function doPost(e) {
 
     // Initialize sheets if needed
     initSheets();
+    runMigration(); // Ensure columns match latest schema
 
     let user = null;
     if (token) {
@@ -48,11 +49,7 @@ function doPost(e) {
     let result;
     switch (action) {
       case 'health':
-        result = { 
-          status: 'ok', 
-          version: 'apps-script-v2.1', 
-          sheetConnected: !!SpreadsheetApp.openById(SPREADSHEET_ID) 
-        };
+        result = { status: 'ok', version: '3.0.0', db: TABLES.USERS };
         break;
       case 'register':
         result = handleRegister(payload);
@@ -93,228 +90,188 @@ function doPost(e) {
       case 'getLeaderboard':
         result = handleGetLeaderboard(payload.examId);
         break;
+      
+      // Admin Actions
+      case 'adminGetStats':
+        result = handleAdminGetStats(user);
+        break;
+      case 'adminGetUsers':
+        result = handleAdminGetUsers(user);
+        break;
+      case 'adminUpdateUser':
+        result = handleAdminUpdateUser(user, payload);
+        break;
+      case 'adminGetAllExams':
+        result = handleAdminGetAllExams(user);
+        break;
+      case 'adminGetAllAttempts':
+        result = handleAdminGetAllAttempts(user);
+        break;
+
       default:
         throw new Error('Unknown action: ' + action);
     }
 
-    // Success response
-    return createResponse({ 
-      ok: true, 
-      data: result 
-    });
+    return createResponse({ ok: true, data: result });
   } catch (error) {
-    const errorMsg = error.message || String(error);
-    console.error('API Error:', errorMsg);
-    // Error response
-    return createResponse({ 
-      ok: false, 
-      error: errorMsg 
-    });
+    return createResponse({ ok: false, error: error.message || String(error) });
   }
 }
 
-/**
- * Handle GET requests (for simple checks)
- */
 function doGet(e) {
-  return createResponse({ status: 'ok', message: 'EXAM Apps Script API is running' });
+  return createResponse({ status: 'ok', info: 'EXAM API v3' });
 }
 
-// --- Handlers ---
+// --- Auth Handlers ---
 
 function handleRegister(payload) {
   const { username, password, email } = payload;
-  if (!username) throw new Error('Username is required');
-  if (!email) throw new Error('Email is required');
-  if (!password) throw new Error('Password is required');
-
   const sheet = getSheet(TABLES.USERS);
   const data = sheet.getDataRange().getValues();
 
-  // Check if user exists
+  // Check unique
   for (let i = 1; i < data.length; i++) {
-    if (data[i][1].toLowerCase() === username.toLowerCase()) throw new Error('Username already taken');
-    if (data[i][2].toLowerCase() === email.toLowerCase()) throw new Error('Email already registered');
+    if (data[i][1].toLowerCase() === username.toLowerCase()) throw new Error('Username taken');
+    if (data[i][2].toLowerCase() === email.toLowerCase()) throw new Error('Email taken');
   }
 
   const salt = generateUUID();
   const passwordHash = hashPassword(password, salt);
-  const userId = generateUUID();
-  const isFirstUser = data.length === 1; // Only headers
-  const role = isFirstUser ? 'admin' : 'user';
+  const id = generateUUID();
+  const isFirst = data.length === 1;
+  const role = isFirst ? 'admin' : 'user';
+  const now = new Date().toISOString();
 
-  const newUser = [
-    userId,
-    username,
-    email,
-    passwordHash,
-    salt,
-    role,
-    new Date().toISOString()
-  ];
-
+  // ['id', 'username', 'email', 'password_hash', 'salt', 'role', 'status', 'plan', 'trial_limit', 'attempt_count', 'created_at', 'updated_at', 'last_login']
+  const newUser = [id, username, email, passwordHash, salt, role, 'active', 'free', 4, 0, now, now, ''];
   sheet.appendRow(newUser);
-  logAction(userId, 'REGISTER', `User ${username} registered`);
-
+  logAction(id, 'REGISTER', `New user: ${username}`);
+  
   return handleLogin({ username, password });
 }
 
 function handleLogin(payload) {
   const { username, password } = payload;
-  if (!username) throw new Error('Username is required');
-  if (!password) throw new Error('Password is required');
-
   const sheet = getSheet(TABLES.USERS);
   const data = sheet.getDataRange().getValues();
+  const headers = data[0];
 
-  let user = null;
+  let userIdx = -1;
   for (let i = 1; i < data.length; i++) {
-    if (data[i][1].toLowerCase() === username.toLowerCase()) {
-      user = {
-        id: data[i][0],
-        username: data[i][1],
-        passwordHash: data[i][3],
-        salt: data[i][4],
-        role: data[i][5]
-      };
+    if (data[i][1].toLowerCase() === username.toLowerCase() || data[i][2].toLowerCase() === username.toLowerCase()) {
+      userIdx = i;
       break;
     }
   }
 
-  if (!user || hashPassword(password, user.salt) !== user.passwordHash) {
-    throw new Error('Invalid username or password');
-  }
+  if (userIdx === -1) throw new Error('Invalid credentials');
+  const userRow = data[userIdx];
+  const user = rowToObject(userRow, headers);
+
+  if (user.status === 'blocked') throw new Error('Account is blocked. Contact support.');
+  if (hashPassword(password, user.salt) !== user.password_hash) throw new Error('Invalid credentials');
 
   const token = generateUUID();
   const tokenHash = hashToken(token);
-  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(); // 7 days
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
 
-  const sessionsSheet = getSheet(TABLES.SESSIONS);
-  sessionsSheet.appendRow([
-    generateUUID(),
-    user.id,
-    tokenHash,
-    expiresAt,
-    new Date().toISOString()
-  ]);
+  getSheet(TABLES.SESSIONS).appendRow([generateUUID(), user.id, tokenHash, expiresAt, new Date().toISOString()]);
+  
+  // Update last login
+  const lastLoginCol = headers.indexOf('last_login') + 1;
+  sheet.getRange(userIdx + 1, lastLoginCol).setValue(new Date().toISOString());
 
-  logAction(user.id, 'LOGIN', `User ${username} logged in`);
+  logAction(user.id, 'LOGIN', `Login successful`);
 
   return {
     token,
-    user: {
-      id: user.id,
-      username: user.username,
-      role: user.role
-    }
+    user: { id: user.id, username: user.username, email: user.email, role: user.role, status: user.status, plan: user.plan }
   };
-}
-
-function handleLogout(token) {
-  if (!token) return { success: true };
-  const tokenHash = hashToken(token);
-  const sheet = getSheet(TABLES.SESSIONS);
-  const data = sheet.getDataRange().getValues();
-
-  for (let i = 1; i < data.length; i++) {
-    if (data[i][2] === tokenHash) {
-      sheet.deleteRow(i + 1);
-      break;
-    }
-  }
-  return { success: true };
 }
 
 function handleGetMe(user) {
   if (!user) throw new Error('Unauthorized');
+  // Refresh plan info from DB
+  const dbUser = getUserById(user.id);
   return {
-    id: user.id,
-    username: user.username,
-    email: user.email,
-    role: user.role
+    id: dbUser.id,
+    username: dbUser.username,
+    email: dbUser.email,
+    role: dbUser.role,
+    status: dbUser.status,
+    plan: dbUser.plan,
+    trial_limit: dbUser.trial_limit,
+    attempt_count: dbUser.attempt_count
   };
 }
 
+function handleLogout(token) {
+  if (!token) return { ok: true };
+  const hash = hashToken(token);
+  const sheet = getSheet(TABLES.SESSIONS);
+  const data = sheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][2] === hash) {
+      sheet.deleteRow(i + 1);
+      break;
+    }
+  }
+  return { ok: true };
+}
+
+// --- Exam Handlers ---
+
 function handleSaveExam(user, payload) {
   if (!user) throw new Error('Unauthorized');
-  const { title, description, grade, subject, examData, isPublic } = payload;
+  const { title, description, grade, subject, examData, isPublic, tags, difficulty, timeLimit, status } = payload;
   const sheet = getSheet(TABLES.EXAMS);
   const id = generateUUID();
+  const now = new Date().toISOString();
 
+  // ['id', 'user_id', 'title', 'description', 'grade', 'subject', 'tags_json', 'difficulty', 'time_limit_minutes', 'exam_data_json', 'is_public', 'status', 'featured', 'created_at', 'updated_at']
   sheet.appendRow([
-    id,
-    user.id,
-    title,
-    description,
-    grade,
-    subject,
-    JSON.stringify(examData),
-    isPublic ? 'TRUE' : 'FALSE',
-    new Date().toISOString()
+    id, user.id, title, description, grade, subject, 
+    JSON.stringify(tags || []), difficulty || 'medium', timeLimit || 0,
+    JSON.stringify(examData), isPublic ? 'TRUE' : 'FALSE', 
+    status || 'published', 'FALSE', now, now
   ]);
 
-  logAction(user.id, 'SAVE_EXAM', `Exam ${title} saved`);
   return { id };
 }
 
 function handleGetMyExams(user) {
   if (!user) throw new Error('Unauthorized');
-  const sheet = getSheet(TABLES.EXAMS);
-  const data = sheet.getDataRange().getValues();
+  const data = getSheet(TABLES.EXAMS).getDataRange().getValues();
+  const headers = data[0];
   const exams = [];
-
   for (let i = 1; i < data.length; i++) {
     if (data[i][1] === user.id) {
-      exams.push({
-        id: data[i][0],
-        title: data[i][2],
-        description: data[i][3],
-        grade: data[i][4],
-        subject: data[i][5],
-        isPublic: data[i][7] === 'TRUE',
-        createdAt: data[i][8]
-      });
+      exams.push(rowToObject(data[i], headers));
     }
   }
   return exams;
 }
 
 function handleGetPublicExams() {
-  const sheet = getSheet(TABLES.EXAMS);
-  const data = sheet.getDataRange().getValues();
+  const data = getSheet(TABLES.EXAMS).getDataRange().getValues();
+  const headers = data[0];
   const exams = [];
-
   for (let i = 1; i < data.length; i++) {
-    if (data[i][7] === 'TRUE') {
-      exams.push({
-        id: data[i][0],
-        title: data[i][2],
-        description: data[i][3],
-        grade: data[i][4],
-        subject: data[i][5],
-        createdAt: data[i][8]
-      });
+    if (data[i][10] === 'TRUE' || data[i][11] === 'published') {
+      exams.push(rowToObject(data[i], headers));
     }
   }
   return exams;
 }
 
 function handleGetExamById(id) {
-  const sheet = getSheet(TABLES.EXAMS);
-  const data = sheet.getDataRange().getValues();
-
+  const data = getSheet(TABLES.EXAMS).getDataRange().getValues();
+  const headers = data[0];
   for (let i = 1; i < data.length; i++) {
     if (data[i][0] === id) {
-      return {
-        id: data[i][0],
-        title: data[i][2],
-        description: data[i][3],
-        grade: data[i][4],
-        subject: data[i][5],
-        examData: JSON.parse(data[i][6]),
-        isPublic: data[i][7] === 'TRUE',
-        createdAt: data[i][8]
-      };
+      const obj = rowToObject(data[i], headers);
+      obj.examData = JSON.parse(obj.exam_data_json);
+      return obj;
     }
   }
   throw new Error('Exam not found');
@@ -324,173 +281,267 @@ function handleDeleteExam(user, id) {
   if (!user) throw new Error('Unauthorized');
   const sheet = getSheet(TABLES.EXAMS);
   const data = sheet.getDataRange().getValues();
-
   for (let i = 1; i < data.length; i++) {
     if (data[i][0] === id) {
-      if (data[i][1] !== user.id && user.role !== 'admin') {
-        throw new Error('Forbidden');
-      }
+      if (data[i][1] !== user.id && user.role !== 'admin') throw new Error('Forbidden');
       sheet.deleteRow(i + 1);
-      logAction(user.id, 'DELETE_EXAM', `Exam ${id} deleted`);
       return { success: true };
     }
   }
-  throw new Error('Exam not found');
+  throw new Error('Not found');
 }
+
+// --- Attempt Handlers ---
 
 function handleSaveAttempt(user, payload) {
   if (!user) throw new Error('Unauthorized');
-  const { examId, score, totalQuestions, answers, durationSeconds } = payload;
-  const sheet = getSheet(TABLES.EXAM_ATTEMPTS);
-  const id = generateUUID();
+  const dbUser = getUserById(user.id);
+  if (dbUser.status === 'blocked') throw new Error('Account blocked');
 
-  sheet.appendRow([
-    id,
-    user.id,
-    examId,
-    score,
-    totalQuestions,
-    JSON.stringify(answers),
-    durationSeconds,
-    new Date().toISOString()
+  // Plan enforcement
+  if (dbUser.role !== 'admin' && dbUser.plan === 'free') {
+    if (dbUser.attempt_count >= dbUser.trial_limit) {
+      throw new Error('Trial limit reached. Please upgrade to PRO for unlimited attempts.');
+    }
+  }
+
+  const { examId, score, totalQuestions, answers, durationSeconds, questionsSnapshot, mode } = payload;
+  const percentage = Math.round((score / totalQuestions) * 100);
+  const id = generateUUID();
+  const now = new Date().toISOString();
+
+  // ['id', 'user_id', 'exam_id', 'score', 'total_questions', 'percentage', 'answers_json', 'questions_snapshot_json', 'duration_seconds', 'mode', 'created_at']
+  getSheet(TABLES.EXAM_ATTEMPTS).appendRow([
+    id, user.id, examId, score, totalQuestions, percentage,
+    JSON.stringify(answers), JSON.stringify(questionsSnapshot || []),
+    durationSeconds, mode || 'normal', now
   ]);
 
-  logAction(user.id, 'SAVE_ATTEMPT', `Attempt for exam ${examId} saved`);
-  return { id };
-}
-
-function handleGetMyAttempts(user) {
-  if (!user) throw new Error('Unauthorized');
-  const attemptsSheet = getSheet(TABLES.EXAM_ATTEMPTS);
-  const attemptsData = attemptsSheet.getDataRange().getValues();
-  const examsSheet = getSheet(TABLES.EXAMS);
-  const examsData = examsSheet.getDataRange().getValues();
-
-  const examMap = {};
-  for (let i = 1; i < examsData.length; i++) {
-    examMap[examsData[i][0]] = examsData[i][2]; // id -> title
-  }
-
-  const attempts = [];
-  for (let i = 1; i < attemptsData.length; i++) {
-    if (attemptsData[i][1] === user.id) {
-      attempts.push({
-        id: attemptsData[i][0],
-        examId: attemptsData[i][2],
-        examTitle: examMap[attemptsData[i][2]] || 'Unknown Exam',
-        score: attemptsData[i][3],
-        totalQuestions: attemptsData[i][4],
-        createdAt: attemptsData[i][7]
-      });
-    }
-  }
-  return attempts;
-}
-
-function handleGetAttemptReview(user, attemptId) {
-  if (!user) throw new Error('Unauthorized');
-  const sheet = getSheet(TABLES.EXAM_ATTEMPTS);
-  const data = sheet.getDataRange().getValues();
-
-  for (let i = 1; i < data.length; i++) {
-    if (data[i][0] === attemptId) {
-      if (data[i][1] !== user.id && user.role !== 'admin') {
-        throw new Error('Forbidden');
-      }
-      
-      const exam = handleGetExamById(data[i][2]);
-      
-      return {
-        id: data[i][0],
-        examId: data[i][2],
-        examTitle: exam.title,
-        score: data[i][3],
-        totalQuestions: data[i][4],
-        answers: JSON.parse(data[i][5]),
-        durationSeconds: data[i][6],
-        createdAt: data[i][7],
-        questions: exam.examData.questions
-      };
-    }
-  }
-  throw new Error('Attempt not found');
-}
-
-function handleGetLeaderboard(examId) {
-  const attemptsSheet = getSheet(TABLES.EXAM_ATTEMPTS);
-  const attemptsData = attemptsSheet.getDataRange().getValues();
-  const usersSheet = getSheet(TABLES.USERS);
-  const usersData = usersSheet.getDataRange().getValues();
-
-  const userMap = {};
-  for (let i = 1; i < usersData.length; i++) {
-    userMap[usersData[i][0]] = usersData[i][1]; // id -> username
-  }
-
-  const scores = [];
-  for (let i = 1; i < attemptsData.length; i++) {
-    if (!examId || attemptsData[i][2] === examId) {
-      scores.push({
-        username: userMap[attemptsData[i][1]] || 'Anonymous',
-        score: attemptsData[i][3],
-        totalQuestions: attemptsData[i][4],
-        createdAt: attemptsData[i][7]
-      });
-    }
-  }
-
-  // Sort by score (desc) and time
-  return scores.sort((a, b) => b.score - a.score).slice(0, 50);
-}
-
-// --- Utilities ---
-
-function getUserByToken(token) {
-  const tokenHash = hashToken(token);
-  const sessionsSheet = getSheet(TABLES.SESSIONS);
-  const sessionsData = sessionsSheet.getDataRange().getValues();
-
-  let userId = null;
-  let expiresAt = null;
-
-  for (let i = 1; i < sessionsData.length; i++) {
-    if (sessionsData[i][2] === tokenHash) {
-      userId = sessionsData[i][1];
-      expiresAt = new Date(sessionsData[i][3]);
+  // Increment attempt count
+  const userSheet = getSheet(TABLES.USERS);
+  const userData = userSheet.getDataRange().getValues();
+  const headers = userData[0];
+  const countCol = headers.indexOf('attempt_count') + 1;
+  const updateCol = headers.indexOf('updated_at') + 1;
+  
+  for(let i=1; i<userData.length; i++) {
+    if(userData[i][0] === user.id) {
+      const currentCount = parseInt(userData[i][countCol-1]) || 0;
+      userSheet.getRange(i+1, countCol).setValue(currentCount + 1);
+      userSheet.getRange(i+1, updateCol).setValue(now);
       break;
     }
   }
 
-  if (!userId || expiresAt < new Date()) return null;
+  logAction(user.id, 'SAVE_ATTEMPT', `Attempt saved for ${examId}`);
+  return { id, percentage };
+}
 
-  const usersSheet = getSheet(TABLES.USERS);
-  const usersData = usersSheet.getDataRange().getValues();
+function handleGetMyAttempts(user) {
+  if (!user) throw new Error('Unauthorized');
+  const data = getSheet(TABLES.EXAM_ATTEMPTS).getDataRange().getValues();
+  const headers = data[0];
+  const exams = getSheet(TABLES.EXAMS).getDataRange().getValues();
+  const examMap = {};
+  for(let i=1; i<exams.length; i++) examMap[exams[i][0]] = exams[i][2];
 
-  for (let i = 1; i < usersData.length; i++) {
-    if (usersData[i][0] === userId) {
-      return {
-        id: usersData[i][0],
-        username: usersData[i][1],
-        email: usersData[i][2],
-        role: usersData[i][5]
-      };
+  const list = [];
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][1] === user.id) {
+      const obj = rowToObject(data[i], headers);
+      obj.examTitle = examMap[obj.exam_id] || 'Curriculum Exam';
+      list.push(obj);
     }
   }
-  return null;
+  return list;
 }
 
-function hashPassword(password, salt) {
-  const digest = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, password + salt);
-  return digest.map(byte => ('0' + (byte & 0xFF).toString(16)).slice(-2)).join('');
+function handleGetAttemptReview(user, id) {
+  if (!user) throw new Error('Unauthorized');
+  const data = getSheet(TABLES.EXAM_ATTEMPTS).getDataRange().getValues();
+  const headers = data[0];
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === id) {
+      const obj = rowToObject(data[i], headers);
+      if (obj.user_id !== user.id && user.role !== 'admin') throw new Error('Forbidden');
+      
+      obj.answers = JSON.parse(obj.answers_json);
+      obj.questionsSnapshot = JSON.parse(obj.questions_snapshot_json);
+      return obj;
+    }
+  }
+  throw new Error('Not found');
 }
 
-function hashToken(token) {
-  const digest = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, token);
-  return digest.map(byte => ('0' + (byte & 0xFF).toString(16)).slice(-2)).join('');
+function handleGetLeaderboard(examId) {
+  const data = getSheet(TABLES.EXAM_ATTEMPTS).getDataRange().getValues();
+  const users = getSheet(TABLES.USERS).getDataRange().getValues();
+  const userMap = {};
+  for(let i=1; i<users.length; i++) userMap[users[i][0]] = users[i][1];
+
+  const list = [];
+  for (let i = 1; i < data.length; i++) {
+    if (!examId || data[i][2] === examId) {
+      list.push({
+        username: userMap[data[i][1]] || 'Anonymous',
+        score: data[i][3],
+        totalQuestions: data[i][4],
+        percent: data[i][5],
+        createdAt: data[i][10]
+      });
+    }
+  }
+  return list.sort((a,b) => b.percent - a.percent).slice(0, 50);
 }
 
-function generateUUID() {
-  return Utilities.getUuid();
+// --- Admin Handlers ---
+
+function handleAdminGetStats(user) {
+  checkAdmin(user);
+  const users = getSheet(TABLES.USERS).getDataRange().getValues();
+  const exams = getSheet(TABLES.EXAMS).getDataRange().getValues();
+  const attempts = getSheet(TABLES.EXAM_ATTEMPTS).getDataRange().getValues();
+
+  const stats = {
+    users: {
+      total: users.length - 1,
+      active: 0,
+      blocked: 0,
+      free: 0,
+      pro: 0,
+      admins: 0
+    },
+    exams: {
+      total: exams.length - 1,
+      public: 0,
+      private: 0
+    },
+    attempts: {
+      total: attempts.length - 1,
+      avgScore: 0
+    },
+    recentUsers: [],
+    recentAttempts: []
+  };
+
+  const userHeaders = users[0];
+  for(let i=1; i<users.length; i++) {
+    const u = rowToObject(users[i], userHeaders);
+    if(u.status === 'active') stats.users.active++;
+    else stats.users.blocked++;
+    if(u.plan === 'pro') stats.users.pro++;
+    else stats.users.free++;
+    if(u.role === 'admin') stats.users.admins++;
+    if(i > users.length - 6) stats.recentUsers.push({ username: u.username, email: u.email, created_at: u.created_at });
+  }
+
+  for(let i=1; i<exams.length; i++) {
+    if(exams[i][10] === 'TRUE') stats.exams.public++;
+    else stats.exams.private++;
+  }
+
+  let totalPct = 0;
+  for(let i=1; i<attempts.length; i++) {
+    totalPct += parseFloat(attempts[i][5]) || 0;
+    if(i > attempts.length - 6) stats.recentAttempts.push({ user_id: attempts[i][1], exam_id: attempts[i][2], percentage: attempts[i][5], created_at: attempts[i][10] });
+  }
+  stats.attempts.avgScore = stats.attempts.total > 0 ? Math.round(totalPct / stats.attempts.total) : 0;
+
+  return stats;
+}
+
+function handleAdminGetUsers(user) {
+  checkAdmin(user);
+  const data = getSheet(TABLES.USERS).getDataRange().getValues();
+  const headers = data[0];
+  return data.slice(1).map(row => {
+    const obj = rowToObject(row, headers);
+    delete obj.password_hash;
+    delete obj.salt;
+    return obj;
+  });
+}
+
+function handleAdminUpdateUser(user, payload) {
+  checkAdmin(user);
+  const { userId, updates } = payload;
+  const sheet = getSheet(TABLES.USERS);
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+  
+  let rowIdx = -1;
+  for(let i=1; i<data.length; i++) {
+    if(data[i][0] === userId) {
+      rowIdx = i;
+      break;
+    }
+  }
+  if(rowIdx === -1) throw new Error('User not found');
+
+  // Prevent removing last admin
+  if(updates.role === 'user' && data[rowIdx][headers.indexOf('role')] === 'admin') {
+    let adminCount = 0;
+    for(let i=1; i<data.length; i++) if(data[i][headers.indexOf('role')] === 'admin') adminCount++;
+    if(adminCount <= 1) throw new Error('Cannot remove the last administrator');
+  }
+
+  const now = new Date().toISOString();
+  Object.keys(updates).forEach(key => {
+    const colIdx = headers.indexOf(key);
+    if(colIdx !== -1) {
+      sheet.getRange(rowIdx + 1, colIdx + 1).setValue(updates[key]);
+    }
+  });
+  sheet.getRange(rowIdx + 1, headers.indexOf('updated_at') + 1).setValue(now);
+
+  logAction(user.id, 'ADMIN_UPDATE_USER', `Updated user ${userId}: ${JSON.stringify(updates)}`);
+  return { success: true };
+}
+
+function handleAdminGetAllExams(user) {
+  checkAdmin(user);
+  const data = getSheet(TABLES.EXAMS).getDataRange().getValues();
+  const headers = data[0];
+  return data.slice(1).map(row => rowToObject(row, headers));
+}
+
+function handleAdminGetAllAttempts(user) {
+  checkAdmin(user);
+  const data = getSheet(TABLES.EXAM_ATTEMPTS).getDataRange().getValues();
+  const headers = data[0];
+  const users = getSheet(TABLES.USERS).getDataRange().getValues();
+  const userMap = {};
+  for(let i=1; i<users.length; i++) userMap[users[i][0]] = users[i][1];
+
+  return data.slice(1).map(row => {
+    const obj = rowToObject(row, headers);
+    obj.username = userMap[obj.user_id] || 'Unknown';
+    return obj;
+  });
+}
+
+// --- Internal Helpers ---
+
+function checkAdmin(user) {
+  if (!user || user.role !== 'admin') throw new Error('Forbidden: Admin access required');
+}
+
+function getUserById(id) {
+  const sheet = getSheet(TABLES.USERS);
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === id) return rowToObject(data[i], headers);
+  }
+  throw new Error('User not found');
+}
+
+function rowToObject(row, headers) {
+  const obj = {};
+  headers.forEach((h, i) => {
+    obj[h] = row[i];
+  });
+  return obj;
 }
 
 function getSheet(name) {
@@ -504,28 +555,43 @@ function getSheet(name) {
 }
 
 function initSheets() {
-  Object.values(TABLES).forEach(tableName => {
-    getSheet(tableName);
+  Object.values(TABLES).forEach(tableName => getSheet(tableName));
+}
+
+function runMigration() {
+  Object.keys(TABLES).forEach(key => {
+    const tableName = TABLES[key];
+    const expectedHeaders = HEADERS[tableName];
+    const sheet = getSheet(tableName);
+    const actualHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    
+    expectedHeaders.forEach(h => {
+      if (actualHeaders.indexOf(h) === -1) {
+        sheet.insertColumnAfter(sheet.getLastColumn());
+        sheet.getRange(1, sheet.getLastColumn()).setValue(h);
+      }
+    });
   });
 }
 
-function logAction(userId, action, details) {
-  try {
-    const sheet = getSheet(TABLES.AUDIT_LOG);
-    sheet.appendRow([
-      generateUUID(),
-      userId || 'SYSTEM',
-      action,
-      details,
-      '', // IP would be nice but GAS doPost doesn't easily provide it
-      new Date().toISOString()
-    ]);
-  } catch (e) {
-    console.error('Logging failed', e);
-  }
+function hashPassword(pass, salt) {
+  return Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, pass + salt)
+    .map(b => ('0' + (b & 0xFF).toString(16)).slice(-2)).join('');
 }
 
-function createResponse(data, status = 200) {
-  return ContentService.createTextOutput(JSON.stringify(data))
-    .setMimeType(ContentService.MimeType.JSON);
+function hashToken(token) {
+  return Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, token)
+    .map(b => ('0' + (b & 0xFF).toString(16)).slice(-2)).join('');
+}
+
+function generateUUID() { return Utilities.getUuid(); }
+
+function logAction(userId, action, details) {
+  try {
+    getSheet(TABLES.AUDIT_LOG).appendRow([generateUUID(), userId || 'SYSTEM', action, details, '', new Date().toISOString()]);
+  } catch (e) {}
+}
+
+function createResponse(data) {
+  return ContentService.createTextOutput(JSON.stringify(data)).setMimeType(ContentService.MimeType.JSON);
 }

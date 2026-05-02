@@ -14,7 +14,8 @@ import {
   FileText,
   User as UserIcon,
   Search,
-  Globe
+  Globe,
+  ShieldAlert as ShieldIcon
 } from 'lucide-react';
 
 const Dashboard: React.FC = () => {
@@ -86,7 +87,42 @@ const Dashboard: React.FC = () => {
               <span>{item.label}</span>
             </NavLink>
           ))}
+          {user?.role === 'admin' && (
+            <NavLink 
+              to="/admin" 
+              className="nav-item admin-link"
+              onClick={() => setIsSidebarOpen(false)}
+            >
+              <ShieldIcon size={20} />
+              <span>Admin Panel</span>
+            </NavLink>
+          )}
         </nav>
+
+        <div className="plan-stats">
+          <div className="stats-header">
+            <span className="label">Usage Status</span>
+            <span className={`plan-badge ${user?.plan}`}>{user?.plan?.toUpperCase()}</span>
+          </div>
+          {user?.plan === 'free' ? (
+            <div className="progress-box">
+              <div className="progress-text">
+                <span>Attempts</span>
+                <span>{user?.attempt_count} / {user?.trial_limit}</span>
+              </div>
+              <div className="progress-bar">
+                <div 
+                  className="progress-fill" 
+                  style={{ width: `${Math.min(100, ((user?.attempt_count || 0) / (user?.trial_limit || 4)) * 100)}%` }}
+                ></div>
+              </div>
+            </div>
+          ) : (
+            <div className="pro-status">
+              <span className="pro-text">Unlimited Access</span>
+            </div>
+          )}
+        </div>
 
         <div className="sidebar-footer">
           <button onClick={handleLogout} className="logout-btn">
@@ -296,6 +332,92 @@ const Dashboard: React.FC = () => {
             z-index: 45;
           }
           .md-hidden { display: block; }
+        }
+
+        .admin-link {
+          margin-top: 0.5rem;
+          background: #eef2ff;
+          color: #4f46e5;
+        }
+
+        .admin-link:hover {
+          background: #e0e7ff;
+        }
+
+        .plan-stats {
+          margin: 1rem;
+          padding: 1.25rem;
+          background: #f8fafc;
+          border-radius: 1rem;
+          border: 1px solid #e2e8f0;
+        }
+
+        .stats-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 0.75rem;
+        }
+
+        .stats-header .label {
+          font-size: 0.7rem;
+          font-weight: 800;
+          color: #94a3b8;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+        }
+
+        .plan-badge {
+          font-size: 0.65rem;
+          font-weight: 800;
+          padding: 0.2rem 0.5rem;
+          border-radius: 0.4rem;
+        }
+
+        .plan-badge.free { background: #fff7ed; color: #ea580c; }
+        .plan-badge.pro { background: #ecfdf5; color: #059669; }
+
+        .progress-box {
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+        }
+
+        .progress-text {
+          display: flex;
+          justify-content: space-between;
+          font-size: 0.75rem;
+          font-weight: 700;
+          color: #475569;
+        }
+
+        .progress-bar {
+          height: 6px;
+          background: #e2e8f0;
+          border-radius: 3px;
+          overflow: hidden;
+        }
+
+        .progress-fill {
+          height: 100%;
+          background: var(--primary);
+          border-radius: 3px;
+          transition: width 0.5s ease;
+        }
+
+        .pro-status {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 0.25rem;
+          background: #ecfdf5;
+          border-radius: 0.5rem;
+        }
+
+        .pro-text {
+          font-size: 0.75rem;
+          font-weight: 700;
+          color: #059669;
         }
       `}</style>
     </div>

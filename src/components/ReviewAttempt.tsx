@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useVault } from '../context/VaultContext';
 import { api } from '../lib/api';
 import { 
@@ -15,6 +15,7 @@ import {
 
 const ReviewAttempt: React.FC = () => {
   const { attemptId } = useParams<{ attemptId: string }>();
+  const navigate = useNavigate();
   const [attempt, setAttempt] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -35,6 +36,33 @@ const ReviewAttempt: React.FC = () => {
 
     loadAttempt();
   }, [attemptId]);
+
+  const handleRedoFull = () => {
+    const qs = attempt.questionsSnapshot || attempt.questions || [];
+    navigate(`/dashboard/exam/cloud/${attempt.examId}`, { 
+      state: { 
+        redoMode: 'full',
+        exam: { id: attempt.examId, title: attempt.examTitle, questions: qs } 
+      } 
+    });
+  };
+
+  const handleRedoWrong = () => {
+    const qs = attempt.questionsSnapshot || attempt.questions || [];
+    const wrongQs = qs.filter((q: any, i: number) => {
+      const uAns = (attempt.answers[i] || []).sort().join(',');
+      const cAns = (q.answers || q.correct_answers || [q.correctAnswer]).sort().join(',');
+      return uAns !== cAns;
+    });
+
+    navigate(`/dashboard/exam/cloud/${attempt.examId}`, { 
+      state: { 
+        redoMode: 'wrong-only',
+        wrongQuestions: wrongQs,
+        exam: { id: attempt.examId, title: attempt.examTitle, questions: qs } 
+      } 
+    });
+  };
 
   if (isLoading) return <div className="loading-screen"><Loader2 className="spinner" /> Loading review...</div>;
 
@@ -75,6 +103,24 @@ const ReviewAttempt: React.FC = () => {
             <Clock size={16} />
             <strong>{timeSpentMin}m</strong>
             <span>Time</span>
+          </div>
+
+          <div className="redo-actions">
+            <button 
+              onClick={handleRedoFull}
+              className="redo-btn primary"
+            >
+              Redo Full Exam
+            </button>
+
+            {scorePercent < 100 && (
+              <button 
+                onClick={handleRedoWrong}
+                className="redo-btn secondary"
+              >
+                Redo Wrong Questions
+              </button>
+            )}
           </div>
         </div>
       </header>
@@ -280,6 +326,42 @@ const ReviewAttempt: React.FC = () => {
           color: var(--primary);
           font-weight: 700;
           text-decoration: none;
+        }
+
+        .redo-actions {
+          display: flex;
+          gap: 0.75rem;
+          margin-left: auto;
+        }
+        .redo-btn {
+          padding: 0.75rem 1.5rem;
+          border-radius: 0.75rem;
+          font-weight: 700;
+          font-size: 0.875rem;
+          border: none;
+          cursor: pointer;
+          transition: all 0.2s;
+          white-space: nowrap;
+        }
+        .redo-btn.primary {
+          background: var(--primary);
+          color: white;
+          box-shadow: 0 4px 10px rgba(37, 99, 235, 0.2);
+        }
+        .redo-btn.secondary {
+          background: #ecfdf5;
+          color: #059669;
+          border: 1px solid #bbf7d0;
+        }
+        .redo-btn:hover {
+          transform: translateY(-2px);
+          filter: brightness(1.05);
+        }
+
+        @media (max-width: 768px) {
+          .attempt-summary-row { flex-direction: column; }
+          .redo-actions { margin-left: 0; width: 100%; }
+          .redo-btn { flex: 1; text-align: center; }
         }
       `}</style>
     </div>
