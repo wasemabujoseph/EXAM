@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useVault } from '../context/VaultContext';
-import { Lock, Mail, User, Eye, EyeOff, Loader2, GraduationCap, AlertCircle, ShieldCheck } from 'lucide-react';
+import { Lock, Mail, User, Eye, EyeOff, Loader2, GraduationCap, AlertCircle, ShieldCheck, Info } from 'lucide-react';
 
 const RegisterPage: React.FC = () => {
-  const { register } = useVault();
+  const { register, isApiMode } = useVault();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -40,17 +40,24 @@ const RegisterPage: React.FC = () => {
   return (
     <div className="login-container">
       <div className="login-card animate-fade-in">
+        {!isApiMode && (
+          <div className="api-notice">
+            <Info size={16} />
+            <span>Running in <strong>Local Mode</strong>. Connect to Google Sheets in <code>.env</code> for cloud storage.</span>
+          </div>
+        )}
+
         <div className="login-header">
           <div className="logo-circle">
             <ShieldCheck size={32} />
           </div>
-          <h1>Create Local Account</h1>
-          <p>Initialize your private encrypted vault</p>
+          <h1>{isApiMode ? 'Create Account' : 'Create Local Account'}</h1>
+          <p>{isApiMode ? 'Join the cloud exam platform' : 'Initialize your private encrypted vault'}</p>
         </div>
 
         <form onSubmit={handleSubmit} className="login-form">
           <div className="form-group">
-            <label htmlFor="name">Display Name</label>
+            <label htmlFor="name">{isApiMode ? 'Username' : 'Display Name'}</label>
             <div className="input-wrapper">
               <User className="input-icon" size={20} />
               <input
@@ -58,7 +65,7 @@ const RegisterPage: React.FC = () => {
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Dr. Smith"
+                placeholder={isApiMode ? "your_username" : "Dr. Smith"}
                 required
               />
             </div>
@@ -80,7 +87,7 @@ const RegisterPage: React.FC = () => {
           </div>
 
           <div className="form-group">
-            <label htmlFor="password">Vault Password</label>
+            <label htmlFor="password">{isApiMode ? 'Password' : 'Vault Password'}</label>
             <div className="input-wrapper">
               <Lock className="input-icon" size={20} />
               <input
@@ -123,18 +130,20 @@ const RegisterPage: React.FC = () => {
             </div>
           )}
 
-          <div className="warning-box">
-            <AlertCircle size={16} />
-            <p><strong>Important:</strong> There is no password recovery. If you lose your password, your local data cannot be decrypted.</p>
-          </div>
+          {!isApiMode && (
+            <div className="warning-box">
+              <AlertCircle size={16} />
+              <p><strong>Important:</strong> There is no password recovery. If you lose your password, your local data cannot be decrypted.</p>
+            </div>
+          )}
 
           <button type="submit" className="login-button" disabled={isLoading}>
-            {isLoading ? <Loader2 className="spinner" size={20} /> : 'Create Vault'}
+            {isLoading ? <Loader2 className="spinner" size={20} /> : (isApiMode ? 'Register' : 'Create Vault')}
           </button>
         </form>
 
         <div className="login-footer">
-          <p>Already have a vault? <Link to="/login">Sign in</Link></p>
+          <p>{isApiMode ? 'Already have an account?' : 'Already have a vault?'} <Link to="/login">Sign in</Link></p>
         </div>
       </div>
 
@@ -154,6 +163,23 @@ const RegisterPage: React.FC = () => {
           box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
           width: 100%;
           max-width: 480px;
+          position: relative;
+        }
+        .api-notice {
+          position: absolute;
+          top: -3rem;
+          left: 0;
+          right: 0;
+          background: #fffbeb;
+          border: 1px solid #fef3c7;
+          color: #92400e;
+          padding: 0.75rem;
+          border-radius: 0.75rem;
+          font-size: 0.75rem;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
         .login-header {
           text-align: center;

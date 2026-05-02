@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useVault } from '../context/VaultContext';
+import { api } from '../lib/api';
 import { 
   BookOpen, 
   Play, 
@@ -9,21 +10,55 @@ import {
   Clock, 
   Plus,
   Search,
-  FileJson
+  FileJson,
+  Loader2,
+  Cloud
 } from 'lucide-react';
 
 const MyExams: React.FC = () => {
-  const { vault, updateVault } = useVault();
+  const { vault, updateVault, isApiMode } = useVault();
   const navigate = useNavigate();
+  const [exams, setExams] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const loadExams = async () => {
+      setIsLoading(true);
+      try {
+        if (isApiMode) {
+          const data = await api.getMyExams();
+          setExams(data);
+        } else {
+          setExams(vault?.myExams || []);
+        }
+      } catch (err) {
+        console.error('Failed to load exams', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadExams();
+  }, [isApiMode, vault]);
 
   const handleDelete = async (id: string) => {
-    if (!vault || !confirm('Are you sure you want to delete this exam?')) return;
+    if (!confirm('Are you sure you want to delete this exam?')) return;
     
-    const newVault = {
-      ...vault,
-      myExams: vault.myExams.filter(e => e.id !== id)
-    };
-    await updateVault(newVault);
+    try {
+      if (isApiMode) {
+        await api.deleteExam(id);
+        setExams(prev => prev.filter(e => e.id !== id));
+      } else if (vault) {
+        const newVault = {
+          ...vault,
+          myExams: vault.myExams.filter(e => e.id !== id)
+        };
+        await updateVault(newVault);
+        setExams(newVault.myExams);
+      }
+    } catch (err) {
+      alert('Failed to delete exam.');
+    }
   };
 
   const handleExport = (exam: any) => {
@@ -36,37 +71,37 @@ const MyExams: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
-  const myExams = vault?.myExams || [];
+  if (isLoading) return <div className="loading-screen"><Loader2 className="spinner" /> Loading exams...</div>;
 
   return (
     <div className="my-exams-container animate-fade-in">
       <header className="page-header">
-        <h1 className="page-title">My Private Exams</h1>
-        <p className="page-subtitle">Encrypted exams saved on this device</p>
+        <h1 className="page-title">{isApiMode ? 'Cloud Exams' : 'My Private Exams'}</h1>
+        <p className="page-subtitle">{isApiMode ? 'Exams stored in your Google Sheets cloud' : 'Encrypted exams saved on this device'}</p>
         <button className="add-btn" onClick={() => navigate('/dashboard/generate')}>
           <Plus size={20} />
           Create New Exam
         </button>
       </header>
 
-      {myExams.length > 0 ? (
+      {exams.length > 0 ? (
         <div className="exams-grid">
-          {myExams.map((exam) => (
+          {exams.map((exam) => (
             <div key={exam.id} className="exam-card">
               <div className="exam-card-head">
                 <div className="exam-icon">
-                  <FileJson size={24} />
+                  {isApiMode ? <Cloud size={24} /> : <FileJson size={24} />}
                 </div>
                 <div className="exam-info">
                   <h3>{exam.title}</h3>
-                  <p>{exam.questions.length} Questions</p>
+                  <p>{(exam.examData?.questions || exam.questions || []).length} Questions</p>
                 </div>
               </div>
               
               <div className="exam-card-body">
                 <div className="meta-item">
                   <Clock size={14} />
-                  <span>Added: {new Date(exam.createdAt).toLocaleDateString()}</span>
+                  <span>Added: {new Date(exam.createdAt || exam.date).toLocaleDateString()}</span>
                 </div>
               </div>
 
@@ -100,7 +135,7 @@ const MyExams: React.FC = () => {
       ) : (
         <div className="empty-state card">
           <BookOpen size={64} />
-          <h2>No private exams yet</h2>
+          <h2>No exams yet</h2>
           <p>Generate your first exam from pasted text or import a JSON file.</p>
           <button className="primary-btn" onClick={() => navigate('/dashboard/generate')}>
             <Plus size={20} />
@@ -110,6 +145,18 @@ const MyExams: React.FC = () => {
       )}
 
       <style>{`
+        .loading-screen {
+          padding: 5rem;
+          text-align: center;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 1rem;
+          font-weight: 700;
+          color: var(--text-muted);
+        }
+        .spinner { animation: spin 1s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         .my-exams-container {
           display: flex;
           flex-direction: column;

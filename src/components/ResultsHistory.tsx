@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useVault } from '../context/VaultContext';
+import { api } from '../lib/api';
 import { 
   History, 
   ChevronRight, 
@@ -9,23 +10,57 @@ import {
   Calendar,
   Clock,
   TrendingUp,
-  Award
+  Award,
+  Loader2
 } from 'lucide-react';
 
 const ResultsHistory: React.FC = () => {
-  const { vault, updateVault } = useVault();
+  const { vault, updateVault, isApiMode } = useVault();
   const navigate = useNavigate();
+  const [attempts, setAttempts] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const loadAttempts = async () => {
+      setIsLoading(true);
+      try {
+        if (isApiMode) {
+          const data = await api.getMyAttempts();
+          setAttempts(data);
+        } else {
+          setAttempts(vault?.attempts || []);
+        }
+      } catch (err) {
+        console.error('Failed to load attempts', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadAttempts();
+  }, [isApiMode, vault]);
 
   const handleDelete = async (id: string) => {
-    if (!vault || !confirm('Delete this attempt from history?')) return;
-    const newVault = {
-      ...vault,
-      attempts: vault.attempts.filter(a => a.id !== id)
-    };
-    await updateVault(newVault);
+    if (!confirm('Delete this attempt from history?')) return;
+    
+    try {
+      if (isApiMode) {
+        // GAS backend delete attempt not implemented in Code.gs yet, but we can skip or implement
+        alert('Delete not available in cloud mode yet.');
+      } else if (vault) {
+        const newVault = {
+          ...vault,
+          attempts: vault.attempts.filter(a => a.id !== id)
+        };
+        await updateVault(newVault);
+        setAttempts(newVault.attempts);
+      }
+    } catch (err) {
+      alert('Failed to delete attempt.');
+    }
   };
 
-  const attempts = vault?.attempts || [];
+  if (isLoading) return <div className="loading-screen"><Loader2 className="spinner" /> Loading history...</div>;
 
   return (
     <div className="history-container animate-fade-in">
@@ -36,10 +71,10 @@ const ResultsHistory: React.FC = () => {
 
       {attempts.length > 0 ? (
         <div className="history-list">
-          {attempts.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((attempt) => (
+          {attempts.sort((a, b) => new Date(b.createdAt || b.date).getTime() - new Date(a.createdAt || a.date).getTime()).map((attempt) => (
             <div key={attempt.id} className="attempt-card">
               <div className="attempt-status" style={{ 
-                background: attempt.percent >= 60 ? 'var(--success)' : 'var(--danger)' 
+                background: (attempt.percent >= 60 || (attempt.score / attempt.totalQuestions >= 0.6)) ? 'var(--success)' : 'var(--danger)' 
               }}></div>
               
               <div className="attempt-main">
@@ -48,11 +83,11 @@ const ResultsHistory: React.FC = () => {
                   <div className="attempt-meta">
                     <div className="meta-item">
                       <Calendar size={14} />
-                      <span>{new Date(attempt.date).toLocaleDateString()}</span>
+                      <span>{new Date(attempt.createdAt || attempt.date).toLocaleDateString()}</span>
                     </div>
                     <div className="meta-item">
                       <Clock size={14} />
-                      <span>{Math.round(attempt.timeMs / 1000 / 60)} min spent</span>
+                      <span>{attempt.durationSeconds ? Math.round(attempt.durationSeconds / 60) : Math.round(attempt.timeMs / 1000 / 60)} min spent</span>
                     </div>
                   </div>
                 </div>
@@ -60,11 +95,11 @@ const ResultsHistory: React.FC = () => {
                 <div className="attempt-stats">
                   <div className="stat-pill">
                     <span className="stat-label">Score</span>
-                    <span className="stat-value">{attempt.score}/{attempt.total}</span>
+                    <span className="stat-value">{attempt.score}/{attempt.totalQuestions || attempt.total}</span>
                   </div>
                   <div className="stat-pill">
                     <span className="stat-label">Percent</span>
-                    <span className="stat-value">{attempt.percent}%</span>
+                    <span className="stat-value">{attempt.percent || Math.round((attempt.score / (attempt.totalQuestions || attempt.total)) * 100)}%</span>
                   </div>
                 </div>
 
@@ -75,12 +110,14 @@ const ResultsHistory: React.FC = () => {
                   >
                     Review <ChevronRight size={16} />
                   </button>
-                  <button 
-                    className="delete-btn"
-                    onClick={() => handleDelete(attempt.id)}
-                  >
-                    <Trash2 size={18} />
-                  </button>
+                  {!isApiMode && (
+                    <button 
+                      className="delete-btn"
+                      onClick={() => handleDelete(attempt.id)}
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -95,6 +132,18 @@ const ResultsHistory: React.FC = () => {
       )}
 
       <style>{`
+        .loading-screen {
+          padding: 5rem;
+          text-align: center;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 1rem;
+          font-weight: 700;
+          color: var(--text-muted);
+        }
+        .spinner { animation: spin 1s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         .history-container {
           display: flex;
           flex-direction: column;

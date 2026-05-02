@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useVault } from '../context/VaultContext';
-import { Lock, Mail, Eye, EyeOff, Loader2, GraduationCap, AlertCircle } from 'lucide-react';
+import { Lock, Mail, Eye, EyeOff, Loader2, GraduationCap, AlertCircle, Info } from 'lucide-react';
 
 const LoginPage: React.FC = () => {
-  const { login } = useVault();
-  const [email, setEmail] = useState('');
+  const { login, isApiMode } = useVault();
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
@@ -17,9 +17,9 @@ const LoginPage: React.FC = () => {
     setError('');
 
     try {
-      await login(email, password);
+      await login(username, password);
     } catch (err: any) {
-      setError(err.message || 'Invalid email or password');
+      setError(err.message || 'Invalid username or password');
       setIsLoading(false);
     }
   };
@@ -27,25 +27,32 @@ const LoginPage: React.FC = () => {
   return (
     <div className="login-container">
       <div className="login-card animate-fade-in">
+        {!isApiMode && (
+          <div className="api-notice">
+            <Info size={16} />
+            <span>Running in <strong>Local Mode</strong>. Connect to Google Sheets in <code>.env</code> for cloud storage.</span>
+          </div>
+        )}
+
         <div className="login-header">
           <div className="logo-circle">
             <GraduationCap size={32} />
           </div>
           <h1>MD Exam Hub</h1>
-          <p>Login to your local encrypted vault</p>
+          <p>{isApiMode ? 'Sign in to your account' : 'Login to your local encrypted vault'}</p>
         </div>
 
         <form onSubmit={handleSubmit} className="login-form">
           <div className="form-group">
-            <label htmlFor="email">Email Address</label>
+            <label htmlFor="username">{isApiMode ? 'Username' : 'Email Address'}</label>
             <div className="input-wrapper">
-              <Mail className="input-icon" size={20} />
+              {isApiMode ? <GraduationCap className="input-icon" size={20} /> : <Mail className="input-icon" size={20} />}
               <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
+                id="username"
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder={isApiMode ? "your_username" : "you@example.com"}
                 required
               />
             </div>
@@ -86,10 +93,10 @@ const LoginPage: React.FC = () => {
         </form>
 
         <div className="login-footer">
-          <p>Don't have an account? <Link to="/register">Register locally</Link></p>
+          <p>Don't have an account? <Link to="/register">{isApiMode ? 'Register' : 'Register locally'}</Link></p>
           <div className="security-info">
             <Lock size={12} />
-            <span>Data is encrypted locally using AES-GCM. We never see your password.</span>
+            <span>{isApiMode ? 'Secure cloud storage via Google Apps Script' : 'Data is encrypted locally using AES-GCM. We never see your password.'}</span>
           </div>
         </div>
       </div>
@@ -110,6 +117,23 @@ const LoginPage: React.FC = () => {
           box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
           width: 100%;
           max-width: 450px;
+          position: relative;
+        }
+        .api-notice {
+          position: absolute;
+          top: -3rem;
+          left: 0;
+          right: 0;
+          background: #fffbeb;
+          border: 1px solid #fef3c7;
+          color: #92400e;
+          padding: 0.75rem;
+          border-radius: 0.75rem;
+          font-size: 0.75rem;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
         .login-header {
           text-align: center;

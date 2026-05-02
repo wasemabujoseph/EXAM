@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useVault } from '../context/VaultContext';
+import { api } from '../lib/api';
 import { 
   ChevronLeft, 
   CheckCircle, 
@@ -8,14 +9,38 @@ import {
   AlertCircle,
   HelpCircle,
   Clock,
-  TrendingUp
+  TrendingUp,
+  Loader2
 } from 'lucide-react';
 
 const ReviewAttempt: React.FC = () => {
   const { attemptId } = useParams<{ attemptId: string }>();
-  const { vault } = useVault();
+  const { vault, isApiMode } = useVault();
+  const [attempt, setAttempt] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const attempt = vault?.attempts.find(a => a.id === attemptId);
+  useEffect(() => {
+    const loadAttempt = async () => {
+      setIsLoading(true);
+      try {
+        if (isApiMode && attemptId) {
+          const data = await api.getAttemptReview(attemptId);
+          setAttempt(data);
+        } else {
+          const localAttempt = vault?.attempts.find(a => a.id === attemptId);
+          setAttempt(localAttempt);
+        }
+      } catch (err) {
+        console.error('Failed to load attempt review', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadAttempt();
+  }, [attemptId, isApiMode, vault]);
+
+  if (isLoading) return <div className="loading-screen"><Loader2 className="spinner" /> Loading review...</div>;
 
   if (!attempt) {
     return (
@@ -27,6 +52,11 @@ const ReviewAttempt: React.FC = () => {
     );
   }
 
+  const scorePercent = attempt.percent || Math.round((attempt.score / (attempt.totalQuestions || attempt.total)) * 100);
+  const correctCount = attempt.score;
+  const totalQuestions = attempt.totalQuestions || attempt.total;
+  const timeSpentMin = attempt.durationSeconds ? Math.round(attempt.durationSeconds / 60) : Math.round(attempt.timeMs / 1000 / 60);
+
   return (
     <div className="review-container animate-fade-in">
       <header className="page-header">
@@ -37,25 +67,25 @@ const ReviewAttempt: React.FC = () => {
         <div className="attempt-summary-row">
           <div className="summary-pill">
             <TrendingUp size={16} />
-            <strong>{attempt.percent}%</strong>
+            <strong>{scorePercent}%</strong>
             <span>Score</span>
           </div>
           <div className="summary-pill">
             <CheckCircle size={16} />
-            <strong>{attempt.score}/{attempt.total}</strong>
+            <strong>{correctCount}/{totalQuestions}</strong>
             <span>Correct</span>
           </div>
           <div className="summary-pill">
             <Clock size={16} />
-            <strong>{Math.round(attempt.timeMs / 1000 / 60)}m</strong>
+            <strong>{timeSpentMin}m</strong>
             <span>Time</span>
           </div>
         </div>
       </header>
 
       <div className="review-list">
-        {attempt.questionsSnapshot.map((q, i) => {
-          const userAns = attempt.answers[i] || [];
+        {(attempt.questionsSnapshot || attempt.questions || []).map((q: any, i: number) => {
+          const userAns = attempt.answers[i] || attempt.answers[q.id] || [];
           const isCorrect = userAns.length > 0 && 
             userAns.sort().join(',') === q.answers.sort().join(',');
 
@@ -103,6 +133,18 @@ const ReviewAttempt: React.FC = () => {
       </div>
 
       <style>{`
+        .loading-screen {
+          padding: 5rem;
+          text-align: center;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 1rem;
+          font-weight: 700;
+          color: var(--text-muted);
+        }
+        .spinner { animation: spin 1s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         .review-container {
           display: flex;
           flex-direction: column;
@@ -229,6 +271,20 @@ const ReviewAttempt: React.FC = () => {
           font-size: 0.875rem;
         }
         .explanation-box p { font-size: 0.9rem; color: #1e3a8a; line-height: 1.5; }
+
+        .error-state {
+          padding: 5rem;
+          text-align: center;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 1rem;
+        }
+        .back-link {
+          color: var(--primary);
+          font-weight: 700;
+          text-decoration: none;
+        }
       `}</style>
     </div>
   );

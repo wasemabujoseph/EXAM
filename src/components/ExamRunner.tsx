@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useVault } from '../context/VaultContext';
 import { curriculum } from '../data/curriculum';
+import { api } from '../lib/api';
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -11,12 +12,13 @@ import {
   CheckCircle,
   X,
   AlertCircle,
-  Hash
+  Hash,
+  Loader2
 } from 'lucide-react';
 
 const ExamRunner: React.FC = () => {
   const { type, id } = useParams<{ type: string; id: string }>();
-  const { vault, updateVault } = useVault();
+  const { vault, updateVault, isApiMode } = useVault();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -28,40 +30,53 @@ const ExamRunner: React.FC = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [startedAt] = useState(Date.now());
 
   useEffect(() => {
-    let foundExam: any = null;
-    
-    if (type === 'curriculum') {
-      // Find in curriculum data
-      // ID format is usually "year|semester|subject" or similar passed via state
-      foundExam = location.state?.exam;
-      if (!foundExam) {
-        // Try to find by ID if not in state
-        const [yearId, semesterId, subjectName] = (id || '').split('|');
-        const year = curriculum.years.find(y => y.year === yearId);
-        const semester = year?.semesters.find(s => s.semester === semesterId);
-        const subject = semester?.subjects.find(s => s.name === subjectName);
-        if (subject) {
-          foundExam = {
-            id: id,
-            title: subject.name,
-            questions: subject.sub.exams.length > 0 ? subject.sub.exams[0].questions : [], // Placeholder
-          };
+    const fetchExam = async () => {
+      setIsLoading(true);
+      let foundExam: any = null;
+      
+      try {
+        if (type === 'curriculum') {
+          foundExam = location.state?.exam;
+          if (!foundExam) {
+            const [yearId, semesterId, subjectName] = (id || '').split('|');
+            const year = curriculum.years.find(y => y.year === yearId);
+            const semester = year?.semesters.find(s => s.semester === semesterId);
+            const subject = semester?.subjects.find(s => s.name === subjectName);
+            if (subject) {
+              foundExam = {
+                id: id,
+                title: subject.name,
+                questions: subject.sub.exams.length > 0 ? subject.sub.exams[0].questions : [],
+              };
+            }
+          }
+        } else if (type === 'my') {
+          if (isApiMode && id) {
+            foundExam = await api.getExamById(id);
+          } else {
+            foundExam = vault?.myExams.find(e => e.id === id);
+          }
+        } else if (type === 'cloud' && id) {
+          foundExam = await api.getExamById(id);
         }
+      } catch (err) {
+        console.error('Failed to fetch exam', err);
       }
-    } else if (type === 'my') {
-      foundExam = vault?.myExams.find(e => e.id === id);
-    }
 
-    if (foundExam) {
-      setExam(foundExam);
-      setQuestions(foundExam.questions);
-      // Default time limit: 1 min per question if not specified
-      setTimeRemaining(foundExam.questions.length * 60);
-    }
-  }, [type, id, vault, location.state]);
+      if (foundExam) {
+        setExam(foundExam);
+        setQuestions(foundExam.examData?.questions || foundExam.questions || []);
+        setTimeRemaining((foundExam.examData?.questions?.length || foundExam.questions?.length || 0) * 60);
+      }
+      setIsLoading(false);
+    };
+
+    fetchExam();
+  }, [type, id, vault, location.state, isApiMode]);
 
   // Timer logic
   useEffect(() => {
@@ -115,32 +130,49 @@ const ExamRunner: React.FC = () => {
       if (userAns === correctAns) correctCount++;
     });
 
-    const percent = Math.round((correctCount / questions.length) * 100);
-    const attempt = {
-      id: `attempt-${Date.now()}`,
-      examId: exam.id,
-      examTitle: exam.title,
-      score: correctCount,
-      total: questions.length,
-      percent,
-      timeMs: Date.now() - startedAt,
-      date: new Date().toISOString(),
-      answers,
-      questionsSnapshot: questions
-    };
+    const durationSeconds = Math.floor((Date.now() - startedAt) / 1000);
 
-    if (vault) {
-      const newVault = {
-        ...vault,
-        attempts: [attempt, ...vault.attempts]
-      };
-      await updateVault(newVault);
+    try {
+      if (isApiMode) {
+        const response = await api.saveAttempt({
+          examId: exam.id,
+          score: correctCount,
+          totalQuestions: questions.length,
+          answers,
+          durationSeconds
+        });
+        navigate(`/dashboard/review/${response.id}`);
+      } else {
+        const attempt = {
+          id: `attempt-${Date.now()}`,
+          examId: exam.id,
+          examTitle: exam.title,
+          score: correctCount,
+          total: questions.length,
+          percent: Math.round((correctCount / questions.length) * 100),
+          timeMs: Date.now() - startedAt,
+          date: new Date().toISOString(),
+          answers,
+          questionsSnapshot: questions
+        };
+
+        if (vault) {
+          const newVault = {
+            ...vault,
+            attempts: [attempt, ...vault.attempts]
+          };
+          await updateVault(newVault);
+        }
+        navigate(`/dashboard/review/${attempt.id}`);
+      }
+    } catch (err) {
+      alert('Failed to save attempt. Please try again.');
+      setIsSubmitting(false);
     }
-
-    navigate(`/dashboard/review/${attempt.id}`);
   };
 
-  if (!exam) return <div className="loading">Loading exam...</div>;
+  if (isLoading) return <div className="loading-screen"><Loader2 className="spinner" /> Loading exam...</div>;
+  if (!exam) return <div className="error-screen">Exam not found.</div>;
 
   const currentQ = questions[currentIndex];
   const formatTime = (seconds: number) => {
@@ -167,8 +199,8 @@ const ExamRunner: React.FC = () => {
             <Timer size={20} />
             <span>{timeRemaining !== null ? formatTime(timeRemaining) : '--:--'}</span>
           </div>
-          <button className="submit-btn" onClick={() => handleSubmit()}>
-            Submit Exam
+          <button className="submit-btn" onClick={() => handleSubmit()} disabled={isSubmitting}>
+            {isSubmitting ? <Loader2 className="spinner" size={18} /> : 'Submit Exam'}
           </button>
         </div>
       </header>
@@ -228,7 +260,7 @@ const ExamRunner: React.FC = () => {
             <div className="progress-track">
               <div 
                 className="progress-bar-run" 
-                style={{ width: `${((currentIndex + 1) / questions.length) * 100}%` }}
+                style={{ width: `${((currentIndex + 1) / (questions.length || 1)) * 100}%` }}
               ></div>
             </div>
             <button 
@@ -266,6 +298,18 @@ const ExamRunner: React.FC = () => {
       </div>
 
       <style>{`
+        .loading-screen, .error-screen {
+          height: 100vh;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 1rem;
+          font-weight: 700;
+          color: var(--text-main);
+          background: #f1f5f9;
+        }
+        .spinner { animation: spin 1s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         .exam-runner {
           position: fixed;
           inset: 0;
@@ -311,8 +355,12 @@ const ExamRunner: React.FC = () => {
           border-radius: 0.75rem;
           font-weight: 700;
           cursor: pointer;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
         }
-
+        .submit-btn:disabled { opacity: 0.7; cursor: not-allowed; }
+ 
         .runner-layout {
           flex: 1;
           display: flex;
@@ -367,7 +415,7 @@ const ExamRunner: React.FC = () => {
         }
         .opt-row-run.active .opt-badge-run { background: var(--primary); color: white; border-color: var(--primary); }
         .opt-text-run { flex: 1; font-weight: 600; color: #475569; }
-
+ 
         .q-footer-run {
           display: flex;
           align-items: center;
@@ -404,7 +452,7 @@ const ExamRunner: React.FC = () => {
           color: var(--text-main);
         }
         .notes-area input:focus { outline: none; }
-
+ 
         .nav-controls-run {
           display: flex;
           align-items: center;
@@ -431,7 +479,7 @@ const ExamRunner: React.FC = () => {
           overflow: hidden;
         }
         .progress-bar-run { height: 100%; background: var(--primary); transition: width 0.3s; }
-
+ 
         .navigator-sidebar {
           width: 300px;
           background: white;
@@ -469,7 +517,7 @@ const ExamRunner: React.FC = () => {
         .dot.current { background: var(--primary); }
         .dot.done { background: #cbd5e1; }
         .dot.flagged { background: #f59e0b; }
-
+ 
         @media (max-width: 1024px) {
           .navigator-sidebar { display: none; }
           .runner-layout { padding: 1rem; }

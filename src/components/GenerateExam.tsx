@@ -15,13 +15,16 @@ import {
   ChevronRight,
   Globe,
   CloudUpload,
-  Loader2
+  Loader2,
+  Lock,
+  Unlock
 } from 'lucide-react';
 import { uploadToGitHub } from '../utils/github';
 import { encryptData } from '../utils/crypto';
+import { api } from '../lib/api';
 
 const GenerateExam: React.FC = () => {
-  const { vault, updateVault } = useVault();
+  const { vault, updateVault, isApiMode } = useVault();
   const navigate = useNavigate();
   
   const [inputText, setInputText] = useState('');
@@ -32,6 +35,7 @@ const GenerateExam: React.FC = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<{ type: 'success' | 'error', message: string } | null>(null);
   const [encryptionKey, setEncryptionKey] = useState('');
+  const [isPublic, setIsPublic] = useState(false);
 
   useEffect(() => {
     if (inputText.trim()) {
@@ -53,33 +57,54 @@ const GenerateExam: React.FC = () => {
   }, [inputText]);
 
   const handleSave = async () => {
-    if (!vault || questions.length === 0) return;
+    if (questions.length === 0) return;
     
-    const newExam = {
-      id: `custom-${Date.now()}`,
+    setIsUploading(true);
+    setError('');
+
+    const examData = {
       title: title || 'Untitled Exam',
-      description: 'Pasted MCQ Exam',
       questions: questions.map((q, i) => ({
         ...q,
         id: `q-${i + 1}`,
         answers: normalizeAnswers(q.answerRaw, q.options)
-      })),
-      createdAt: new Date().toISOString()
-    };
-
-    const newVault = {
-      ...vault,
-      myExams: [newExam, ...vault.myExams]
+      }))
     };
 
     try {
-      await updateVault(newVault);
-      setSuccess('Exam saved to your private vault!');
+      if (isApiMode) {
+        await api.saveExam({
+          title: examData.title,
+          description: 'Pasted MCQ Exam',
+          grade: 'Other',
+          subject: 'General',
+          examData: examData,
+          isPublic
+        });
+        setSuccess('Exam saved to Google Sheets!');
+      } else {
+        if (!vault) return;
+        const newExam = {
+          ...examData,
+          id: `custom-${Date.now()}`,
+          description: 'Pasted MCQ Exam',
+          createdAt: new Date().toISOString()
+        };
+        const newVault = {
+          ...vault,
+          myExams: [newExam, ...vault.myExams]
+        };
+        await updateVault(newVault);
+        setSuccess('Exam saved to your private vault!');
+      }
+      
       setInputText('');
       setTitle('');
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
       setError('Failed to save exam.');
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -151,7 +176,7 @@ const GenerateExam: React.FC = () => {
     <div className="generate-container animate-fade-in">
       <header className="page-header">
         <h1 className="page-title">Generate Exam</h1>
-        <p className="page-subtitle">Paste your MCQs to create a private exam</p>
+        <p className="page-subtitle">Paste your MCQs to create a {isApiMode ? 'cloud' : 'private'} exam</p>
       </header>
 
       <div className="generate-grid">
@@ -242,11 +267,27 @@ const GenerateExam: React.FC = () => {
             )}
           </div>
 
+          {isApiMode && (
+            <div className="api-options">
+              <label className="toggle-label">
+                <input 
+                  type="checkbox" 
+                  checked={isPublic}
+                  onChange={(e) => setIsPublic(e.target.checked)}
+                />
+                <div className="toggle-content">
+                  {isPublic ? <Unlock size={16} /> : <Lock size={16} />}
+                  <span>{isPublic ? 'Public Exam (Visible on Leaderboard)' : 'Private Exam'}</span>
+                </div>
+              </label>
+            </div>
+          )}
+
           <div className="action-footer">
             <button 
               className="action-btn secondary"
               onClick={() => setInputText('')}
-              disabled={!inputText}
+              disabled={!inputText || isUploading}
             >
               <Trash2 size={18} />
               Clear
@@ -254,10 +295,10 @@ const GenerateExam: React.FC = () => {
             <button 
               className="action-btn primary"
               onClick={handleSave}
-              disabled={questions.length === 0}
+              disabled={questions.length === 0 || isUploading}
             >
-              <Save size={18} />
-              Save to My Exams
+              {isUploading ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
+              {isUploading ? 'Saving...' : (isApiMode ? 'Save to Cloud' : 'Save to My Exams')}
             </button>
           </div>
 
@@ -296,6 +337,26 @@ const GenerateExam: React.FC = () => {
       </div>
 
       <style>{`
+        .api-options {
+          padding: 1rem;
+          background: #f8fafc;
+          border-radius: 0.5rem;
+          border: 1px solid var(--border);
+        }
+        .toggle-label {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          cursor: pointer;
+        }
+        .toggle-content {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          font-size: 0.875rem;
+          font-weight: 600;
+          color: #475569;
+        }
         .github-upload-box {
           margin-top: 1rem;
           padding: 1.25rem;

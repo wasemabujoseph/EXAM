@@ -13,11 +13,12 @@ import {
   PlusCircle,
   FileText,
   User as UserIcon,
-  Search
+  Search,
+  Globe
 } from 'lucide-react';
 
 const Dashboard: React.FC = () => {
-  const { vault, logout } = useVault();
+  const { vault, logout, isApiMode, user } = useVault();
   const navigate = useNavigate();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
@@ -27,13 +28,16 @@ const Dashboard: React.FC = () => {
   };
 
   const navItems = [
-    { icon: <LayoutDashboard size={20} />, label: 'Dashboard', path: '/dashboard/curriculum' },
+    { icon: <LayoutDashboard size={20} />, label: 'Curriculum', path: '/dashboard/curriculum' },
     { icon: <PlusCircle size={20} />, label: 'Generate Exam', path: '/dashboard/generate' },
-    { icon: <FileText size={20} />, label: 'My Exams', path: '/dashboard/my-exams' },
+    { icon: <FileText size={20} />, label: isApiMode ? 'Cloud Exams' : 'My Exams', path: '/dashboard/my-exams' },
     { icon: <History size={20} />, label: 'Results History', path: '/dashboard/history' },
     { icon: <Trophy size={20} />, label: 'Leaderboard', path: '/dashboard/leaderboard' },
     { icon: <SettingsIcon size={20} />, label: 'Settings', path: '/dashboard/settings' },
   ];
+
+  const profileName = isApiMode ? (user?.username || 'User') : (vault?.profile.name || 'MD User');
+  const profileEmail = isApiMode ? (user?.role || 'Authenticated') : (vault?.profile.email || 'Local Mode');
 
   return (
     <div className="dashboard-layout">
@@ -42,9 +46,9 @@ const Dashboard: React.FC = () => {
         <button onClick={() => setIsSidebarOpen(true)} className="icon-btn">
           <Menu size={24} />
         </button>
-        <span className="mobile-logo">MD Exam Hub</span>
+        <span className="mobile-logo">EXAM CLOUD</span>
         <div className="avatar-small">
-          {vault?.profile.name.charAt(0)}
+          {profileName.charAt(0)}
         </div>
       </header>
 
@@ -53,7 +57,7 @@ const Dashboard: React.FC = () => {
         <div className="sidebar-header">
           <div className="logo-box">
             <BookOpen size={24} />
-            <span>MD Exam Hub</span>
+            <span>EXAM CLOUD</span>
           </div>
           <button onClick={() => setIsSidebarOpen(false)} className="close-btn md-hidden">
             <X size={24} />
@@ -62,11 +66,11 @@ const Dashboard: React.FC = () => {
 
         <div className="user-profile">
           <div className="avatar">
-            {vault?.profile.name.charAt(0)}
+            {profileName.charAt(0)}
           </div>
           <div className="user-info">
-            <span className="user-name">{vault?.profile.name}</span>
-            <span className="user-email">{vault?.profile.email}</span>
+            <span className="user-name">{profileName}</span>
+            <span className="user-email">{profileEmail}</span>
           </div>
         </div>
 
@@ -138,8 +142,8 @@ const Dashboard: React.FC = () => {
         }
 
         .user-profile {
-          padding: 1.5rem;
-          margin: 0 1rem 1rem;
+          padding: 1.25rem;
+          margin: 0 1rem 1.5rem;
           background: #f1f5f9;
           border-radius: 1rem;
           display: flex;
@@ -178,6 +182,7 @@ const Dashboard: React.FC = () => {
           white-space: nowrap;
           text-overflow: ellipsis;
           overflow: hidden;
+          text-transform: capitalize;
         }
 
         .sidebar-nav {

@@ -1,69 +1,99 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useVault } from '../context/VaultContext';
+import { api } from '../lib/api';
 import { 
   Trophy, 
   Medal, 
   Star,
   Target,
   Award,
-  BookOpen
+  BookOpen,
+  Loader2,
+  Users
 } from 'lucide-react';
 
 const Leaderboard: React.FC = () => {
-  const { vault } = useVault();
+  const { vault, isApiMode } = useVault();
+  const [leaderboardData, setLeaderboardData] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [stats, setStats] = useState({ total: 0, avg: 0, top: 0 });
 
-  const attempts = vault?.attempts || [];
-  
-  // Local leaderboard: group by exam title and pick best score
-  const leaderboardData = React.useMemo(() => {
-    const map: Record<string, any> = {};
-    attempts.forEach(a => {
-      if (!map[a.examId] || a.percent > map[a.examId].percent) {
-        map[a.examId] = {
-          title: a.examTitle,
-          percent: a.percent,
-          score: `${a.score}/${a.total}`,
-          date: new Date(a.date).toLocaleDateString(),
-          attempts: attempts.filter(x => x.examId === a.examId).length
-        };
+  useEffect(() => {
+    const loadLeaderboard = async () => {
+      setIsLoading(true);
+      try {
+        if (isApiMode) {
+          const data = await api.getLeaderboard();
+          // Group by username or just show raw if many attempts? 
+          // Code.gs returns sorted list.
+          setLeaderboardData(data);
+          
+          const total = data.length;
+          const avg = data.length > 0 ? Math.round(data.reduce((acc: number, cur: any) => acc + (cur.score/cur.totalQuestions)*100, 0) / data.length) : 0;
+          const top = data.length > 0 ? Math.round((data[0].score / data[0].totalQuestions) * 100) : 0;
+          setStats({ total, avg, top });
+        } else {
+          const attempts = vault?.attempts || [];
+          const map: Record<string, any> = {};
+          attempts.forEach(a => {
+            if (!map[a.examId] || a.percent > map[a.examId].percent) {
+              map[a.examId] = {
+                username: 'You',
+                title: a.examTitle,
+                percent: a.percent,
+                score: `${a.score}/${a.total}`,
+                date: new Date(a.date).toLocaleDateString(),
+                attempts: attempts.filter(x => x.examId === a.examId).length
+              };
+            }
+          });
+          const sorted = Object.values(map).sort((a, b) => b.percent - a.percent);
+          setLeaderboardData(sorted);
+          
+          const total = attempts.length;
+          const avg = attempts.length > 0 ? Math.round(attempts.reduce((acc, a) => acc + a.percent, 0) / attempts.length) : 0;
+          const top = sorted.length > 0 ? sorted[0].percent : 0;
+          setStats({ total, avg, top });
+        }
+      } catch (err) {
+        console.error('Failed to load leaderboard', err);
+      } finally {
+        setIsLoading(false);
       }
-    });
-    return Object.values(map).sort((a, b) => b.percent - a.percent);
-  }, [attempts]);
+    };
+
+    loadLeaderboard();
+  }, [isApiMode, vault]);
+
+  if (isLoading) return <div className="loading-screen"><Loader2 className="spinner" /> Loading rankings...</div>;
 
   return (
     <div className="leaderboard-container animate-fade-in">
       <header className="page-header">
-        <h1 className="page-title">Local Leaderboard</h1>
-        <p className="page-subtitle">Your personal best scores across all exams</p>
+        <h1 className="page-title">{isApiMode ? 'Global Leaderboard' : 'Local Leaderboard'}</h1>
+        <p className="page-subtitle">{isApiMode ? 'Top performances across the platform' : 'Your personal best scores across all exams'}</p>
       </header>
 
       <div className="stats-row">
         <div className="stat-card">
           <Trophy size={24} className="stat-icon gold" />
           <div className="stat-content">
-            <span className="stat-label">Exams Completed</span>
-            <span className="stat-value">{attempts.length}</span>
+            <span className="stat-label">{isApiMode ? 'Total Entries' : 'Exams Completed'}</span>
+            <span className="stat-value">{stats.total}</span>
           </div>
         </div>
         <div className="stat-card">
           <Target size={24} className="stat-icon blue" />
           <div className="stat-content">
             <span className="stat-label">Avg. Accuracy</span>
-            <span className="stat-value">
-              {attempts.length > 0 
-                ? Math.round(attempts.reduce((acc, a) => acc + a.percent, 0) / attempts.length) 
-                : 0}%
-            </span>
+            <span className="stat-value">{stats.avg}%</span>
           </div>
         </div>
         <div className="stat-card">
           <Award size={24} className="stat-icon green" />
           <div className="stat-content">
             <span className="stat-label">Top Performance</span>
-            <span className="stat-value">
-              {leaderboardData.length > 0 ? `${leaderboardData[0].percent}%` : 'N/A'}
-            </span>
+            <span className="stat-value">{stats.top}%</span>
           </div>
         </div>
       </div>
@@ -71,38 +101,49 @@ const Leaderboard: React.FC = () => {
       <div className="leaderboard-card card">
         <div className="card-head">
           <Star size={20} />
-          <h2>Hall of Fame</h2>
+          <h2>{isApiMode ? 'Cloud Rankings' : 'Hall of Fame'}</h2>
         </div>
 
         <div className="leaderboard-table">
           <div className="table-header">
             <div className="col rank">Rank</div>
-            <div className="col title">Exam Title</div>
-            <div className="col score">Best Score</div>
+            <div className="col user">{isApiMode ? 'User' : 'Exam Title'}</div>
+            <div className="col score">Score</div>
             <div className="col date">Date</div>
-            <div className="col count">Attempts</div>
           </div>
 
           <div className="table-body">
             {leaderboardData.length > 0 ? (
-              leaderboardData.map((item, index) => (
-                <div key={index} className="table-row">
-                  <div className="col rank">
-                    {index === 0 ? <Medal size={20} className="gold" /> : 
-                     index === 1 ? <Medal size={20} className="silver" /> :
-                     index === 2 ? <Medal size={20} className="bronze" /> :
-                     index + 1}
+              leaderboardData.map((item, index) => {
+                const percent = item.percent || Math.round((item.score / item.totalQuestions) * 100);
+                const scoreDisplay = item.scoreDisplay || (item.totalQuestions ? `${item.score}/${item.totalQuestions}` : item.score);
+                
+                return (
+                  <div key={index} className="table-row">
+                    <div className="col rank">
+                      {index === 0 ? <Medal size={20} className="gold" /> : 
+                       index === 1 ? <Medal size={20} className="silver" /> :
+                       index === 2 ? <Medal size={20} className="bronze" /> :
+                       index + 1}
+                    </div>
+                    <div className="col user">
+                      <div className="user-info">
+                        {isApiMode && <Users size={14} className="user-icon" />}
+                        <strong>{isApiMode ? item.username : item.title}</strong>
+                      </div>
+                    </div>
+                    <div className="col score">
+                      <span className="percent-badge">{percent}%</span> 
+                      <span className="raw-score">{scoreDisplay}</span>
+                    </div>
+                    <div className="col date">{new Date(item.createdAt || item.date).toLocaleDateString()}</div>
                   </div>
-                  <div className="col title"><strong>{item.title}</strong></div>
-                  <div className="col score"><span className="percent-badge">{item.percent}%</span> {item.score}</div>
-                  <div className="col date">{item.date}</div>
-                  <div className="col count">{item.attempts}</div>
-                </div>
-              ))
+                );
+              })
             ) : (
               <div className="empty-table">
                 <BookOpen size={48} />
-                <p>No exam data available for the leaderboard.</p>
+                <p>No rankings available yet.</p>
               </div>
             )}
           </div>
@@ -111,10 +152,22 @@ const Leaderboard: React.FC = () => {
 
       <div className="privacy-note">
         <Star size={14} />
-        <span>This leaderboard is calculated locally based on your encrypted history. No data is shared online.</span>
+        <span>{isApiMode ? 'Data is synchronized with Google Sheets.' : 'This leaderboard is calculated locally based on your encrypted history.'}</span>
       </div>
 
       <style>{`
+        .loading-screen {
+          padding: 5rem;
+          text-align: center;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 1rem;
+          font-weight: 700;
+          color: var(--text-muted);
+        }
+        .spinner { animation: spin 1s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         .leaderboard-container {
           display: flex;
           flex-direction: column;
@@ -185,10 +238,12 @@ const Leaderboard: React.FC = () => {
         
         .col { flex: 1; }
         .col.rank { flex: 0 0 80px; display: flex; justify-content: center; font-weight: 800; color: #94a3b8; }
-        .col.title { flex: 2; }
+        .col.user { flex: 2; }
         .col.score { flex: 1.5; display: flex; align-items: center; gap: 0.75rem; }
         .col.date { flex: 1; color: var(--text-muted); }
-        .col.count { flex: 0 0 100px; text-align: center; }
+
+        .user-info { display: flex; align-items: center; gap: 0.5rem; }
+        .user-icon { color: #94a3b8; }
 
         .percent-badge {
           background: var(--primary-light);
@@ -198,6 +253,7 @@ const Leaderboard: React.FC = () => {
           font-weight: 700;
           font-size: 0.8rem;
         }
+        .raw-score { font-size: 0.85rem; color: #64748b; }
 
         .gold { color: #fbbf24; }
         .silver { color: #94a3b8; }
@@ -219,11 +275,12 @@ const Leaderboard: React.FC = () => {
           gap: 0.5rem;
           font-size: 0.75rem;
           color: #94a3b8;
+          margin-top: 1rem;
         }
 
         @media (max-width: 768px) {
           .stats-row { grid-template-columns: 1fr; }
-          .col.date, .col.count { display: none; }
+          .col.date { display: none; }
         }
       `}</style>
     </div>
