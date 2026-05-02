@@ -25,7 +25,7 @@ async function request<T>(action: string, payload: any = {}): Promise<T> {
 
   const token = safeStorage.getItem('exam_cloud_token');
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+  const timeoutId = setTimeout(() => controller.abort(), 45000); // 45 second timeout
 
   console.log(`🚀 API [${action}] Request:`, { hasToken: !!token });
 

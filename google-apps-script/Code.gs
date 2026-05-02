@@ -37,9 +37,13 @@ function doPost(e) {
     const payload = data.payload || {};
     const token = data.token;
 
-    // Initialize sheets if needed
-    initSheets();
-    runMigration(); // Ensure columns match latest schema
+    const props = PropertiesService.getScriptProperties();
+    const currentVersion = '3.0.1';
+    if (props.getProperty('DB_VERSION') !== currentVersion) {
+      initSheets();
+      runMigration();
+      props.setProperty('DB_VERSION', currentVersion);
+    }
 
     let user = null;
     if (token) {
@@ -544,8 +548,14 @@ function rowToObject(row, headers) {
   return obj;
 }
 
+let _ssCache = null;
+function getSs() {
+  if (!_ssCache) _ssCache = SpreadsheetApp.openById(SPREADSHEET_ID);
+  return _ssCache;
+}
+
 function getSheet(name) {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const ss = getSs();
   let sheet = ss.getSheetByName(name);
   if (!sheet) {
     sheet = ss.insertSheet(name);
@@ -555,20 +565,29 @@ function getSheet(name) {
 }
 
 function initSheets() {
-  Object.values(TABLES).forEach(tableName => getSheet(tableName));
+  const ss = getSs();
+  Object.values(TABLES).forEach(tableName => {
+    if (!ss.getSheetByName(tableName)) {
+      const sheet = ss.insertSheet(tableName);
+      sheet.appendRow(HEADERS[tableName]);
+    }
+  });
 }
 
 function runMigration() {
+  const ss = getSs();
   Object.keys(TABLES).forEach(key => {
     const tableName = TABLES[key];
     const expectedHeaders = HEADERS[tableName];
-    const sheet = getSheet(tableName);
-    const actualHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    const sheet = ss.getSheetByName(tableName);
+    if (!sheet) return;
+    
+    const actualHeaders = sheet.getRange(1, 1, 1, Math.max(1, sheet.getLastColumn())).getValues()[0];
     
     expectedHeaders.forEach(h => {
       if (actualHeaders.indexOf(h) === -1) {
         sheet.insertColumnAfter(sheet.getLastColumn());
-        sheet.getRange(1, sheet.getLastColumn()).setValue(h);
+        sheet.getRange(1, sheet.getLastColumn() + 1).setValue(h);
       }
     });
   });
