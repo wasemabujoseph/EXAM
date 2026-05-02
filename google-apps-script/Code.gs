@@ -646,6 +646,36 @@ function logAction(userId, action, details) {
 function createResponse(data) {
   return ContentService.createTextOutput(JSON.stringify(data)).setMimeType(ContentService.MimeType.JSON);
 }
+/**
+ * RUN THIS FUNCTION MANUALLY IN THE APPS SCRIPT EDITOR
+ * To fix the 'Invalid credentials' issue for Waseem.
+ */
+function MANUAL_FIX_WASEEM_ACCOUNT() {
+  const email = 'wasemkhallaf864@gmail.com';
+  const newPass = '88962334';
+  
+  const sheet = getSheet(TABLES.USERS);
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+  
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][2].toLowerCase() === email.toLowerCase()) {
+      const salt = data[i][4] || generateUUID();
+      const hash = hashPassword(newPass, salt);
+      
+      sheet.getRange(i + 1, 4).setValue(hash);   // password_hash
+      sheet.getRange(i + 1, 5).setValue(salt);   // salt
+      sheet.getRange(i + 1, 6).setValue('admin'); // role
+      sheet.getRange(i + 1, 8).setValue('pro');   // plan
+      
+      Logger.log('SUCCESS: Password reset and admin role granted for ' + email);
+      return 'Success! You can now log in.';
+    }
+  }
+  
+  Logger.log('ERROR: User with email ' + email + ' not found in the Users sheet.');
+  return 'User not found.';
+}
 
 // --- Maintenance & Automation ---
 
