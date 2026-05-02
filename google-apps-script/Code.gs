@@ -646,3 +646,38 @@ function logAction(userId, action, details) {
 function createResponse(data) {
   return ContentService.createTextOutput(JSON.stringify(data)).setMimeType(ContentService.MimeType.JSON);
 }
+
+// --- Maintenance & Automation ---
+
+/**
+ * Resets trial limits and attempt counts for all 'free' users.
+ * Setup a Time-driven trigger in Apps Script to run this monthly.
+ */
+function resetMonthlyTrialLimits() {
+  const sheet = getSheet(TABLES.USERS);
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+  
+  const planIdx = headers.indexOf('plan');
+  const limitIdx = headers.indexOf('trial_limit');
+  const countIdx = headers.indexOf('attempt_count');
+  
+  if (planIdx === -1 || limitIdx === -1 || countIdx === -1) {
+    Logger.log('Error: Required columns not found');
+    return;
+  }
+
+  // Define your default monthly limits here
+  const DEFAULT_MONTHLY_LIMIT = 5;
+
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][planIdx] === 'free') {
+      // Update Trial Limit to 5
+      sheet.getRange(i + 1, limitIdx + 1).setValue(DEFAULT_MONTHLY_LIMIT);
+      // Reset Attempt Count to 0
+      sheet.getRange(i + 1, countIdx + 1).setValue(0);
+    }
+  }
+  
+  Logger.log('Monthly limits and attempt counts have been reset.');
+}
