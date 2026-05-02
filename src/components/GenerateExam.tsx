@@ -4,27 +4,17 @@ import { useVault } from '../context/VaultContext';
 import { parsePlainText } from '../utils/parser';
 import { 
   FileText, 
-  Play, 
   Save, 
   Trash2, 
   AlertCircle, 
   CheckCircle,
   HelpCircle,
-  Clock,
   Layers,
-  ChevronRight,
-  Globe,
-  CloudUpload,
-  Loader2,
-  Lock,
-  Unlock
+  Loader2
 } from 'lucide-react';
-import { uploadToGitHub } from '../utils/github';
-import { encryptData } from '../utils/crypto';
 import { api } from '../lib/api';
 
 const GenerateExam: React.FC = () => {
-  const { vault, updateVault, isApiMode } = useVault();
   const navigate = useNavigate();
   
   const [inputText, setInputText] = useState('');
@@ -33,8 +23,6 @@ const GenerateExam: React.FC = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isUploading, setIsUploading] = useState(false);
-  const [uploadStatus, setUploadStatus] = useState<{ type: 'success' | 'error', message: string } | null>(null);
-  const [encryptionKey, setEncryptionKey] = useState('');
   const [isPublic, setIsPublic] = useState(false);
 
   useEffect(() => {
@@ -72,37 +60,21 @@ const GenerateExam: React.FC = () => {
     };
 
     try {
-      if (isApiMode) {
-        await api.saveExam({
-          title: examData.title,
-          description: 'Pasted MCQ Exam',
-          grade: 'Other',
-          subject: 'General',
-          examData: examData,
-          isPublic
-        });
-        setSuccess('Exam saved to Google Sheets!');
-      } else {
-        if (!vault) return;
-        const newExam = {
-          ...examData,
-          id: `custom-${Date.now()}`,
-          description: 'Pasted MCQ Exam',
-          createdAt: new Date().toISOString()
-        };
-        const newVault = {
-          ...vault,
-          myExams: [newExam, ...vault.myExams]
-        };
-        await updateVault(newVault);
-        setSuccess('Exam saved to your private vault!');
-      }
+      await api.saveExam({
+        title: examData.title,
+        description: 'Pasted MCQ Exam',
+        grade: 'Other',
+        subject: 'General',
+        examData: examData,
+        isPublic
+      });
+      setSuccess('Exam saved to Cloud successfully!');
       
       setInputText('');
       setTitle('');
       setTimeout(() => setSuccess(''), 3000);
-    } catch (err) {
-      setError('Failed to save exam.');
+    } catch (err: any) {
+      setError(err.message || 'Failed to save exam.');
     } finally {
       setIsUploading(false);
     }
@@ -119,64 +91,11 @@ const GenerateExam: React.FC = () => {
     return out;
   };
 
-  const handleGitHubUpload = async () => {
-    if (!vault || !vault.githubSettings?.token || !vault.githubSettings?.repo) {
-      setUploadStatus({ type: 'error', message: 'GitHub not configured in Settings.' });
-      return;
-    }
-    if (questions.length === 0) return;
-    if (!encryptionKey) {
-      setUploadStatus({ type: 'error', message: 'Please provide an encryption key for GitHub storage.' });
-      return;
-    }
-
-    setIsUploading(true);
-    setUploadStatus(null);
-
-    const examData = {
-      id: `cloud-${Date.now()}`,
-      title: title || 'Untitled Exam',
-      description: 'Uploaded MCQ Exam',
-      questions: questions.map((q, i) => ({
-        ...q,
-        id: `q-${i + 1}`,
-        answers: normalizeAnswers(q.answerRaw, q.options)
-      })),
-      createdAt: new Date().toISOString()
-    };
-
-    try {
-      // Encrypt the exam data
-      const encrypted = await encryptData(examData, encryptionKey);
-      const payload = JSON.stringify(encrypted);
-      
-      const fileName = `exams/vault/${examData.id}.json.enc`;
-      
-      await uploadToGitHub(
-        {
-          token: vault.githubSettings.token,
-          repo: vault.githubSettings.repo,
-          branch: vault.githubSettings.branch || 'main'
-        },
-        fileName,
-        payload,
-        `Add encrypted exam: ${examData.title}`
-      );
-
-      setUploadStatus({ type: 'success', message: 'Exam uploaded to GitHub successfully!' });
-      setEncryptionKey('');
-    } catch (err: any) {
-      setUploadStatus({ type: 'error', message: err.message || 'Failed to upload to GitHub.' });
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
   return (
     <div className="generate-container animate-fade-in">
       <header className="page-header">
         <h1 className="page-title">Generate Exam</h1>
-        <p className="page-subtitle">Paste your MCQs to create a {isApiMode ? 'cloud' : 'private'} exam</p>
+        <p className="page-subtitle">Paste your MCQs to create a cloud exam</p>
       </header>
 
       <div className="generate-grid">
@@ -267,21 +186,18 @@ const GenerateExam: React.FC = () => {
             )}
           </div>
 
-          {isApiMode && (
-            <div className="api-options">
-              <label className="toggle-label">
-                <input 
-                  type="checkbox" 
-                  checked={isPublic}
-                  onChange={(e) => setIsPublic(e.target.checked)}
-                />
-                <div className="toggle-content">
-                  {isPublic ? <Unlock size={16} /> : <Lock size={16} />}
-                  <span>{isPublic ? 'Public Exam (Visible on Leaderboard)' : 'Private Exam'}</span>
-                </div>
-              </label>
-            </div>
-          )}
+          <div className="api-options">
+            <label className="toggle-label">
+              <input 
+                type="checkbox" 
+                checked={isPublic}
+                onChange={(e) => setIsPublic(e.target.checked)}
+              />
+              <div className="toggle-content">
+                <span>{isPublic ? 'Public Exam (Visible on Leaderboard)' : 'Private Exam'}</span>
+              </div>
+            </label>
+          </div>
 
           <div className="action-footer">
             <button 
@@ -298,40 +214,8 @@ const GenerateExam: React.FC = () => {
               disabled={questions.length === 0 || isUploading}
             >
               {isUploading ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
-              {isUploading ? 'Saving...' : (isApiMode ? 'Save to Cloud' : 'Save to My Exams')}
+              {isUploading ? 'Saving...' : 'Save to Cloud'}
             </button>
-          </div>
-
-          <div className="github-upload-box">
-            <div className="section-head mini">
-              <Globe size={16} />
-              <h3>Cloud Storage (GitHub)</h3>
-            </div>
-            <p className="desc">Encrypt and store this exam in your private repository.</p>
-            
-            <div className="upload-form">
-              <input 
-                type="password" 
-                placeholder="Storage Encryption Key"
-                value={encryptionKey}
-                onChange={(e) => setEncryptionKey(e.target.value)}
-                className="key-input"
-              />
-              <button 
-                className="github-btn"
-                onClick={handleGitHubUpload}
-                disabled={isUploading || questions.length === 0}
-              >
-                {isUploading ? <Loader2 className="animate-spin" size={18} /> : <CloudUpload size={18} />}
-                {isUploading ? 'Uploading...' : 'Upload Encrypted to GitHub'}
-              </button>
-            </div>
-
-            {uploadStatus && (
-              <div className={`status-pill ${uploadStatus.type}`}>
-                {uploadStatus.message}
-              </div>
-            )}
           </div>
         </div>
       </div>
@@ -357,48 +241,6 @@ const GenerateExam: React.FC = () => {
           font-weight: 600;
           color: #475569;
         }
-        .github-upload-box {
-          margin-top: 1rem;
-          padding: 1.25rem;
-          background: #f1f5f9;
-          border-radius: 0.75rem;
-          border: 1px dashed var(--border);
-        }
-        .section-head.mini {
-          padding-bottom: 0.5rem;
-          margin-bottom: 0.5rem;
-          border-bottom: 1px solid #e2e8f0;
-        }
-        .section-head.mini h3 { font-size: 0.9rem; margin: 0; }
-        .github-upload-box .desc { font-size: 0.75rem; color: #64748b; margin-bottom: 1rem; }
-        .upload-form { display: flex; gap: 0.5rem; }
-        .key-input { flex: 1; padding: 0.6rem; border: 1px solid var(--border); border-radius: 0.5rem; font-size: 0.8rem; }
-        .github-btn {
-          background: #1e293b;
-          color: white;
-          border: none;
-          padding: 0.6rem 1rem;
-          border-radius: 0.5rem;
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          font-size: 0.8rem;
-          font-weight: 700;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-        .github-btn:hover { background: #0f172a; }
-        .github-btn:disabled { opacity: 0.6; cursor: not-allowed; }
-        .status-pill {
-          margin-top: 0.75rem;
-          padding: 0.5rem;
-          border-radius: 0.4rem;
-          font-size: 0.75rem;
-          font-weight: 600;
-          text-align: center;
-        }
-        .status-pill.success { background: #dcfce7; color: #166534; }
-        .status-pill.error { background: #fee2e2; color: #991b1b; }
         .animate-spin { animation: spin 1s linear infinite; }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         .generate-container {

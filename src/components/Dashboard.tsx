@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 
 const Dashboard: React.FC = () => {
-  const { vault, logout, isApiMode, user } = useVault();
+  const { logout, user } = useVault();
   const navigate = useNavigate();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
@@ -30,14 +30,14 @@ const Dashboard: React.FC = () => {
   const navItems = [
     { icon: <LayoutDashboard size={20} />, label: 'Curriculum', path: '/dashboard/curriculum' },
     { icon: <PlusCircle size={20} />, label: 'Generate Exam', path: '/dashboard/generate' },
-    { icon: <FileText size={20} />, label: isApiMode ? 'Cloud Exams' : 'My Exams', path: '/dashboard/my-exams' },
+    { icon: <FileText size={20} />, label: 'My Exams', path: '/dashboard/my-exams' },
     { icon: <History size={20} />, label: 'Results History', path: '/dashboard/history' },
     { icon: <Trophy size={20} />, label: 'Leaderboard', path: '/dashboard/leaderboard' },
     { icon: <SettingsIcon size={20} />, label: 'Settings', path: '/dashboard/settings' },
   ];
 
-  const profileName = isApiMode ? (user?.username || 'User') : (vault?.profile.name || 'MD User');
-  const profileEmail = isApiMode ? (user?.role || 'Authenticated') : (vault?.profile.email || 'Local Mode');
+  const profileName = user?.username || 'User';
+  const profileEmail = user?.role || 'Authenticated';
 
   return (
     <div className="dashboard-layout">

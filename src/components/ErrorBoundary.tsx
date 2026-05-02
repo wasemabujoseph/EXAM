@@ -39,7 +39,7 @@ class ErrorBoundary extends Component<Props, State> {
         }}>
           <h1 style={{ color: '#ef4444', marginBottom: '1rem' }}>Something went wrong</h1>
           <p style={{ color: '#64748b', marginBottom: '2rem' }}>
-            The application crashed. This might be due to a local data error or a missing configuration.
+            The application encountered a critical error. This is often caused by old session data or restrictive browser settings.
           </p>
           <pre style={{
             padding: '1rem',
@@ -48,28 +48,54 @@ class ErrorBoundary extends Component<Props, State> {
             fontSize: '0.875rem',
             maxWidth: '100%',
             overflowX: 'auto',
-            textAlign: 'left'
+            textAlign: 'left',
+            marginBottom: '2rem'
           }}>
             {this.state.error?.message}
           </pre>
-          <button 
-            onClick={() => {
-              localStorage.clear();
-              window.location.href = '/';
-            }}
-            style={{
-              marginTop: '2rem',
-              padding: '0.75rem 1.5rem',
-              backgroundColor: '#1e293b',
-              color: 'white',
-              border: 'none',
-              borderRadius: '0.5rem',
-              fontWeight: 600,
-              cursor: 'pointer'
-            }}
-          >
-            Clear Data & Restart
-          </button>
+          
+          <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+            <button 
+              onClick={() => {
+                // Keep cloud tokens but wipe everything else
+                const token = localStorage.getItem('exam_cloud_token');
+                const user = localStorage.getItem('exam_cloud_user');
+                localStorage.clear();
+                if (token) localStorage.setItem('exam_cloud_token', token);
+                if (user) localStorage.setItem('exam_cloud_user', user);
+                window.location.href = '/dashboard';
+              }}
+              style={{
+                padding: '0.75rem 1.5rem',
+                backgroundColor: '#3b82f6',
+                color: 'white',
+                border: 'none',
+                borderRadius: '0.5rem',
+                fontWeight: 600,
+                cursor: 'pointer'
+              }}
+            >
+              Continue in Cloud Mode
+            </button>
+
+            <button 
+              onClick={() => {
+                localStorage.clear();
+                window.location.href = '/';
+              }}
+              style={{
+                padding: '0.75rem 1.5rem',
+                backgroundColor: '#1e293b',
+                color: 'white',
+                border: 'none',
+                borderRadius: '0.5rem',
+                fontWeight: 600,
+                cursor: 'pointer'
+              }}
+            >
+              Reset Everything & Restart
+            </button>
+          </div>
         </div>
       );
     }

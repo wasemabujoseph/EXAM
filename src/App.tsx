@@ -17,13 +17,13 @@ import YearView from './components/YearView';
 import SubjectDetails from './components/SubjectDetails';
 
 const AppContent = () => {
-  const { vault, user, isLoading } = useVault();
+  const { user, isLoading } = useVault();
 
   if (isLoading) {
-    return <div className="loading-screen">Loading encrypted vault...</div>;
+    return <div className="loading-screen">Connecting to EXAM Cloud...</div>;
   }
 
-  const isAuthenticated = !!vault || !!user;
+  const isAuthenticated = !!user;
 
   return (
     <Routes>

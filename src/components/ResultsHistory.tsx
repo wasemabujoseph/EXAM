@@ -15,7 +15,6 @@ import {
 } from 'lucide-react';
 
 const ResultsHistory: React.FC = () => {
-  const { vault, updateVault, isApiMode } = useVault();
   const navigate = useNavigate();
   const [attempts, setAttempts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -24,12 +23,8 @@ const ResultsHistory: React.FC = () => {
     const loadAttempts = async () => {
       setIsLoading(true);
       try {
-        if (isApiMode) {
-          const data = await api.getMyAttempts();
-          setAttempts(data);
-        } else {
-          setAttempts(vault?.attempts || []);
-        }
+        const data = await api.getMyAttempts();
+        setAttempts(data);
       } catch (err) {
         console.error('Failed to load attempts', err);
       } finally {
@@ -38,27 +33,7 @@ const ResultsHistory: React.FC = () => {
     };
 
     loadAttempts();
-  }, [isApiMode, vault]);
-
-  const handleDelete = async (id: string) => {
-    if (!confirm('Delete this attempt from history?')) return;
-    
-    try {
-      if (isApiMode) {
-        // GAS backend delete attempt not implemented in Code.gs yet, but we can skip or implement
-        alert('Delete not available in cloud mode yet.');
-      } else if (vault) {
-        const newVault = {
-          ...vault,
-          attempts: vault.attempts.filter(a => a.id !== id)
-        };
-        await updateVault(newVault);
-        setAttempts(newVault.attempts);
-      }
-    } catch (err) {
-      alert('Failed to delete attempt.');
-    }
-  };
+  }, []);
 
   if (isLoading) return <div className="loading-screen"><Loader2 className="spinner" /> Loading history...</div>;
 
@@ -110,14 +85,6 @@ const ResultsHistory: React.FC = () => {
                   >
                     Review <ChevronRight size={16} />
                   </button>
-                  {!isApiMode && (
-                    <button 
-                      className="delete-btn"
-                      onClick={() => handleDelete(attempt.id)}
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                  )}
                 </div>
               </div>
             </div>

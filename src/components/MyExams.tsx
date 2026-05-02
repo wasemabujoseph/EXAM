@@ -16,7 +16,6 @@ import {
 } from 'lucide-react';
 
 const MyExams: React.FC = () => {
-  const { vault, updateVault, isApiMode } = useVault();
   const navigate = useNavigate();
   const [exams, setExams] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -25,12 +24,8 @@ const MyExams: React.FC = () => {
     const loadExams = async () => {
       setIsLoading(true);
       try {
-        if (isApiMode) {
-          const data = await api.getMyExams();
-          setExams(data);
-        } else {
-          setExams(vault?.myExams || []);
-        }
+        const data = await api.getMyExams();
+        setExams(data);
       } catch (err) {
         console.error('Failed to load exams', err);
       } finally {
@@ -39,23 +34,14 @@ const MyExams: React.FC = () => {
     };
 
     loadExams();
-  }, [isApiMode, vault]);
+  }, []);
 
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this exam?')) return;
     
     try {
-      if (isApiMode) {
-        await api.deleteExam(id);
-        setExams(prev => prev.filter(e => e.id !== id));
-      } else if (vault) {
-        const newVault = {
-          ...vault,
-          myExams: vault.myExams.filter(e => e.id !== id)
-        };
-        await updateVault(newVault);
-        setExams(newVault.myExams);
-      }
+      await api.deleteExam(id);
+      setExams(prev => prev.filter(e => e.id !== id));
     } catch (err) {
       alert('Failed to delete exam.');
     }
@@ -76,8 +62,8 @@ const MyExams: React.FC = () => {
   return (
     <div className="my-exams-container animate-fade-in">
       <header className="page-header">
-        <h1 className="page-title">{isApiMode ? 'Cloud Exams' : 'My Private Exams'}</h1>
-        <p className="page-subtitle">{isApiMode ? 'Exams stored in your Google Sheets cloud' : 'Encrypted exams saved on this device'}</p>
+        <h1 className="page-title">My Exams</h1>
+        <p className="page-subtitle">Exams stored in your cloud library</p>
         <button className="add-btn" onClick={() => navigate('/dashboard/generate')}>
           <Plus size={20} />
           Create New Exam
@@ -90,7 +76,7 @@ const MyExams: React.FC = () => {
             <div key={exam.id} className="exam-card">
               <div className="exam-card-head">
                 <div className="exam-icon">
-                  {isApiMode ? <Cloud size={24} /> : <FileJson size={24} />}
+                  <Cloud size={24} />
                 </div>
                 <div className="exam-info">
                   <h3>{exam.title}</h3>

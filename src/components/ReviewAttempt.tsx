@@ -15,7 +15,6 @@ import {
 
 const ReviewAttempt: React.FC = () => {
   const { attemptId } = useParams<{ attemptId: string }>();
-  const { vault, isApiMode } = useVault();
   const [attempt, setAttempt] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -23,12 +22,9 @@ const ReviewAttempt: React.FC = () => {
     const loadAttempt = async () => {
       setIsLoading(true);
       try {
-        if (isApiMode && attemptId) {
+        if (attemptId) {
           const data = await api.getAttemptReview(attemptId);
           setAttempt(data);
-        } else {
-          const localAttempt = vault?.attempts.find(a => a.id === attemptId);
-          setAttempt(localAttempt);
         }
       } catch (err) {
         console.error('Failed to load attempt review', err);
@@ -38,7 +34,7 @@ const ReviewAttempt: React.FC = () => {
     };
 
     loadAttempt();
-  }, [attemptId, isApiMode, vault]);
+  }, [attemptId]);
 
   if (isLoading) return <div className="loading-screen"><Loader2 className="spinner" /> Loading review...</div>;
 

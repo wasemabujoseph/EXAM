@@ -13,7 +13,6 @@ import {
 } from 'lucide-react';
 
 const Leaderboard: React.FC = () => {
-  const { vault, isApiMode } = useVault();
   const [leaderboardData, setLeaderboardData] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [stats, setStats] = useState({ total: 0, avg: 0, top: 0 });
@@ -22,39 +21,13 @@ const Leaderboard: React.FC = () => {
     const loadLeaderboard = async () => {
       setIsLoading(true);
       try {
-        if (isApiMode) {
-          const data = await api.getLeaderboard();
-          // Group by username or just show raw if many attempts? 
-          // Code.gs returns sorted list.
-          setLeaderboardData(data);
-          
-          const total = data.length;
-          const avg = data.length > 0 ? Math.round(data.reduce((acc: number, cur: any) => acc + (cur.score/cur.totalQuestions)*100, 0) / data.length) : 0;
-          const top = data.length > 0 ? Math.round((data[0].score / data[0].totalQuestions) * 100) : 0;
-          setStats({ total, avg, top });
-        } else {
-          const attempts = vault?.attempts || [];
-          const map: Record<string, any> = {};
-          attempts.forEach(a => {
-            if (!map[a.examId] || a.percent > map[a.examId].percent) {
-              map[a.examId] = {
-                username: 'You',
-                title: a.examTitle,
-                percent: a.percent,
-                score: `${a.score}/${a.total}`,
-                date: new Date(a.date).toLocaleDateString(),
-                attempts: attempts.filter(x => x.examId === a.examId).length
-              };
-            }
-          });
-          const sorted = Object.values(map).sort((a, b) => b.percent - a.percent);
-          setLeaderboardData(sorted);
-          
-          const total = attempts.length;
-          const avg = attempts.length > 0 ? Math.round(attempts.reduce((acc, a) => acc + a.percent, 0) / attempts.length) : 0;
-          const top = sorted.length > 0 ? sorted[0].percent : 0;
-          setStats({ total, avg, top });
-        }
+        const data = await api.getLeaderboard();
+        setLeaderboardData(data);
+        
+        const total = data.length;
+        const avg = data.length > 0 ? Math.round(data.reduce((acc: number, cur: any) => acc + (cur.score/cur.totalQuestions)*100, 0) / data.length) : 0;
+        const top = data.length > 0 ? Math.round((data[0].score / data[0].totalQuestions) * 100) : 0;
+        setStats({ total, avg, top });
       } catch (err) {
         console.error('Failed to load leaderboard', err);
       } finally {
@@ -63,22 +36,22 @@ const Leaderboard: React.FC = () => {
     };
 
     loadLeaderboard();
-  }, [isApiMode, vault]);
+  }, []);
 
   if (isLoading) return <div className="loading-screen"><Loader2 className="spinner" /> Loading rankings...</div>;
 
   return (
     <div className="leaderboard-container animate-fade-in">
       <header className="page-header">
-        <h1 className="page-title">{isApiMode ? 'Global Leaderboard' : 'Local Leaderboard'}</h1>
-        <p className="page-subtitle">{isApiMode ? 'Top performances across the platform' : 'Your personal best scores across all exams'}</p>
+        <h1 className="page-title">Global Leaderboard</h1>
+        <p className="page-subtitle">Top performances across the platform</p>
       </header>
 
       <div className="stats-row">
         <div className="stat-card">
           <Trophy size={24} className="stat-icon gold" />
           <div className="stat-content">
-            <span className="stat-label">{isApiMode ? 'Total Entries' : 'Exams Completed'}</span>
+            <span className="stat-label">Total Entries</span>
             <span className="stat-value">{stats.total}</span>
           </div>
         </div>
@@ -101,13 +74,13 @@ const Leaderboard: React.FC = () => {
       <div className="leaderboard-card card">
         <div className="card-head">
           <Star size={20} />
-          <h2>{isApiMode ? 'Cloud Rankings' : 'Hall of Fame'}</h2>
+          <h2>Cloud Rankings</h2>
         </div>
 
         <div className="leaderboard-table">
           <div className="table-header">
             <div className="col rank">Rank</div>
-            <div className="col user">{isApiMode ? 'User' : 'Exam Title'}</div>
+            <div className="col user">User</div>
             <div className="col score">Score</div>
             <div className="col date">Date</div>
           </div>
@@ -128,8 +101,8 @@ const Leaderboard: React.FC = () => {
                     </div>
                     <div className="col user">
                       <div className="user-info">
-                        {isApiMode && <Users size={14} className="user-icon" />}
-                        <strong>{isApiMode ? item.username : item.title}</strong>
+                        <Users size={14} className="user-icon" />
+                        <strong>{item.username}</strong>
                       </div>
                     </div>
                     <div className="col score">
@@ -152,7 +125,7 @@ const Leaderboard: React.FC = () => {
 
       <div className="privacy-note">
         <Star size={14} />
-        <span>{isApiMode ? 'Data is synchronized with Google Sheets.' : 'This leaderboard is calculated locally based on your encrypted history.'}</span>
+        <span>Data is synchronized with Google Sheets.</span>
       </div>
 
       <style>{`

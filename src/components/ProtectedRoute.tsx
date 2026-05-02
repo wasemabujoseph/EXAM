@@ -7,9 +7,9 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-  const { vault } = useVault();
+  const { user } = useVault();
 
-  if (!vault) {
+  if (!user) {
     return <Navigate to="/login" replace />;
   }
 

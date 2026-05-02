@@ -18,7 +18,6 @@ import {
 
 const ExamRunner: React.FC = () => {
   const { type, id } = useParams<{ type: string; id: string }>();
-  const { vault, updateVault, isApiMode } = useVault();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -54,13 +53,7 @@ const ExamRunner: React.FC = () => {
               };
             }
           }
-        } else if (type === 'my') {
-          if (isApiMode && id) {
-            foundExam = await api.getExamById(id);
-          } else {
-            foundExam = vault?.myExams.find(e => e.id === id);
-          }
-        } else if (type === 'cloud' && id) {
+        } else if ((type === 'my' || type === 'cloud') && id) {
           foundExam = await api.getExamById(id);
         }
       } catch (err) {
@@ -76,7 +69,7 @@ const ExamRunner: React.FC = () => {
     };
 
     fetchExam();
-  }, [type, id, vault, location.state, isApiMode]);
+  }, [type, id, location.state]);
 
   // Timer logic
   useEffect(() => {
@@ -133,38 +126,14 @@ const ExamRunner: React.FC = () => {
     const durationSeconds = Math.floor((Date.now() - startedAt) / 1000);
 
     try {
-      if (isApiMode) {
-        const response = await api.saveAttempt({
-          examId: exam.id,
-          score: correctCount,
-          totalQuestions: questions.length,
-          answers,
-          durationSeconds
-        });
-        navigate(`/dashboard/review/${response.id}`);
-      } else {
-        const attempt = {
-          id: `attempt-${Date.now()}`,
-          examId: exam.id,
-          examTitle: exam.title,
-          score: correctCount,
-          total: questions.length,
-          percent: Math.round((correctCount / questions.length) * 100),
-          timeMs: Date.now() - startedAt,
-          date: new Date().toISOString(),
-          answers,
-          questionsSnapshot: questions
-        };
-
-        if (vault) {
-          const newVault = {
-            ...vault,
-            attempts: [attempt, ...vault.attempts]
-          };
-          await updateVault(newVault);
-        }
-        navigate(`/dashboard/review/${attempt.id}`);
-      }
+      const response = await api.saveAttempt({
+        examId: exam.id,
+        score: correctCount,
+        totalQuestions: questions.length,
+        answers,
+        durationSeconds
+      });
+      navigate(`/dashboard/review/${response.id}`);
     } catch (err) {
       alert('Failed to save attempt. Please try again.');
       setIsSubmitting(false);

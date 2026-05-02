@@ -4,7 +4,7 @@ import { useVault } from '../context/VaultContext';
 import { Lock, Mail, Eye, EyeOff, Loader2, GraduationCap, AlertCircle, Info } from 'lucide-react';
 
 const LoginPage: React.FC = () => {
-  const { login, isApiMode } = useVault();
+  const { login } = useVault();
   const navigate = useNavigate();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -32,32 +32,25 @@ const LoginPage: React.FC = () => {
   return (
     <div className="login-container">
       <div className="login-card animate-fade-in">
-        {!isApiMode && (
-          <div className="api-notice">
-            <Info size={16} />
-            <span>Running in <strong>Local Mode</strong>. Connect to Google Sheets in <code>.env</code> for cloud storage.</span>
-          </div>
-        )}
-
         <div className="login-header">
           <div className="logo-circle">
             <GraduationCap size={32} />
           </div>
           <h1>MD Exam Hub</h1>
-          <p>{isApiMode ? 'Sign in to your account' : 'Login to your local encrypted vault'}</p>
+          <p>Sign in to your account</p>
         </div>
 
         <form onSubmit={handleSubmit} className="login-form">
           <div className="form-group">
-            <label htmlFor="username">{isApiMode ? 'Username' : 'Email Address'}</label>
+            <label htmlFor="username">Username</label>
             <div className="input-wrapper">
-              {isApiMode ? <GraduationCap className="input-icon" size={20} /> : <Mail className="input-icon" size={20} />}
+              <GraduationCap className="input-icon" size={20} />
               <input
                 id="username"
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder={isApiMode ? "your_username" : "you@example.com"}
+                placeholder="your_username"
                 required
               />
             </div>
@@ -98,10 +91,10 @@ const LoginPage: React.FC = () => {
         </form>
 
         <div className="login-footer">
-          <p>Don't have an account? <Link to="/register">{isApiMode ? 'Register' : 'Register locally'}</Link></p>
+          <p>Don't have an account? <Link to="/register">Register</Link></p>
           <div className="security-info">
             <Lock size={12} />
-            <span>{isApiMode ? 'Secure cloud storage via Google Apps Script' : 'Data is encrypted locally using AES-GCM. We never see your password.'}</span>
+            <span>Secure cloud storage via Google Apps Script</span>
           </div>
         </div>
       </div>

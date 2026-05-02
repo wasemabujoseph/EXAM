@@ -16,12 +16,14 @@ export interface ApiResponse<T> {
   error?: string;
 }
 
+import { safeStorage } from '../utils/safeStorage';
+
 async function request<T>(action: string, payload: any = {}): Promise<T> {
   if (!API_URL) {
     throw new Error('Backend URL not configured. Please check your .env file.');
   }
 
-  const token = localStorage.getItem('exam_session_token');
+  const token = safeStorage.getItem('exam_cloud_token');
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
 
