@@ -5,7 +5,9 @@
 const API_URL = import.meta.env.VITE_APPS_SCRIPT_API_URL;
 
 if (!API_URL) {
-  console.warn('⚠️ VITE_APPS_SCRIPT_API_URL is not defined in the environment variables.');
+  console.warn('⚠️ VITE_APPS_SCRIPT_API_URL is not defined. Cloud features are disabled.');
+} else {
+  console.log('✅ API Client Initialized with URL:', API_URL);
 }
 
 export interface ApiResponse<T> {
@@ -16,15 +18,14 @@ export interface ApiResponse<T> {
 
 async function request<T>(action: string, payload: any = {}): Promise<T> {
   if (!API_URL) {
-    console.error('❌ API Request Failed: URL not configured.');
-    throw new Error('Backend URL not configured. Please check your .env file or deployment settings.');
+    throw new Error('Backend URL not configured. Please check your .env file.');
   }
 
   const token = localStorage.getItem('exam_session_token');
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
 
-  console.log(`🚀 API Request: ${action}`, { hasToken: !!token });
+  console.log(`🚀 API [${action}] Request:`, { hasToken: !!token });
 
   try {
     const response = await fetch(API_URL, {
@@ -44,7 +45,7 @@ async function request<T>(action: string, payload: any = {}): Promise<T> {
     clearTimeout(timeoutId);
 
     if (!response.ok) {
-      throw new Error(`Server returned status ${response.status}. Please check your Apps Script deployment.`);
+      throw new Error(`Server status ${response.status}. Ensure Apps Script is deployed as "Anyone".`);
     }
 
     const text = await response.text();
@@ -53,34 +54,43 @@ async function request<T>(action: string, payload: any = {}): Promise<T> {
     try {
       result = JSON.parse(text);
     } catch (e) {
-      console.error('Failed to parse API response:', text);
-      throw new Error('Invalid response from backend. Ensure your Apps Script is deployed as "Anyone".');
+      console.error('❌ Malformed API response:', text);
+      throw new Error('Malformed backend response. Check Apps Script deployment and permissions.');
     }
 
-    console.log(`✅ API Response: ${action}`, result);
+    console.log(`✅ API [${action}] Response:`, result);
 
-    if (!result.ok) {
-      throw new Error(result.error || 'Unknown backend error');
+    if (result.ok === false) {
+      throw new Error(result.error || 'Backend returned an unsuccessful status without an error message.');
     }
 
-    return result.data as T;
+    if (result.ok === true) {
+      return result.data as T;
+    }
+
+    throw new Error('Invalid response structure from backend. Missing "ok" field.');
   } catch (error: any) {
     clearTimeout(timeoutId);
-    console.error(`❌ API Error: ${action}`, error.message);
     
     if (error.name === 'AbortError') {
+      console.error(`🕒 API [${action}] Timeout`);
       throw new Error('Backend request timed out. Please try again.');
     }
     
     if (error.message.includes('Failed to fetch')) {
+      console.error(`📡 API [${action}] Network Error`);
       throw new Error('Could not connect to backend. Check Apps Script URL and deployment permissions.');
     }
-    
+
+    console.error(`❌ API [${action}] Error:`, error.message);
     throw error;
   }
 }
 
 export const api = {
+  // Diagnostics
+  health: () => request<any>('health'),
+
   // Auth
   register: (data: any) => request<any>('register', data),
   login: (data: any) => request<any>('login', data),

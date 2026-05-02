@@ -29,7 +29,7 @@ const HEADERS = {
 function doPost(e) {
   try {
     if (!e || !e.postData || !e.postData.contents) {
-      throw new Error('No data received in request body');
+      throw new Error('No data received in request body. Ensure you are sending a POST request with a body.');
     }
 
     const data = JSON.parse(e.postData.contents);
@@ -47,6 +47,13 @@ function doPost(e) {
 
     let result;
     switch (action) {
+      case 'health':
+        result = { 
+          status: 'ok', 
+          version: 'apps-script-v2.1', 
+          sheetConnected: !!SpreadsheetApp.openById(SPREADSHEET_ID) 
+        };
+        break;
       case 'register':
         result = handleRegister(payload);
         break;
@@ -96,11 +103,12 @@ function doPost(e) {
       data: result 
     });
   } catch (error) {
-    console.error('API Error:', error.message);
+    const errorMsg = error.message || String(error);
+    console.error('API Error:', errorMsg);
     // Error response
     return createResponse({ 
       ok: false, 
-      error: error.message 
+      error: errorMsg 
     });
   }
 }
@@ -116,13 +124,17 @@ function doGet(e) {
 
 function handleRegister(payload) {
   const { username, password, email } = payload;
+  if (!username) throw new Error('Username is required');
+  if (!email) throw new Error('Email is required');
+  if (!password) throw new Error('Password is required');
+
   const sheet = getSheet(TABLES.USERS);
   const data = sheet.getDataRange().getValues();
 
   // Check if user exists
   for (let i = 1; i < data.length; i++) {
-    if (data[i][1] === username) throw new Error('Username already taken');
-    if (data[i][2] === email) throw new Error('Email already registered');
+    if (data[i][1].toLowerCase() === username.toLowerCase()) throw new Error('Username already taken');
+    if (data[i][2].toLowerCase() === email.toLowerCase()) throw new Error('Email already registered');
   }
 
   const salt = generateUUID();
@@ -149,12 +161,15 @@ function handleRegister(payload) {
 
 function handleLogin(payload) {
   const { username, password } = payload;
+  if (!username) throw new Error('Username is required');
+  if (!password) throw new Error('Password is required');
+
   const sheet = getSheet(TABLES.USERS);
   const data = sheet.getDataRange().getValues();
 
   let user = null;
   for (let i = 1; i < data.length; i++) {
-    if (data[i][1] === username) {
+    if (data[i][1].toLowerCase() === username.toLowerCase()) {
       user = {
         id: data[i][0],
         username: data[i][1],

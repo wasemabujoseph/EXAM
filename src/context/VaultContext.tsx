@@ -32,12 +32,17 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const init = async () => {
       try {
         if (isApiConfigured) {
+          // Perform diagnostic health check
+          api.health().then(status => {
+            console.log('🩺 Backend Health Check:', status);
+          }).catch(err => {
+            console.error('🩺 Backend Health Check Failed:', err.message);
+          });
+
           const token = localStorage.getItem('exam_session_token');
           if (token) {
             const userData = await api.getMe();
             setUser(userData);
-            // In API mode, we might still want to load local vault for offline/legacy support
-            // but for now let's focus on API
           }
         } else {
           // Local mode
