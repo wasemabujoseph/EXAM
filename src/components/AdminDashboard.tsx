@@ -33,6 +33,18 @@ const AdminDashboard: React.FC = () => {
 
   if (isLoading) return <div className="flex items-center justify-center p-20"><Loader2 className="animate-spin text-indigo-600" size={48} /></div>;
 
+  if (!stats) {
+    return (
+      <div className="p-10 text-center bg-white rounded-3xl border border-slate-200">
+        <h2 className="text-xl font-bold text-slate-800 mb-2">No statistics available</h2>
+        <p className="text-slate-500 mb-6">Ensure your Google Sheet tabs are set up correctly and contain data.</p>
+        <button onClick={() => window.location.reload()} className="px-6 py-2 bg-indigo-600 text-white rounded-xl font-bold">
+          Retry Sync
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
       <div className="flex justify-between items-end">

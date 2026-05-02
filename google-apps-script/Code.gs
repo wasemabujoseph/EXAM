@@ -440,49 +440,41 @@ function handleAdminGetStats(user) {
   const attempts = getSheet(TABLES.EXAM_ATTEMPTS).getDataRange().getValues();
 
   const stats = {
-    users: {
-      total: users.length - 1,
-      active: 0,
-      blocked: 0,
-      free: 0,
-      pro: 0,
-      admins: 0
-    },
-    exams: {
-      total: exams.length - 1,
-      public: 0,
-      private: 0
-    },
-    attempts: {
-      total: attempts.length - 1,
-      avgScore: 0
-    },
+    users: { total: Math.max(0, users.length - 1), active: 0, blocked: 0, free: 0, pro: 0, admins: 0 },
+    exams: { total: Math.max(0, exams.length - 1), public: 0, private: 0 },
+    attempts: { total: Math.max(0, attempts.length - 1), avgScore: 0 },
     recentUsers: [],
     recentAttempts: []
   };
 
-  const userHeaders = users[0];
-  for(let i=1; i<users.length; i++) {
-    const u = rowToObject(users[i], userHeaders);
-    if(u.status === 'active') stats.users.active++;
-    else stats.users.blocked++;
-    if(u.plan === 'pro') stats.users.pro++;
-    else stats.users.free++;
-    if(u.role === 'admin') stats.users.admins++;
-    if(i > users.length - 6) stats.recentUsers.push({ username: u.username, email: u.email, created_at: u.created_at });
+  if (users.length > 1) {
+    const userHeaders = users[0];
+    for(let i=1; i<users.length; i++) {
+      const u = rowToObject(users[i], userHeaders);
+      if(u.status === 'active') stats.users.active++;
+      else stats.users.blocked++;
+      if(u.plan === 'pro') stats.users.pro++;
+      else stats.users.free++;
+      if(u.role === 'admin') stats.users.admins++;
+      if(i > users.length - 6) stats.recentUsers.push({ username: u.username, email: u.email, created_at: u.created_at });
+    }
   }
 
-  for(let i=1; i<exams.length; i++) {
-    if(exams[i][10] === 'TRUE') stats.exams.public++;
-    else stats.exams.private++;
+  if (exams.length > 1) {
+    for(let i=1; i<exams.length; i++) {
+      if(exams[i][10] === true || String(exams[i][10]).toUpperCase() === 'TRUE') stats.exams.public++;
+      else stats.exams.private++;
+    }
   }
 
-  let totalPct = 0;
-  for(let i=1; i<attempts.length; i++) {
-    totalPct += parseFloat(attempts[i][5]) || 0;
-    if(i > attempts.length - 6) stats.recentAttempts.push({ user_id: attempts[i][1], exam_id: attempts[i][2], percentage: attempts[i][5], created_at: attempts[i][10] });
+  if (attempts.length > 1) {
+    let totalPct = 0;
+    for(let i=1; i<attempts.length; i++) {
+      totalPct += parseFloat(attempts[i][5]) || 0;
+      if(i > attempts.length - 6) stats.recentAttempts.push({ user_id: attempts[i][1], exam_id: attempts[i][2], percentage: attempts[i][5], created_at: attempts[i][10] });
+    }
+    stats.attempts.avgScore = stats.attempts.total > 0 ? Math.round(totalPct / stats.attempts.total) : 0;
   }
-  stats.attempts.avgScore = stats.attempts.total > 0 ? Math.round(totalPct / stats.attempts.total) : 0;
 
   return stats;
 }
