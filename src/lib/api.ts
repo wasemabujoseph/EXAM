@@ -4,6 +4,10 @@
 
 const API_URL = import.meta.env.VITE_APPS_SCRIPT_API_URL;
 
+if (!API_URL) {
+  console.warn('⚠️ VITE_APPS_SCRIPT_API_URL is not defined in the environment variables.');
+}
+
 export interface ApiResponse<T> {
   data?: T;
   error?: string;
@@ -11,35 +15,64 @@ export interface ApiResponse<T> {
 
 async function request<T>(action: string, payload: any = {}): Promise<T> {
   if (!API_URL) {
-    throw new Error('API URL not configured. Please set VITE_APPS_SCRIPT_API_URL in your .env file.');
+    console.error('❌ API Request Failed: URL not configured.');
+    throw new Error('Backend URL not configured. Please check your .env file or deployment settings.');
   }
 
   const token = localStorage.getItem('exam_session_token');
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
 
-  const response = await fetch(API_URL, {
-    method: 'POST',
-    mode: 'cors',
-    headers: {
-      'Content-Type': 'text/plain;charset=utf-8', // GAS requires this for POST sometimes to avoid preflight issues
-    },
-    body: JSON.stringify({
-      action,
-      payload,
-      token,
-    }),
-  });
+  try {
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      mode: 'cors',
+      headers: {
+        // Use text/plain to avoid CORS preflight OPTIONS request which GAS doesn't handle well
+        'Content-Type': 'text/plain;charset=utf-8',
+      },
+      body: JSON.stringify({
+        action,
+        payload,
+        token,
+      }),
+      signal: controller.signal
+    });
 
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`);
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      throw new Error(`Server returned status ${response.status}. Please check your Apps Script deployment.`);
+    }
+
+    const text = await response.text();
+    let result;
+    
+    try {
+      result = JSON.parse(text);
+    } catch (e) {
+      console.error('Failed to parse API response:', text);
+      throw new Error('Invalid response from backend. Ensure your Apps Script is deployed as "Anyone".');
+    }
+
+    if (result.error) {
+      throw new Error(result.error);
+    }
+
+    return result;
+  } catch (error: any) {
+    clearTimeout(timeoutId);
+    
+    if (error.name === 'AbortError') {
+      throw new Error('Request timed out. The backend is taking too long to respond.');
+    }
+    
+    if (error.message.includes('Failed to fetch')) {
+      throw new Error('Could not connect to backend. Check Apps Script URL and deployment permissions.');
+    }
+    
+    throw error;
   }
-
-  const result = await response.json();
-
-  if (result.error) {
-    throw new Error(result.error);
-  }
-
-  return result;
 }
 
 export const api = {

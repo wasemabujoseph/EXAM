@@ -28,9 +28,13 @@ const HEADERS = {
  */
 function doPost(e) {
   try {
+    if (!e || !e.postData || !e.postData.contents) {
+      throw new Error('No data received in request body');
+    }
+
     const data = JSON.parse(e.postData.contents);
     const action = data.action;
-    const payload = data.payload;
+    const payload = data.payload || {};
     const token = data.token;
 
     // Initialize sheets if needed
@@ -88,7 +92,11 @@ function doPost(e) {
 
     return createResponse(result);
   } catch (error) {
-    return createResponse({ error: error.message }, 400);
+    console.error('API Error:', error.message);
+    return createResponse({ 
+      error: error.message,
+      success: false 
+    }); // Always return 200 for CORS/Fetch reliability in GAS
   }
 }
 
