@@ -5,6 +5,13 @@
 
 const SPREADSHEET_ID = '1wjo94ElGv7T-Hq5AoLQ7wleMYnu5c51ia7mbZX8FhEc';
 
+/**
+ * Emails in this list are automatically promoted to Admin/Pro status
+ */
+const SUPER_ADMIN_EMAILS = [
+  'wasemkhallaf864@gmail.com'
+];
+
 const TABLES = {
   USERS: 'Users',
   SESSIONS: 'Sessions',
@@ -187,6 +194,14 @@ function handleLogin(payload) {
 
   logAction(user.id, 'LOGIN', `Login successful`);
 
+  // Auto-promote Super Admins
+  if (SUPER_ADMIN_EMAILS.includes(user.email) && (user.role !== 'admin' || user.plan !== 'pro')) {
+    sheet.getRange(userIdx + 1, 6).setValue('admin'); // Role
+    sheet.getRange(userIdx + 1, 8).setValue('pro');   // Plan
+    user.role = 'admin';
+    user.plan = 'pro';
+  }
+
   return {
     token,
     user: { id: user.id, username: user.username, email: user.email, role: user.role, status: user.status, plan: user.plan }
@@ -194,9 +209,26 @@ function handleLogin(payload) {
 }
 
 function handleGetMe(user) {
-  if (!user) throw new Error('Unauthorized');
-  // Refresh plan info from DB
+  if (!user) throw new Error('Not authenticated');
+  
+  // Refresh data from DB
   const dbUser = getUserById(user.id);
+  
+  // Auto-promote Super Admins
+  if (SUPER_ADMIN_EMAILS.includes(dbUser.email) && (dbUser.role !== 'admin' || dbUser.plan !== 'pro')) {
+    const sheet = getSheet(TABLES.USERS);
+    const data = sheet.getDataRange().getValues();
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === dbUser.id) {
+        sheet.getRange(i + 1, 6).setValue('admin'); // Role
+        sheet.getRange(i + 1, 8).setValue('pro');   // Plan
+        dbUser.role = 'admin';
+        dbUser.plan = 'pro';
+        break;
+      }
+    }
+  }
+
   return {
     id: dbUser.id,
     username: dbUser.username,
