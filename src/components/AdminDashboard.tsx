@@ -84,38 +84,174 @@ const AdminDashboard: React.FC = () => {
         />
       </div>
 
-      {/* Secondary Layout */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
-        <div style={{ background: 'white', padding: '2rem', borderRadius: '1.5rem', border: '1px solid var(--admin-border)' }}>
-          <h3 style={{ fontSize: '1.25rem', fontWeight: '800', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <Clock size={22} color="var(--admin-primary)" />
-            Recent Activity
+      <div className="admin-layout-grid">
+        <div className="admin-main-card">
+          <h3 className="card-title">
+            <Clock size={22} />
+            Recent Platform Activity
           </h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div className="activity-list">
             {stats.recentAttempts.map((attempt: any, i: number) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem', background: '#f8fafc', borderRadius: '1rem' }}>
-                <div style={{ width: '48px', height: '48px', background: 'white', borderRadius: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '900', color: 'var(--admin-primary)', border: '1px solid var(--admin-border)' }}>
+              <div key={i} className="activity-item">
+                <div className="activity-score" style={{ 
+                  background: attempt.percentage >= 80 ? '#ecfdf5' : attempt.percentage >= 50 ? '#fff7ed' : '#fef2f2',
+                  color: attempt.percentage >= 80 ? '#059669' : attempt.percentage >= 50 ? '#ea580c' : '#ef4444'
+                }}>
                   {attempt.percentage}%
                 </div>
-                <div style={{ flex: 1 }}>
-                  <p style={{ fontSize: '0.875rem', fontWeight: '700', margin: 0 }}>Exam Attempt</p>
-                  <p style={{ fontSize: '0.75rem', color: '#64748b', margin: 0 }}>{new Date(attempt.created_at).toLocaleString()}</p>
+                <div className="activity-details">
+                  <p className="activity-type">Exam Attempt Completed</p>
+                  <p className="activity-time">{new Date(attempt.created_at).toLocaleString()}</p>
+                </div>
+                <div className="activity-status">
+                  <CheckCircle size={16} />
                 </div>
               </div>
             ))}
           </div>
         </div>
 
-        <div style={{ background: 'white', padding: '2rem', borderRadius: '1.5rem', border: '1px solid var(--admin-border)' }}>
-          <h3 style={{ fontSize: '1.25rem', fontWeight: '800', marginBottom: '1.5rem' }}>User Segmentation</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <ProgressStat label="Active Users" value={stats.users.active} max={stats.users.total} color="#10b981" />
+        <div className="admin-main-card">
+          <h3 className="card-title">
+            <ShieldCheck size={22} />
+            User Segmentation
+          </h3>
+          <div className="segmentation-list">
+            <ProgressStat label="Active Users" value={stats.users.active} max={stats.users.total} color="var(--success)" />
             <ProgressStat label="PRO Accounts" value={stats.users.pro} max={stats.users.total} color="#f59e0b" />
-            <ProgressStat label="Admins" value={stats.users.admins} max={stats.users.total} color="#6366f1" />
-            <ProgressStat label="Blocked" value={stats.users.blocked} max={stats.users.total} color="#ef4444" />
+            <ProgressStat label="System Administrators" value={stats.users.admins} max={stats.users.total} color="var(--primary)" />
+            <ProgressStat label="Access Restricted" value={stats.users.blocked} max={stats.users.total} color="var(--danger)" />
           </div>
         </div>
       </div>
+
+      <style>{`
+        .admin-page {
+          animation: fadeIn 0.6s ease-out;
+        }
+
+        .admin-page-header {
+          margin-bottom: 2.5rem;
+        }
+
+        .admin-page-header h1 {
+          font-size: 2.5rem;
+          font-weight: 900;
+          color: var(--text-main);
+          letter-spacing: -0.05em;
+          margin-bottom: 0.5rem;
+        }
+
+        .admin-page-header p {
+          font-size: 1.1rem;
+          color: var(--text-muted);
+          font-weight: 500;
+        }
+
+        .admin-layout-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+          gap: 2rem;
+          margin-top: 2rem;
+        }
+
+        .admin-main-card {
+          background: white;
+          padding: 2.5rem;
+          border-radius: var(--radius-xl);
+          border: 1px solid var(--border);
+          box-shadow: var(--shadow-md);
+          transition: transform 0.3s ease;
+        }
+
+        .admin-main-card:hover {
+          transform: translateY(-5px);
+          box-shadow: var(--shadow-xl);
+        }
+
+        .card-title {
+          font-size: 1.25rem;
+          font-weight: 900;
+          color: var(--text-main);
+          margin-bottom: 2rem;
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          letter-spacing: -0.02em;
+        }
+
+        .card-title svg {
+          color: var(--primary);
+        }
+
+        .activity-list {
+          display: flex;
+          flex-direction: column;
+          gap: 1.25rem;
+        }
+
+        .activity-item {
+          display: flex;
+          align-items: center;
+          gap: 1.25rem;
+          padding: 1.25rem;
+          background: var(--background);
+          border-radius: var(--radius);
+          border: 1px solid var(--border);
+          transition: all 0.2s;
+        }
+
+        .activity-item:hover {
+          background: white;
+          border-color: var(--primary-light);
+          transform: scale(1.02);
+        }
+
+        .activity-score {
+          width: 56px;
+          height: 56px;
+          border-radius: 1rem;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: 900;
+          font-size: 0.95rem;
+          box-shadow: var(--shadow-sm);
+        }
+
+        .activity-details {
+          flex: 1;
+        }
+
+        .activity-type {
+          font-size: 0.95rem;
+          font-weight: 800;
+          color: var(--text-main);
+          margin: 0;
+        }
+
+        .activity-time {
+          font-size: 0.8rem;
+          color: var(--text-dim);
+          font-weight: 600;
+          margin: 0;
+        }
+
+        .activity-status {
+          color: var(--success);
+          opacity: 0.5;
+        }
+
+        .segmentation-list {
+          display: flex;
+          flex-direction: column;
+          gap: 2rem;
+        }
+
+        @media (max-width: 640px) {
+          .admin-layout-grid { grid-template-columns: 1fr; }
+        }
+      `}</style>
     </div>
   );
 };
@@ -135,14 +271,55 @@ const StatCard: React.FC<any> = ({ Icon, label, value, bg, color }) => (
 const ProgressStat: React.FC<any> = ({ label, value, max, color }) => {
   const pct = max > 0 ? Math.round((value / max) * 100) : 0;
   return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', fontWeight: '700', marginBottom: '0.5rem' }}>
-        <span>{label}</span>
-        <span>{value} ({pct}%)</span>
+    <div className="progress-stat-item">
+      <div className="progress-label-row">
+        <span className="label-text">{label}</span>
+        <span className="label-value">{value} <small>({pct}%)</small></span>
       </div>
-      <div style={{ width: '100%', height: '8px', background: '#f1f5f9', borderRadius: '10px', overflow: 'hidden' }}>
-        <div style={{ height: '100%', background: color, width: `${pct}%`, borderRadius: '10px' }}></div>
+      <div className="progress-track-bg">
+        <div className="progress-fill-bar" style={{ background: color, width: `${pct}%` }}></div>
       </div>
+
+      <style>{`
+        .progress-stat-item {
+          display: flex;
+          flex-direction: column;
+          gap: 0.75rem;
+        }
+        .progress-label-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-end;
+        }
+        .label-text {
+          font-size: 0.9rem;
+          font-weight: 800;
+          color: var(--text-main);
+        }
+        .label-value {
+          font-size: 1rem;
+          font-weight: 900;
+          color: var(--text-main);
+        }
+        .label-value small {
+          font-size: 0.75rem;
+          color: var(--text-dim);
+          font-weight: 700;
+        }
+        .progress-track-bg {
+          width: 100%;
+          height: 10px;
+          background: var(--background);
+          border-radius: 5px;
+          overflow: hidden;
+          box-shadow: var(--shadow-inner);
+        }
+        .progress-fill-bar {
+          height: 100%;
+          border-radius: 5px;
+          transition: width 1s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+      `}</style>
     </div>
   );
 };

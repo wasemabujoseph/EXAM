@@ -147,23 +147,26 @@ const Dashboard: React.FC = () => {
         .dashboard-layout {
           display: flex;
           min-height: 100vh;
-          background-color: #f8fafc;
+          background-color: var(--background);
         }
 
         .sidebar {
           width: 280px;
-          background: white;
+          background: rgba(255, 255, 255, 0.8);
+          backdrop-filter: blur(20px);
+          -webkit-backdrop-filter: blur(20px);
           border-right: 1px solid var(--border);
           display: flex;
           flex-direction: column;
           position: fixed;
           height: 100vh;
           z-index: 50;
-          transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+          box-shadow: var(--shadow);
         }
 
         .sidebar-header {
-          padding: 1.5rem;
+          padding: 2rem 1.5rem;
           display: flex;
           align-items: center;
           justify-content: space-between;
@@ -173,32 +176,45 @@ const Dashboard: React.FC = () => {
           display: flex;
           align-items: center;
           gap: 0.75rem;
-          font-weight: 800;
-          font-size: 1.25rem;
+          font-weight: 900;
+          font-size: 1.5rem;
+          color: var(--text-main);
+          letter-spacing: -0.04em;
+        }
+
+        .logo-box svg {
           color: var(--primary);
+          filter: drop-shadow(0 0 8px var(--primary-glow));
         }
 
         .user-profile {
           padding: 1.25rem;
-          margin: 0 1rem 1.5rem;
-          background: #f1f5f9;
-          border-radius: 1rem;
+          margin: 0 1rem 2rem;
+          background: var(--primary-light);
+          border-radius: var(--radius);
           display: flex;
           align-items: center;
           gap: 1rem;
+          border: 1px solid rgba(99, 102, 241, 0.1);
+          transition: transform 0.2s;
+        }
+
+        .user-profile:hover {
+          transform: scale(1.02);
         }
 
         .avatar {
-          width: 40px;
-          height: 40px;
-          background: var(--primary);
+          width: 44px;
+          height: 44px;
+          background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
           color: white;
-          border-radius: 50%;
+          border-radius: 1rem;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-weight: 700;
-          font-size: 1.125rem;
+          font-weight: 800;
+          font-size: 1.25rem;
+          box-shadow: 0 4px 10px rgba(99, 102, 241, 0.3);
         }
 
         .user-info {
@@ -208,18 +224,19 @@ const Dashboard: React.FC = () => {
         }
 
         .user-name {
-          font-weight: 700;
+          font-weight: 800;
           color: var(--text-main);
-          font-size: 0.9rem;
+          font-size: 0.95rem;
+          letter-spacing: -0.01em;
         }
 
         .user-email {
           font-size: 0.75rem;
-          color: var(--text-muted);
-          white-space: nowrap;
-          text-overflow: ellipsis;
-          overflow: hidden;
-          text-transform: capitalize;
+          font-weight: 700;
+          color: var(--primary);
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          opacity: 0.8;
         }
 
         .sidebar-nav {
@@ -227,33 +244,43 @@ const Dashboard: React.FC = () => {
           padding: 0 1rem;
           display: flex;
           flex-direction: column;
-          gap: 0.25rem;
+          gap: 0.5rem;
         }
 
         .nav-item {
           display: flex;
           align-items: center;
-          gap: 0.75rem;
-          padding: 0.75rem 1rem;
-          color: #64748b;
+          gap: 1rem;
+          padding: 0.875rem 1.25rem;
+          color: var(--text-muted);
           text-decoration: none;
-          font-weight: 600;
-          border-radius: 0.75rem;
-          transition: all 0.2s;
+          font-weight: 700;
+          border-radius: var(--radius);
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .nav-item:hover {
-          background: #f1f5f9;
-          color: var(--primary);
+          background: var(--surface-hover);
+          color: var(--text-main);
+          padding-left: 1.5rem;
         }
 
         .nav-item.active {
-          background: var(--primary-light);
-          color: var(--primary);
+          background: var(--primary);
+          color: white;
+          box-shadow: 0 8px 15px -3px var(--primary-glow);
+        }
+
+        .nav-item svg {
+          transition: transform 0.3s;
+        }
+
+        .nav-item:hover svg {
+          transform: translateX(2px);
         }
 
         .sidebar-footer {
-          padding: 1rem;
+          padding: 1.5rem;
           border-top: 1px solid var(--border);
         }
 
@@ -261,36 +288,41 @@ const Dashboard: React.FC = () => {
           width: 100%;
           display: flex;
           align-items: center;
-          gap: 0.75rem;
-          padding: 0.75rem 1rem;
+          gap: 1rem;
+          padding: 1rem 1.25rem;
           color: var(--danger);
-          background: none;
-          border: none;
-          font-weight: 600;
-          border-radius: 0.75rem;
+          background: rgba(239, 68, 68, 0.05);
+          border: 1px solid transparent;
+          font-weight: 700;
+          border-radius: var(--radius);
           cursor: pointer;
-          transition: background 0.2s;
+          transition: all 0.2s;
         }
 
         .logout-btn:hover {
-          background: #fef2f2;
+          background: var(--danger);
+          color: white;
+          box-shadow: 0 8px 15px -3px rgba(239, 68, 68, 0.3);
         }
 
         .main-content {
           flex: 1;
           margin-left: 280px;
-          padding: 2rem;
+          padding: 2.5rem;
+          transition: margin 0.4s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
         .content-container {
-          max-width: 1100px;
+          max-width: var(--container-max);
           margin: 0 auto;
+          animation: fadeIn 0.6s ease-out;
         }
 
         .mobile-header {
           display: none;
-          padding: 1rem;
-          background: white;
+          padding: 1rem 1.5rem;
+          background: rgba(255, 255, 255, 0.8);
+          backdrop-filter: blur(10px);
           border-bottom: 1px solid var(--border);
           align-items: center;
           justify-content: space-between;
@@ -299,17 +331,23 @@ const Dashboard: React.FC = () => {
           z-index: 40;
         }
 
+        .mobile-logo {
+          font-weight: 900;
+          letter-spacing: -0.05em;
+          color: var(--primary);
+        }
+
         .avatar-small {
-          width: 32px;
-          height: 32px;
+          width: 36px;
+          height: 36px;
           background: var(--primary);
           color: white;
-          border-radius: 50%;
+          border-radius: 0.75rem;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 0.875rem;
-          font-weight: 700;
+          font-size: 1rem;
+          font-weight: 800;
         }
 
         @media (max-width: 1024px) {
@@ -321,7 +359,7 @@ const Dashboard: React.FC = () => {
           }
           .main-content {
             margin-left: 0;
-            padding: 1rem;
+            padding: 1.5rem;
           }
           .mobile-header {
             display: flex;
@@ -329,50 +367,54 @@ const Dashboard: React.FC = () => {
           .sidebar-overlay {
             position: fixed;
             inset: 0;
-            background: rgba(0, 0, 0, 0.4);
+            background: rgba(15, 23, 42, 0.4);
+            backdrop-filter: blur(4px);
             z-index: 45;
           }
-          .md-hidden { display: block; }
         }
 
         .admin-link {
-          margin-top: 0.5rem;
-          background: #eef2ff;
-          color: #4f46e5;
+          margin-top: 1rem;
+          background: #fff7ed;
+          color: #ea580c;
+          border: 1px solid rgba(234, 88, 12, 0.1);
         }
 
         .admin-link:hover {
-          background: #e0e7ff;
+          background: #ffedd5;
+          color: #c2410c;
         }
 
         .plan-stats {
           margin: 1rem;
-          padding: 1.25rem;
-          background: #f8fafc;
-          border-radius: 1rem;
-          border: 1px solid #e2e8f0;
+          padding: 1.5rem;
+          background: var(--surface);
+          border-radius: var(--radius);
+          border: 1px solid var(--border);
+          box-shadow: var(--shadow-sm);
         }
 
         .stats-header {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: 0.75rem;
+          margin-bottom: 1rem;
         }
 
         .stats-header .label {
-          font-size: 0.7rem;
+          font-size: 0.75rem;
           font-weight: 800;
-          color: #94a3b8;
+          color: var(--text-dim);
           text-transform: uppercase;
           letter-spacing: 0.05em;
         }
 
         .plan-badge {
-          font-size: 0.65rem;
+          font-size: 0.7rem;
           font-weight: 800;
-          padding: 0.2rem 0.5rem;
-          border-radius: 0.4rem;
+          padding: 0.25rem 0.6rem;
+          border-radius: 0.5rem;
+          text-transform: uppercase;
         }
 
         .plan-badge.free { background: #fff7ed; color: #ea580c; }
@@ -381,44 +423,42 @@ const Dashboard: React.FC = () => {
         .progress-box {
           display: flex;
           flex-direction: column;
-          gap: 0.5rem;
+          gap: 0.6rem;
         }
 
         .progress-text {
           display: flex;
           justify-content: space-between;
-          font-size: 0.75rem;
+          font-size: 0.8rem;
           font-weight: 700;
-          color: #475569;
+          color: var(--text-muted);
         }
 
         .progress-bar {
-          height: 6px;
-          background: #e2e8f0;
-          border-radius: 3px;
+          height: 8px;
+          background: var(--background);
+          border-radius: 4px;
           overflow: hidden;
         }
 
         .progress-fill {
           height: 100%;
-          background: var(--primary);
-          border-radius: 3px;
-          transition: width 0.5s ease;
+          background: linear-gradient(90deg, var(--primary) 0%, var(--primary-hover) 100%);
+          border-radius: 4px;
+          transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
 
         .pro-status {
           display: flex;
           align-items: center;
           justify-content: center;
-          padding: 0.25rem;
+          padding: 0.5rem;
           background: #ecfdf5;
-          border-radius: 0.5rem;
-        }
-
-        .pro-text {
-          font-size: 0.75rem;
-          font-weight: 700;
+          border-radius: 0.75rem;
           color: #059669;
+          font-size: 0.8rem;
+          font-weight: 800;
+          gap: 0.5rem;
         }
       `}</style>
     </div>

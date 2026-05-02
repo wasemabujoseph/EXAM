@@ -87,117 +87,157 @@ const CurriculumOverview: React.FC = () => {
         .overview-container {
           display: flex;
           flex-direction: column;
-          gap: 2.5rem;
+          gap: 3rem;
         }
 
         .page-header {
           margin-bottom: 0.5rem;
-        }
-
-        .page-title {
-          font-size: 2.25rem;
-          font-weight: 800;
-          color: var(--text-main);
-          margin-bottom: 0.5rem;
-          letter-spacing: -0.025em;
-        }
-
-        .page-subtitle {
-          font-size: 1.125rem;
-          color: var(--text-muted);
-          max-width: 600px;
+          animation: slideUp 0.6s ease-out;
         }
 
         .stats-grid {
           display: grid;
           grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
           gap: 1.5rem;
+          animation: slideUp 0.7s ease-out;
         }
 
         .stat-card {
           background: white;
-          padding: 1.5rem;
-          border-radius: var(--radius);
-          box-shadow: var(--shadow);
+          padding: 1.75rem;
+          border-radius: var(--radius-lg);
+          box-shadow: var(--shadow-sm);
           display: flex;
           align-items: center;
-          gap: 1.25rem;
+          gap: 1.5rem;
           border: 1px solid var(--border);
-          transition: transform 0.2s;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .stat-card:hover {
-          transform: translateY(-4px);
+          transform: translateY(-8px);
+          box-shadow: var(--shadow-lg);
+          border-color: var(--primary-light);
         }
 
         .stat-icon {
-          width: 54px;
-          height: 54px;
-          border-radius: 1rem;
+          width: 60px;
+          height: 60px;
+          border-radius: 1.25rem;
           display: flex;
           align-items: center;
           justify-content: center;
+          transition: transform 0.3s;
         }
 
-        .stat-icon.blue { background: #eff6ff; color: #2563eb; }
+        .stat-card:hover .stat-icon {
+          transform: scale(1.1) rotate(5deg);
+        }
+
+        .stat-icon.blue { background: #eef2ff; color: #4f46e5; }
         .stat-icon.green { background: #ecfdf5; color: #059669; }
         .stat-icon.orange { background: #fff7ed; color: #ea580c; }
         .stat-icon.purple { background: #faf5ff; color: #9333ea; }
 
         .stat-info h3 {
-          font-size: 1.5rem;
-          font-weight: 800;
+          font-size: 1.75rem;
+          font-weight: 900;
           color: var(--text-main);
-          line-height: 1.2;
+          line-height: 1;
+          margin-bottom: 0.25rem;
+          letter-spacing: -0.05em;
         }
 
         .stat-info p {
           font-size: 0.875rem;
-          color: var(--text-muted);
-          font-weight: 500;
+          color: var(--text-dim);
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+        }
+
+        .years-section {
+          animation: slideUp 0.8s ease-out;
         }
 
         .section-title {
-          font-size: 1.5rem;
-          font-weight: 700;
+          font-size: 1.75rem;
+          font-weight: 900;
           color: var(--text-main);
-          margin-bottom: 1.5rem;
+          margin-bottom: 2rem;
+          letter-spacing: -0.04em;
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+        }
+
+        .section-title::after {
+          content: '';
+          height: 4px;
+          flex: 1;
+          background: linear-gradient(90deg, var(--border) 0%, transparent 100%);
+          border-radius: 2px;
         }
 
         .years-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-          gap: 1.5rem;
+          grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+          gap: 2rem;
         }
 
         .year-card {
           background: white;
-          padding: 2rem;
-          border-radius: var(--radius);
-          box-shadow: var(--shadow);
+          padding: 2.5rem;
+          border-radius: var(--radius-xl);
+          box-shadow: var(--shadow-md);
           border: 1px solid var(--border);
           display: flex;
           align-items: center;
           gap: 1.5rem;
-          transition: all 0.2s;
+          transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
           position: relative;
           overflow: hidden;
+          text-decoration: none;
         }
 
         .year-card:hover {
           border-color: var(--primary);
-          box-shadow: var(--shadow-lg);
-          transform: scale(1.02);
+          box-shadow: var(--shadow-xl);
+          transform: translateY(-5px) scale(1.02);
+        }
+
+        .year-card::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(135deg, var(--primary-light) 0%, transparent 40%);
+          opacity: 0;
+          transition: opacity 0.4s;
+        }
+
+        .year-card:hover::before {
+          opacity: 1;
         }
 
         .year-number {
-          font-size: 3rem;
-          font-weight: 900;
-          color: #f1f5f9;
+          font-size: 6rem;
+          font-weight: 950;
+          color: var(--background);
           position: absolute;
-          top: -10px;
+          bottom: -20px;
           right: -10px;
           line-height: 1;
+          opacity: 0.5;
+          transition: all 0.4s;
+          pointer-events: none;
+        }
+
+        .year-card:hover .year-number {
+          color: var(--primary-light);
+          transform: scale(1.1) rotate(-5deg);
         }
 
         .year-content {
@@ -206,37 +246,50 @@ const CurriculumOverview: React.FC = () => {
         }
 
         .year-content h3 {
-          font-size: 1.25rem;
-          font-weight: 700;
+          font-size: 1.5rem;
+          font-weight: 900;
           color: var(--text-main);
-          margin-bottom: 0.25rem;
+          margin-bottom: 0.5rem;
+          letter-spacing: -0.03em;
         }
 
         .year-content p {
-          font-size: 0.875rem;
+          font-size: 1rem;
           color: var(--text-muted);
-          margin-bottom: 0.75rem;
+          font-weight: 500;
+          margin-bottom: 1.25rem;
         }
 
         .ects-badge {
-          display: inline-block;
-          padding: 0.25rem 0.75rem;
-          background: var(--primary-light);
+          display: inline-flex;
+          align-items: center;
+          padding: 0.35rem 1rem;
+          background: var(--surface);
           color: var(--primary);
-          border-radius: 2rem;
-          font-size: 0.75rem;
-          font-weight: 700;
-          border: 1px solid rgba(37, 99, 235, 0.1);
+          border-radius: 9999px;
+          font-size: 0.8rem;
+          font-weight: 800;
+          border: 1px solid var(--primary-light);
+          box-shadow: var(--shadow-sm);
         }
 
         .year-arrow {
-          color: #cbd5e1;
-          transition: transform 0.2s, color 0.2s;
+          width: 44px;
+          height: 44px;
+          background: var(--background);
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: var(--text-dim);
+          transition: all 0.3s;
+          z-index: 1;
         }
 
         .year-card:hover .year-arrow {
-          color: var(--primary);
-          transform: translateX(4px);
+          background: var(--primary);
+          color: white;
+          transform: rotate(-45deg);
         }
       `}</style>
     </div>

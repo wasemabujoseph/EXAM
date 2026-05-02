@@ -2,7 +2,7 @@
  * API Client for Google Apps Script Backend
  */
 
-const API_URL = import.meta.env.VITE_APPS_SCRIPT_API_URL;
+const API_URL = import.meta.env.VITE_APPS_SCRIPT_API_URL?.trim();
 
 if (!API_URL) {
   console.warn('⚠️ VITE_APPS_SCRIPT_API_URL is not defined. Cloud features are disabled.');
@@ -27,9 +27,7 @@ async function request<T>(action: string, payload: any = {}): Promise<T> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 45000); // 45 second timeout
 
-  console.log(`🚀 API [${action}] Request:`, { hasToken: !!token });
-
-  try {
+    console.log(`📡 Sending [${action}] to:`, API_URL);
     const response = await fetch(API_URL, {
       method: 'POST',
       mode: 'cors',
@@ -44,6 +42,7 @@ async function request<T>(action: string, payload: any = {}): Promise<T> {
       signal: controller.signal
     });
 
+    console.log(`📥 [${action}] Response Status:`, response.status);
     clearTimeout(timeoutId);
 
     if (!response.ok) {
@@ -51,12 +50,18 @@ async function request<T>(action: string, payload: any = {}): Promise<T> {
     }
 
     const text = await response.text();
+    console.log(`📥 Raw Response Body:`, text.substring(0, 500) + (text.length > 500 ? '...' : ''));
     let result: ApiResponse<T>;
     
     try {
+      console.log('📡 Parsing JSON from:', API_URL);
       result = JSON.parse(text);
     } catch (e) {
       console.error('❌ Malformed API response:', text);
+      const isHtml = text.trim().toLowerCase().startsWith('<!doctype html') || text.trim().toLowerCase().startsWith('<html');
+      if (isHtml) {
+        throw new Error('Backend returned HTML instead of JSON. This usually means the Apps Script deployment URL is wrong or the script has a syntax error.');
+      }
       throw new Error('Malformed backend response. Check Apps Script deployment and permissions.');
     }
 

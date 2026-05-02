@@ -74,7 +74,7 @@ const Settings: React.FC = () => {
             </div>
             <div className="info-row">
               <span>Backend Type:</span>
-              <strong>Google Apps Script (v2.1)</strong>
+              <strong>Google Apps Script (v3.1.0)</strong>
             </div>
             <div className="info-row">
               <span>Local Storage:</span>
