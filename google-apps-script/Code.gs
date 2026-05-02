@@ -90,13 +90,18 @@ function doPost(e) {
         throw new Error('Unknown action: ' + action);
     }
 
-    return createResponse(result);
+    // Success response
+    return createResponse({ 
+      ok: true, 
+      data: result 
+    });
   } catch (error) {
     console.error('API Error:', error.message);
+    // Error response
     return createResponse({ 
-      error: error.message,
-      success: false 
-    }); // Always return 200 for CORS/Fetch reliability in GAS
+      ok: false, 
+      error: error.message 
+    });
   }
 }
 

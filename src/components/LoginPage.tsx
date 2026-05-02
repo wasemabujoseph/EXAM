@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useVault } from '../context/VaultContext';
 import { Lock, Mail, Eye, EyeOff, Loader2, GraduationCap, AlertCircle, Info } from 'lucide-react';
 
 const LoginPage: React.FC = () => {
   const { login, isApiMode } = useVault();
+  const navigate = useNavigate();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -18,8 +19,12 @@ const LoginPage: React.FC = () => {
 
     try {
       await login(username, password);
+      console.log('✅ Login successful, navigating...');
+      navigate('/dashboard');
     } catch (err: any) {
+      console.error('❌ Login failed:', err.message);
       setError(err.message || 'Invalid username or password');
+    } finally {
       setIsLoading(false);
     }
   };

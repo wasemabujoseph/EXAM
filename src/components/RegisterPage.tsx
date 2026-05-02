@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useVault } from '../context/VaultContext';
 import { Lock, Mail, User, Eye, EyeOff, Loader2, GraduationCap, AlertCircle, ShieldCheck, Info } from 'lucide-react';
 
 const RegisterPage: React.FC = () => {
   const { register, isApiMode } = useVault();
+  const navigate = useNavigate();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -31,8 +32,12 @@ const RegisterPage: React.FC = () => {
 
     try {
       await register(name, email, password);
+      console.log('✅ Registration successful, navigating...');
+      navigate('/dashboard');
     } catch (err: any) {
+      console.error('❌ Registration failed:', err.message);
       setError(err.message || 'Registration failed');
+    } finally {
       setIsLoading(false);
     }
   };

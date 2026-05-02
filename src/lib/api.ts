@@ -9,6 +9,7 @@ if (!API_URL) {
 }
 
 export interface ApiResponse<T> {
+  ok: boolean;
   data?: T;
   error?: string;
 }
@@ -23,12 +24,13 @@ async function request<T>(action: string, payload: any = {}): Promise<T> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
 
+  console.log(`🚀 API Request: ${action}`, { hasToken: !!token });
+
   try {
     const response = await fetch(API_URL, {
       method: 'POST',
       mode: 'cors',
       headers: {
-        // Use text/plain to avoid CORS preflight OPTIONS request which GAS doesn't handle well
         'Content-Type': 'text/plain;charset=utf-8',
       },
       body: JSON.stringify({
@@ -46,7 +48,7 @@ async function request<T>(action: string, payload: any = {}): Promise<T> {
     }
 
     const text = await response.text();
-    let result;
+    let result: ApiResponse<T>;
     
     try {
       result = JSON.parse(text);
@@ -55,16 +57,19 @@ async function request<T>(action: string, payload: any = {}): Promise<T> {
       throw new Error('Invalid response from backend. Ensure your Apps Script is deployed as "Anyone".');
     }
 
-    if (result.error) {
-      throw new Error(result.error);
+    console.log(`✅ API Response: ${action}`, result);
+
+    if (!result.ok) {
+      throw new Error(result.error || 'Unknown backend error');
     }
 
-    return result;
+    return result.data as T;
   } catch (error: any) {
     clearTimeout(timeoutId);
+    console.error(`❌ API Error: ${action}`, error.message);
     
     if (error.name === 'AbortError') {
-      throw new Error('Request timed out. The backend is taking too long to respond.');
+      throw new Error('Backend request timed out. Please try again.');
     }
     
     if (error.message.includes('Failed to fetch')) {

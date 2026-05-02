@@ -17,16 +17,18 @@ import YearView from './components/YearView';
 import SubjectDetails from './components/SubjectDetails';
 
 const AppContent = () => {
-  const { vault, isLoading } = useVault();
+  const { vault, user, isLoading } = useVault();
 
   if (isLoading) {
     return <div className="loading-screen">Loading encrypted vault...</div>;
   }
 
+  const isAuthenticated = !!vault || !!user;
+
   return (
     <Routes>
-      <Route path="/login" element={vault ? <Navigate to="/dashboard" /> : <LoginPage />} />
-      <Route path="/register" element={vault ? <Navigate to="/dashboard" /> : <RegisterPage />} />
+      <Route path="/login" element={isAuthenticated ? <Navigate to="/dashboard" /> : <LoginPage />} />
+      <Route path="/register" element={isAuthenticated ? <Navigate to="/dashboard" /> : <RegisterPage />} />
       
       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>}>
         <Route index element={<CurriculumOverview />} />
