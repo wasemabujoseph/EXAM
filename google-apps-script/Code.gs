@@ -646,6 +646,31 @@ function logAction(userId, action, details) {
 function createResponse(data) {
   return ContentService.createTextOutput(JSON.stringify(data)).setMimeType(ContentService.MimeType.JSON);
 }
+
+/**
+ * Run this to check if your Sheets are set up correctly.
+ * View the results in the Execution Log.
+ */
+function DEBUG_CHECK_DB() {
+  const ss = getSs();
+  Object.keys(TABLES).forEach(key => {
+    const name = TABLES[key];
+    const sheet = ss.getSheetByName(name);
+    if (!sheet) {
+      Logger.log('❌ MISSING SHEET: ' + name);
+    } else {
+      const headers = sheet.getRange(1, 1, 1, Math.max(1, sheet.getLastColumn())).getValues()[0];
+      const expected = HEADERS[name];
+      const missing = expected.filter(h => headers.indexOf(h) === -1);
+      
+      if (missing.length > 0) {
+        Logger.log('⚠️ SHEET ' + name + ' is missing columns: ' + missing.join(', '));
+      } else {
+        Logger.log('✅ SHEET ' + name + ' is perfect.');
+      }
+    }
+  });
+}
 /**
  * RUN THIS FUNCTION MANUALLY IN THE APPS SCRIPT EDITOR
  * To fix the 'Invalid credentials' issue for Waseem.
