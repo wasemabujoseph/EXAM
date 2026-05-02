@@ -552,7 +552,9 @@ function handleAdminGetAllAttempts(user) {
 // --- Internal Helpers ---
 
 function checkAdmin(user) {
-  if (!user || user.role !== 'admin') throw new Error('Forbidden: Admin access required');
+  if (!user) throw new Error('Unauthorized');
+  const isAdmin = user.role === 'admin' || SUPER_ADMIN_EMAILS.includes(user.email);
+  if (!isAdmin) throw new Error('Unauthorized: Admin access required');
 }
 
 function getUserById(id) {
