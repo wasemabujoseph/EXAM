@@ -1,0 +1,224 @@
+/* Admin Suite Styling */
+:root {
+  --admin-sidebar-width: 280px;
+  --admin-primary: #4f46e5;
+  --admin-bg: #f8fafc;
+  --admin-border: #e2e8f0;
+}
+
+.admin-layout {
+  display: flex;
+  min-height: 100vh;
+  background-color: var(--admin-bg);
+}
+
+/* Sidebar */
+.admin-sidebar {
+  width: var(--admin-sidebar-width);
+  background: white;
+  border-right: 1px solid var(--admin-border);
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  height: 100vh;
+}
+
+.admin-sidebar-header {
+  padding: 2rem;
+  border-bottom: 1px solid var(--admin-border);
+}
+
+.admin-logo {
+  font-weight: 900;
+  font-size: 1.25rem;
+  color: var(--admin-primary);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.admin-nav {
+  flex: 1;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.admin-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.875rem 1.25rem;
+  border-radius: 0.75rem;
+  color: #64748b;
+  text-decoration: none;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.admin-nav-item:hover {
+  background: #f1f5f9;
+  color: var(--admin-primary);
+}
+
+.admin-nav-item.active {
+  background: #eff6ff;
+  color: var(--admin-primary);
+}
+
+.admin-sidebar-footer {
+  padding: 1.5rem;
+  border-top: 1px solid var(--admin-border);
+}
+
+.admin-user-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: #f8fafc;
+  border-radius: 1rem;
+  margin-bottom: 1rem;
+}
+
+.admin-user-info h4 { font-size: 0.875rem; font-weight: 800; color: #1e293b; margin: 0; }
+.admin-user-info p { font-size: 0.75rem; color: #64748b; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 140px; }
+
+/* Main Content */
+.admin-main {
+  flex: 1;
+  margin-left: var(--admin-sidebar-width);
+  padding: 2.5rem;
+}
+
+.admin-page-header {
+  margin-bottom: 2.5rem;
+}
+
+.admin-page-header h1 {
+  font-size: 2.25rem;
+  font-weight: 900;
+  color: #0f172a;
+  letter-spacing: -0.025em;
+  margin-bottom: 0.5rem;
+}
+
+.admin-page-header p {
+  color: #64748b;
+  font-weight: 500;
+}
+
+/* Dashboard Cards */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2.5rem;
+}
+
+.stat-card {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 1.5rem;
+  border: 1px solid var(--admin-border);
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.stat-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stat-info .label {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.25rem;
+}
+
+.stat-info .value {
+  font-size: 1.5rem;
+  font-weight: 900;
+  color: #1e293b;
+}
+
+/* Tables */
+.admin-table-container {
+  background: white;
+  border-radius: 1.5rem;
+  border: 1px solid var(--admin-border);
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.admin-table th {
+  background: #f8fafc;
+  padding: 1rem 1.5rem;
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.admin-table td {
+  padding: 1.25rem 1.5rem;
+  border-top: 1px solid var(--admin-border);
+  font-size: 0.875rem;
+}
+
+.status-pill {
+  padding: 0.25rem 0.75rem;
+  border-radius: 2rem;
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.status-pill.admin { background: #eef2ff; color: #4338ca; }
+.status-pill.user { background: #f1f5f9; color: #475569; }
+.status-pill.pro { background: #fff7ed; color: #c2410c; }
+.status-pill.free { background: #f0fdf4; color: #15803d; }
+
+/* Buttons */
+.admin-btn {
+  padding: 0.75rem 1.25rem;
+  border-radius: 0.75rem;
+  font-weight: 700;
+  font-size: 0.875rem;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.admin-btn-primary { background: var(--admin-primary); color: white; }
+.admin-btn-secondary { background: white; border-color: var(--admin-border); color: #1e293b; }
+
+.exit-btn {
+  color: #ef4444;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 0.875rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
