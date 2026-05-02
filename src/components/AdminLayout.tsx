@@ -1,3 +1,16 @@
+import React from 'react';
+import { NavLink, Outlet } from 'react-router-dom';
+import { useVault } from '../context/VaultContext';
+import { 
+  BarChart3, 
+  Users, 
+  FileText, 
+  History, 
+  Settings, 
+  ShieldAlert,
+  LayoutDashboard,
+  LogOut
+} from 'lucide-react';
 import '../styles/admin.css';
 
 const AdminLayout: React.FC = () => {

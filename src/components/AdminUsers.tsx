@@ -107,7 +107,7 @@ const AdminUsers: React.FC = () => {
               <tr key={u.id}>
                 <td>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                    <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: u.role === 'admin' ? '#4f46e5' : '#94a3b8', color: 'white', display: 'flex', alignItems: 'center', justifyCenter: 'center', fontWeight: '800', fontSize: '0.75rem' }}>
+                    <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: u.role === 'admin' ? '#4f46e5' : '#94a3b8', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', fontSize: '0.75rem' }}>
                       <span style={{ margin: 'auto' }}>{u.username.charAt(0).toUpperCase()}</span>
                     </div>
                     <div>
