@@ -672,34 +672,48 @@ function DEBUG_CHECK_DB() {
   });
 }
 /**
- * RUN THIS FUNCTION MANUALLY IN THE APPS SCRIPT EDITOR
- * To fix the 'Invalid credentials' issue for Waseem.
+ * THE ULTIMATE FIX:
+ * Run this to GUARANTEE your account works.
+ * It will create the account if missing, or reset it if it exists.
  */
-function MANUAL_FIX_WASEEM_ACCOUNT() {
+function ULTIMATE_ADMIN_FIX() {
   const email = 'wasemkhallaf864@gmail.com';
-  const newPass = '88962334';
+  const username = 'Waseem';
+  const pass = '88962334';
   
   const sheet = getSheet(TABLES.USERS);
   const data = sheet.getDataRange().getValues();
   const headers = data[0];
   
+  let userIdx = -1;
   for (let i = 1; i < data.length; i++) {
     if (data[i][2].toLowerCase() === email.toLowerCase()) {
-      const salt = data[i][4] || generateUUID();
-      const hash = hashPassword(newPass, salt);
-      
-      sheet.getRange(i + 1, 4).setValue(hash);   // password_hash
-      sheet.getRange(i + 1, 5).setValue(salt);   // salt
-      sheet.getRange(i + 1, 6).setValue('admin'); // role
-      sheet.getRange(i + 1, 8).setValue('pro');   // plan
-      
-      Logger.log('SUCCESS: Password reset and admin role granted for ' + email);
-      return 'Success! You can now log in.';
+      userIdx = i;
+      break;
     }
   }
+
+  const salt = generateUUID();
+  const hash = hashPassword(pass, salt);
+  const now = new Date().toISOString();
+
+  if (userIdx !== -1) {
+    // RESET EXISTING
+    sheet.getRange(userIdx + 1, 4).setValue(hash);   // password_hash
+    sheet.getRange(userIdx + 1, 5).setValue(salt);   // salt
+    sheet.getRange(userIdx + 1, 6).setValue('admin'); // role
+    sheet.getRange(userIdx + 1, 8).setValue('pro');   // plan
+    Logger.log('✅ EXISTING ACCOUNT RESET: ' + email);
+  } else {
+    // CREATE NEW
+    const id = generateUUID();
+    // ['id', 'username', 'email', 'password_hash', 'salt', 'role', 'status', 'plan', 'trial_limit', 'attempt_count', 'created_at', 'updated_at', 'last_login']
+    const newUser = [id, username, email, hash, salt, 'admin', 'active', 'pro', 999, 0, now, now, ''];
+    sheet.appendRow(newUser);
+    Logger.log('✅ NEW ADMIN ACCOUNT CREATED: ' + email);
+  }
   
-  Logger.log('ERROR: User with email ' + email + ' not found in the Users sheet.');
-  return 'User not found.';
+  return 'Success! Now log in with Waseem / 88962334';
 }
 
 // --- Maintenance & Automation ---
