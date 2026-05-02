@@ -38,7 +38,7 @@ const Dashboard: React.FC = () => {
   ];
 
   const profileName = user?.username || 'User';
-  const profileEmail = user?.role || 'Authenticated';
+  const profileEmail = user?.role ? user.role.toUpperCase() : 'STUDENT';
 
   return (
     <div className="dashboard-layout">
@@ -87,14 +87,15 @@ const Dashboard: React.FC = () => {
               <span>{item.label}</span>
             </NavLink>
           ))}
-          {user?.role === 'admin' && (
+          {(user?.role === 'admin' || user?.email === 'wasemkhallaf864@gmail.com') && (
             <NavLink 
               to="/admin" 
               className="nav-item admin-link"
               onClick={() => setIsSidebarOpen(false)}
+              style={{ borderLeft: '4px solid #f59e0b', background: 'rgba(245, 158, 11, 0.05)' }}
             >
-              <ShieldIcon size={20} />
-              <span>Admin Panel</span>
+              <ShieldIcon size={20} style={{ color: '#f59e0b' }} />
+              <span style={{ color: '#f59e0b', fontWeight: 800 }}>Admin Panel</span>
             </NavLink>
           )}
         </nav>
