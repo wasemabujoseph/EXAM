@@ -9,7 +9,8 @@ const SPREADSHEET_ID = '1wjo94ElGv7T-Hq5AoLQ7wleMYnu5c51ia7mbZX8FhEc';
  * Emails in this list are automatically promoted to Admin/Pro status
  */
 const SUPER_ADMIN_EMAILS = [
-  'wasemkhallaf864@gmail.com'
+  'wasemkhallaf864@gmail.com',
+  'wasemkhallaf86@gmail.com'
 ];
 
 const TABLES = {
@@ -677,8 +678,8 @@ function DEBUG_CHECK_DB() {
  * It will create the account if missing, or reset it if it exists.
  */
 function ULTIMATE_ADMIN_FIX() {
-  const email = 'wasemkhallaf864@gmail.com';
-  const username = 'Waseem';
+  const email = 'wasemkhallaf86@gmail.com';
+  const username = 'Waseem KH';
   const pass = '88962334';
   
   const sheet = getSheet(TABLES.USERS);
