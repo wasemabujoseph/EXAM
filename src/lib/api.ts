@@ -125,6 +125,10 @@ export const api = {
   adminUpdateUser: (userId: string, updates: any) => request<any>('adminUpdateUser', { userId, updates }),
   adminGetAllExams: () => request<any[]>('adminGetAllExams'),
   adminGetAllAttempts: () => request<any[]>('adminGetAllAttempts'),
+  
+  // AI Actions
+  aiChat: (messages: any[], context?: any) => request<any>('aiChat', { messages, context }),
+  aiExplain: (questionContext: any) => request<any>('aiExplain', { questionContext }),
 };
 
 export const isApiConfigured = !!API_URL;

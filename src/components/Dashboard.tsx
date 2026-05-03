@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation, Outlet, Link, NavLink } from 'react-router-dom';
+import AIGuide from './AIGuide';
 import { useVault } from '../context/VaultContext';
 import { 
   LayoutDashboard, 
@@ -139,6 +140,9 @@ const Dashboard: React.FC = () => {
           <Outlet />
         </div>
       </main>
+
+      {/* AI Mentor */}
+      <AIGuide userName={profileName} />
 
       {/* Mobile Overlay */}
       {isSidebarOpen && <div className="sidebar-overlay" onClick={() => setIsSidebarOpen(false)}></div>}

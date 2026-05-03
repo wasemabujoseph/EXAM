@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { useVault } from '../context/VaultContext';
 import { api } from '../lib/api';
 import { 
@@ -10,7 +12,8 @@ import {
   HelpCircle,
   Clock,
   TrendingUp,
-  Loader2
+  Loader2,
+  Sparkles
 } from 'lucide-react';
 
 const ReviewAttempt: React.FC = () => {
@@ -18,6 +21,8 @@ const ReviewAttempt: React.FC = () => {
   const navigate = useNavigate();
   const [attempt, setAttempt] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [explainLoading, setExplainLoading] = useState<Record<number, boolean>>({});
+  const [aiExplanations, setAiExplanations] = useState<Record<number, string>>({});
 
   useEffect(() => {
     const loadAttempt = async () => {
@@ -36,6 +41,26 @@ const ReviewAttempt: React.FC = () => {
 
     loadAttempt();
   }, [attemptId]);
+
+  const handleAIExplain = async (q: any, index: number, userAns: string[]) => {
+    setExplainLoading(prev => ({ ...prev, [index]: true }));
+    try {
+      const questionContext = {
+        questionText: q.text,
+        options: q.options,
+        correctOption: q.answers.join(','),
+        studentOption: userAns.join(','),
+        isCorrect: userAns.sort().join(',') === q.answers.sort().join(',')
+      };
+
+      const result = await api.aiExplain(questionContext);
+      setAiExplanations(prev => ({ ...prev, [index]: result.content }));
+    } catch (err: any) {
+      alert(err.message || 'Failed to get AI explanation');
+    } finally {
+      setExplainLoading(prev => ({ ...prev, [index]: false }));
+    }
+  };
 
   const handleRedoFull = () => {
     const qs = attempt.questionsSnapshot || attempt.questions || [];
@@ -137,7 +162,17 @@ const ReviewAttempt: React.FC = () => {
                 <div className="q-status-icon">
                   {isCorrect ? <CheckCircle size={24} /> : <XCircle size={24} />}
                 </div>
-                <h3>Q{i + 1}: {q.text}</h3>
+                <div style={{ flex: 1 }}>
+                  <h3>Q{i + 1}: {q.text}</h3>
+                  <button 
+                    className="ai-explain-btn"
+                    onClick={() => handleAIExplain(q, i, userAns)}
+                    disabled={explainLoading[i]}
+                  >
+                    {explainLoading[i] ? <Loader2 size={14} className="spinner" /> : <Sparkles size={14} />}
+                    {aiExplanations[i] ? 'تم التوضيح' : 'توضيح بالذكاء الاصطناعي'}
+                  </button>
+                </div>
               </div>
 
               <div className="review-options">
@@ -160,13 +195,17 @@ const ReviewAttempt: React.FC = () => {
                 })}
               </div>
 
-              {q.explanation && (
-                <div className="explanation-box">
+              {(aiExplanations[i] || q.explanation) && (
+                <div className="explanation-box ai-style">
                   <div className="explanation-title">
                     <HelpCircle size={16} />
-                    <span>Explanation</span>
+                    <span>{aiExplanations[i] ? 'توضيح الذكاء الاصطناعي' : 'Explanation'}</span>
                   </div>
-                  <p>{q.explanation}</p>
+                  <div className="explanation-text" dir="rtl">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      {aiExplanations[i] || q.explanation}
+                    </ReactMarkdown>
+                  </div>
                 </div>
               )}
             </div>
@@ -356,6 +395,43 @@ const ReviewAttempt: React.FC = () => {
         .redo-btn:hover {
           transform: translateY(-2px);
           filter: brightness(1.05);
+        }
+        
+        .ai-explain-btn {
+          margin-top: 0.75rem;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 0.5rem 1rem;
+          background: var(--primary-light);
+          color: var(--primary);
+          border: 1px solid rgba(99, 102, 241, 0.2);
+          border-radius: 0.75rem;
+          font-size: 0.75rem;
+          font-weight: 800;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        
+        .ai-explain-btn:hover:not(:disabled) {
+          background: var(--primary);
+          color: white;
+          transform: scale(1.05);
+        }
+        
+        .ai-explain-btn:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+
+        .explanation-box.ai-style {
+          background: linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%);
+          border: 1px solid #dbeafe;
+          box-shadow: var(--shadow-sm);
+        }
+
+        .explanation-text {
+          line-height: 1.6;
         }
 
         @media (max-width: 768px) {

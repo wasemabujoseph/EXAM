@@ -109,6 +109,14 @@ function doPost(e) {
       case 'adminGetAllAttempts':
         result = handleAdminGetAllAttempts(user);
         break;
+      
+      // AI Actions
+      case 'aiChat':
+        result = handleAIChat(user, payload);
+        break;
+      case 'aiExplain':
+        result = handleAIExplain(user, payload);
+        break;
 
       default:
         throw new Error('Unknown action: ' + action);
@@ -525,6 +533,103 @@ function rowToObject(row, headers) {
   const obj = {};
   headers.forEach((h, i) => obj[h] = row[i]);
   return obj;
+}
+
+// --- AI Handlers ---
+
+function handleAIChat(user, payload) {
+  if (!user) throw new Error('Unauthorized');
+  const { messages, context } = payload;
+  
+  // Build a smart system prompt based on user role/plan
+  const systemPrompt = `أنت المساعد الأكاديمي "مُرشد إمتحاني PRO". 
+مهمتك: تقديم نصائح دراسية بناءة بناءً على سياق الطالب.
+اسم المستخدم: ${user.username}
+الخطة: ${user.plan}
+سياق الصفحة الحالية: ${context?.pageTitle || 'عام'}
+القواعد: كن ذكياً، مختصراً، ومهنياً. استخدم اللغة العربية السليمة والمحفزة. لا تخرج عن سياق منصة "إمتحاني".`;
+
+  const chatHistory = [
+    { role: 'system', content: systemPrompt },
+    ...messages
+  ];
+
+  const response = callOpenRouter(chatHistory);
+  logAction(user.id, 'AI_CHAT', `Interaction on ${context?.pageTitle || 'unknown'}`);
+  
+  return { content: response };
+}
+
+function handleAIExplain(user, payload) {
+  if (!user) throw new Error('Unauthorized');
+  const { questionContext } = payload;
+  
+  const prompt = `أنت معلم خبير ومساعد أكاديمي. مهمتك هي شرح سؤال محدد من امتحان.
+  
+سياق السؤال:
+- نص السؤال: ${questionContext.questionText}
+- الخيارات المتاحة: ${JSON.stringify(questionContext.options)}
+- الإجابة الصحيحة: ${questionContext.correctOption}
+- إجابة الطالب: ${questionContext.studentOption || 'لم يجب'}
+- الحالة: ${questionContext.isCorrect ? 'إجابة صحيحة' : 'إجابة خاطئة'}
+
+المطلوب منك تقديم شرح تعليمي مفصل باللغة العربية يتضمن:
+1. ما هي الإجابة الصحيحة ولماذا؟
+2. تحليل إجابة الطالب وتوضيح السبب.
+3. لماذا الخيارات الأخرى غير صحيحة؟
+4. الفكرة التعليمية أو القانون العلمي وراء السؤال.
+
+قواعد:
+- اجعل الأسلوب واضحاً، ممتعاً، وموجزاً.
+- التزام العلامة التجارية: لا تقترح البحث في مواقع أخرى. أنت مرشد الطالب الوحيد داخل منصة "إمتحاني".`;
+
+  const response = callOpenRouter([{ role: 'user', content: prompt }]);
+  logAction(user.id, 'AI_EXPLAIN', `Explained question: ${questionContext.questionText.substring(0, 30)}...`);
+  
+  return { content: response };
+}
+
+function callOpenRouter(messages) {
+  const props = PropertiesService.getScriptProperties();
+  const apiKey = props.getProperty('OPENROUTER_API_KEY');
+  
+  if (!apiKey) {
+    return "⚠️ عذراً، لم يتم ضبط مفتاح برمجة الذكاء الاصطناعي (API Key) في إعدادات الخادم. يرجى مراجعة المسؤول.";
+  }
+
+  const url = 'https://openrouter.ai/api/v1/chat/completions';
+  const payload = {
+    model: 'google/gemini-2.0-flash-exp:free', // Default to a fast/free model
+    messages: messages,
+    temperature: 0.7
+  };
+
+  const options = {
+    method: 'post',
+    contentType: 'application/json',
+    headers: {
+      'Authorization': 'Bearer ' + apiKey,
+      'HTTP-Referer': 'https://imtihani-pro.com', // Optional
+      'X-Title': 'Imtihani Pro'
+    },
+    payload: JSON.stringify(payload),
+    muteHttpExceptions: true
+  };
+
+  try {
+    const response = UrlFetchApp.fetch(url, options);
+    const json = JSON.parse(response.getContentText());
+    
+    if (json.choices && json.choices[0]) {
+      return json.choices[0].message.content;
+    } else {
+      Logger.log('OpenRouter Error: ' + response.getContentText());
+      throw new Error('AI Engine returned an empty response');
+    }
+  } catch (e) {
+    Logger.log('AI Fetch Error: ' + e.message);
+    throw new Error('فشل الاتصال بمحرك الذكاء الاصطناعي: ' + e.message);
+  }
 }
 
 let _ssCache = null;
