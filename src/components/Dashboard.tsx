@@ -43,7 +43,7 @@ const Dashboard: React.FC = () => {
 
   return (
     <>
-      <div className="dashboard-layout">
+      <div className={`dashboard-layout ${!isSidebarOpen ? 'sidebar-collapsed' : ''}`}>
         {/* Sidebar Navigation */}
         <aside className={`sidebar ${isSidebarOpen ? 'is-open' : ''}`}>
           <div className="sidebar-header">
@@ -147,25 +147,23 @@ const Dashboard: React.FC = () => {
 
           .sidebar {
             width: 280px;
-            background: rgba(255, 255, 255, 0.9);
+            background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
             border-right: 1px solid var(--border);
             display: flex;
             flex-direction: column;
-            position: sticky;
+            position: fixed;
             top: 0;
-            height: 100vh;
+            left: 0;
+            bottom: 0;
             z-index: 50;
-            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
             box-shadow: var(--shadow-premium);
           }
 
           .sidebar:not(.is-open) {
-            width: 0;
-            margin-left: -280px;
-            opacity: 0;
-            pointer-events: none;
+            transform: translateX(-100%);
           }
 
           .floating-menu-btn {
@@ -361,7 +359,12 @@ const Dashboard: React.FC = () => {
             flex: 1;
             padding: 2.5rem;
             min-width: 0;
-            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            margin-left: 280px;
+            transition: margin-left 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+          }
+
+          .sidebar-collapsed .main-content {
+            margin-left: 0;
           }
 
           .content-container {
@@ -402,24 +405,12 @@ const Dashboard: React.FC = () => {
           }
 
           @media (max-width: 992px) {
-            .sidebar {
-              position: fixed;
-              margin-left: 0;
-              transform: translateX(-100%);
-              width: 280px;
-              opacity: 1;
-              pointer-events: all;
-            }
-            .sidebar.is-open {
-              transform: translateX(0);
-            }
-            .sidebar:not(.is-open) {
-              width: 280px;
-              margin-left: 0;
-              transform: translateX(-100%);
-            }
             .main-content {
+              margin-left: 0;
               padding: 1.5rem;
+            }
+            .sidebar-collapsed .main-content {
+              margin-left: 0;
             }
             .floating-menu-btn {
               display: flex;
