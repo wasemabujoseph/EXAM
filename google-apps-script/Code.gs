@@ -634,17 +634,24 @@ function callOpenRouter(messages, payloadKey) {
 
   try {
     const response = UrlFetchApp.fetch(url, options);
-    const json = JSON.parse(response.getContentText());
+    const text = response.getContentText();
+    const code = response.getResponseCode();
     
+    if (code !== 200) {
+      Logger.log(`❌ AI Provider Error (${code}): ${text}`);
+      throw new Error(`Cloud AI Error (${code}). Check your API key and balance.`);
+    }
+
+    const json = JSON.parse(text);
     if (json.choices && json.choices[0]) {
       return json.choices[0].message.content;
     } else {
-      Logger.log('OpenRouter Error: ' + response.getContentText());
-      throw new Error('AI Engine returned an empty response');
+      Logger.log('❌ Unexpected AI Response: ' + text);
+      throw new Error('AI Engine returned an empty response. Possible model overload.');
     }
   } catch (e) {
-    Logger.log('AI Fetch Error: ' + e.message);
-    throw new Error('AI Gateway connection failed: ' + e.message);
+    Logger.log('❌ AI Exception: ' + e.message);
+    throw new Error('Could not connect to MEDEXAM AI: ' + e.message);
   }
 }
 

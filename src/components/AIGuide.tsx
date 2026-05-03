@@ -70,10 +70,10 @@ const AIGuide: React.FC<Props> = ({ userName, embedded = false }) => {
         throw new Error('Empty response from AI');
       }
     } catch (err: any) {
-      console.error('AI Chat Error:', err);
+      const errorMessage = err.message || 'I encountered an error connecting to the medical brain.';
       setMessages(prev => [...prev, { 
         role: 'assistant', 
-        content: '⚠️ I encountered an error connecting to the medical brain. Please ensure your API key is configured correctly.' 
+        content: `⚠️ ${errorMessage} Please ensure your API key is configured correctly in your environment or cloud settings.` 
       }]);
     } finally {
       setLoading(false);
