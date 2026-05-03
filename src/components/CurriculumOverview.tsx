@@ -360,15 +360,16 @@ const CurriculumOverview: React.FC = () => {
 
         .year-card-premium {
           background: white;
-          padding: 3rem;
-          border-radius: 3rem;
+          padding: 2.5rem;
+          border-radius: 2.5rem;
           display: flex;
           align-items: center;
-          gap: 2rem;
+          gap: 1.5rem;
           text-decoration: none;
           box-shadow: 0 10px 30px rgba(0,0,0,0.03);
           border: 1px solid #F1F5F9;
           transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+          position: relative;
           overflow: hidden;
         }
 
@@ -380,30 +381,36 @@ const CurriculumOverview: React.FC = () => {
         }
 
         .year-index {
-          font-size: 4rem;
+          font-size: 5rem;
           font-weight: 950;
           color: #F1F5F9;
           line-height: 1;
           transition: color 0.3s;
+          position: absolute;
+          left: 1rem;
+          opacity: 0.8;
+          z-index: 0;
+          pointer-events: none;
         }
 
-        .year-card-premium:hover .year-index { color: rgba(255,255,255,0.05); }
+        .year-card-premium:hover .year-index { color: rgba(255,255,255,0.08); }
 
-        .year-info-box { flex: 1; min-width: 0; }
-        .year-info-box h3 { font-size: 1.5rem; font-weight: 800; color: #0F172A; margin-bottom: 0.5rem; transition: color 0.3s; }
+        .year-info-box { flex: 1; min-width: 0; z-index: 1; padding-left: 1.5rem; }
+        .year-info-box h3 { font-size: 1.5rem; font-weight: 800; color: #0F172A; margin-bottom: 0.4rem; transition: color 0.3s; white-space: nowrap; }
         .year-card-premium:hover .year-info-box h3 { color: white; }
 
         .year-info-box p { font-size: 0.95rem; color: #64748B; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: color 0.3s; }
         .year-card-premium:hover .year-info-box p { color: rgba(255,255,255,0.6); }
 
         .year-badge-premium {
-          padding: 0.5rem 1rem;
+          padding: 0.4rem 0.8rem;
           background: #F8FAFC;
           border-radius: 99px;
-          font-size: 0.75rem;
+          font-size: 0.7rem;
           font-weight: 800;
           color: #6366F1;
           white-space: nowrap;
+          z-index: 1;
         }
 
         .year-arrow-premium {
