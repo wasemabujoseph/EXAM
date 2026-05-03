@@ -22,7 +22,7 @@ import {
 const Dashboard: React.FC = () => {
   const { logout, user } = useVault();
   const navigate = useNavigate();
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   const handleLogout = () => {
     logout();
@@ -44,24 +44,13 @@ const Dashboard: React.FC = () => {
   return (
     <>
       <div className="dashboard-layout">
-        {/* Mobile Header */}
-        <header className="mobile-header">
-          <button onClick={() => setIsSidebarOpen(true)} className="icon-btn">
-            <Menu size={24} />
-          </button>
-          <img src="/brand/medexam-logo-primary.png" alt="MEDEXAM AI Medical Learning Assistant" className="mobile-logo-img" />
-          <div className="avatar-small">
-            {profileName.charAt(0)}
-          </div>
-        </header>
-
-        {/* Sidebar */}
+        {/* Sidebar Navigation */}
         <aside className={`sidebar ${isSidebarOpen ? 'is-open' : ''}`}>
           <div className="sidebar-header">
             <div className="logo-box">
               <img src="/brand/medexam-logo-primary.png" alt="MEDEXAM AI Medical Learning Assistant" className="sidebar-logo" />
             </div>
-            <button onClick={() => setIsSidebarOpen(false)} className="close-btn md-hidden">
+            <button onClick={() => setIsSidebarOpen(false)} className="close-btn">
               <X size={24} />
             </button>
           </div>
@@ -136,6 +125,11 @@ const Dashboard: React.FC = () => {
 
         {/* Main Content */}
         <main className="main-content">
+          {!isSidebarOpen && (
+            <button onClick={() => setIsSidebarOpen(true)} className="floating-menu-btn">
+              <Menu size={24} />
+            </button>
+          )}
           <div className="content-container">
             <Outlet />
           </div>
@@ -153,17 +147,68 @@ const Dashboard: React.FC = () => {
 
           .sidebar {
             width: 280px;
-            background: rgba(255, 255, 255, 0.8);
+            background: rgba(255, 255, 255, 0.9);
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
             border-right: 1px solid var(--border);
             display: flex;
             flex-direction: column;
-            position: fixed;
+            position: sticky;
+            top: 0;
             height: 100vh;
             z-index: 50;
-            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-            box-shadow: var(--shadow);
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: var(--shadow-premium);
+          }
+
+          .sidebar:not(.is-open) {
+            width: 0;
+            margin-left: -280px;
+            opacity: 0;
+            pointer-events: none;
+          }
+
+          .floating-menu-btn {
+            position: fixed;
+            top: 1.5rem;
+            left: 1.5rem;
+            z-index: 40;
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--border);
+            padding: 0.75rem;
+            border-radius: 0.75rem;
+            box-shadow: var(--shadow-premium);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary);
+            transition: all 0.2s;
+            animation: fadeIn 0.3s ease;
+          }
+
+          .floating-menu-btn:hover {
+            transform: scale(1.05);
+            background: var(--primary-light);
+          }
+
+          .close-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+          }
+
+          .close-btn:hover {
+            background: var(--primary-light);
+            color: var(--primary);
           }
 
           .sidebar-header {
@@ -314,9 +359,9 @@ const Dashboard: React.FC = () => {
 
           .main-content {
             flex: 1;
-            margin-left: 280px;
             padding: 2.5rem;
-            transition: margin 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            min-width: 0;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
           }
 
           .content-container {
@@ -356,18 +401,27 @@ const Dashboard: React.FC = () => {
             font-weight: 800;
           }
 
-          @media (max-width: 1024px) {
+          @media (max-width: 992px) {
             .sidebar {
+              position: fixed;
+              margin-left: 0;
               transform: translateX(-100%);
+              width: 280px;
+              opacity: 1;
+              pointer-events: all;
             }
             .sidebar.is-open {
               transform: translateX(0);
             }
-            .main-content {
+            .sidebar:not(.is-open) {
+              width: 280px;
               margin-left: 0;
+              transform: translateX(-100%);
+            }
+            .main-content {
               padding: 1.5rem;
             }
-            .mobile-header {
+            .floating-menu-btn {
               display: flex;
             }
             .sidebar-overlay {

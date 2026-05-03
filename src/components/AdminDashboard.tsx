@@ -31,14 +31,14 @@ const AdminDashboard: React.FC = () => {
     loadStats();
   }, []);
 
-  if (isLoading) return <div className="flex items-center justify-center p-20"><Loader2 className="animate-spin text-indigo-600" size={48} /></div>;
+  if (isLoading) return <div className="flex items-center justify-center p-20"><Loader2 className="animate-spin" size={48} style={{ color: 'var(--primary)' }} /></div>;
 
   if (!stats) {
     return (
       <div className="p-10 text-center bg-white rounded-3xl border border-slate-200">
         <h2 className="text-xl font-bold text-slate-800 mb-2">No statistics available</h2>
         <p className="text-slate-500 mb-6">Ensure your Google Sheet tabs are set up correctly and contain data.</p>
-        <button onClick={() => window.location.reload()} className="px-6 py-2 bg-indigo-600 text-white rounded-xl font-bold">
+        <button onClick={() => window.location.reload()} style={{ background: 'var(--primary)', color: 'white', padding: '0.75rem 1.5rem', borderRadius: '1rem', fontWeight: '800', border: 'none', cursor: 'pointer' }}>
           Retry Sync
         </button>
       </div>

@@ -1,9 +1,9 @@
 /* Admin Suite Styling */
 :root {
   --admin-sidebar-width: 280px;
-  --admin-primary: #4f46e5;
-  --admin-bg: #f8fafc;
-  --admin-border: #e2e8f0;
+  --admin-primary: #0B3D91;
+  --admin-bg: #E6EBF2;
+  --admin-border: #d1d5db;
 }
 
 .admin-layout {
