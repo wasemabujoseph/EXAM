@@ -15,7 +15,44 @@ import {
 } from 'lucide-react';
 
 const CurriculumOverview: React.FC = () => {
-  const stats = getCurriculumStats(curriculum);
+  const { user } = useVault();
+  const [userStats, setUserStats] = React.useState({
+    totalAttempts: 0,
+    avgScore: 0,
+    topScore: 0,
+    studyTimeMin: 0
+  });
+  const [newExams, setNewExams] = React.useState<any[]>([]);
+  const [isLoading, setIsLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    const loadDashboardData = async () => {
+      setIsLoading(true);
+      try {
+        const [attempts, exams] = await Promise.all([
+          api.getMyAttempts(),
+          api.getPublicExams()
+        ]);
+
+        // Calculate stats
+        if (attempts.length > 0) {
+          const total = attempts.length;
+          const avg = Math.round(attempts.reduce((acc, a) => acc + (a.percentage || 0), 0) / total);
+          const top = Math.max(...attempts.map(a => a.percentage || 0));
+          const time = Math.round(attempts.reduce((acc, a) => acc + (a.duration_seconds || 0), 0) / 60);
+          setUserStats({ totalAttempts: total, avgScore: avg, topScore: top, studyTimeMin: time });
+        }
+
+        // Get 3 newest exams
+        setNewExams(exams.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 3));
+      } catch (err) {
+        console.error('Failed to load dashboard data', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadDashboardData();
+  }, []);
 
   return (
     <div className="overview-container animate-fade-in">
@@ -52,10 +89,10 @@ const CurriculumOverview: React.FC = () => {
       {/* Stats Grid - Premium Soft UI */}
       <section className="stats-grid-premium">
         {[
-          { label: 'Academic Years', value: stats.totalYears, icon: <GraduationCap />, color: 'blue' },
-          { label: 'Semesters', value: stats.totalSemesters, icon: <Clock />, color: 'green' },
-          { label: 'Total Subjects', value: stats.totalSubjects, icon: <BookOpen />, color: 'orange' },
-          { label: 'ECTS Credits', value: stats.totalECTS, icon: <Award />, color: 'purple' },
+          { label: 'Exams Completed', value: userStats.totalAttempts, icon: <Activity />, color: 'blue' },
+          { label: 'Average Score', value: `${userStats.avgScore}%`, icon: <Zap />, color: 'green' },
+          { label: 'Top Performance', value: `${userStats.topScore}%`, icon: <Award />, color: 'orange' },
+          { label: 'Study Minutes', value: userStats.studyTimeMin, icon: <Clock />, color: 'purple' },
         ].map((stat, i) => (
           <div key={i} className="stat-card-premium animate-slide-up" style={{ animationDelay: `${0.1 * i}s` }}>
             <div className={`stat-icon-wrapper ${stat.color}`}>
@@ -67,6 +104,49 @@ const CurriculumOverview: React.FC = () => {
             </div>
           </div>
         ))}
+      </section>
+      {/* New Exams Section */}
+      <section className="new-exams-section">
+        <div className="section-header">
+          <h2 className="section-title">Newly Added Exams</h2>
+          <p className="section-desc">Stay ahead with the latest medical assessments</p>
+        </div>
+        <div className="new-exams-grid">
+          {newExams.map((exam, i) => (
+            <Link key={exam.id} to={`/dashboard/exam/cloud/${exam.id}`} className="new-exam-card glass-hover">
+              <div className="exam-tag">New</div>
+              <h3>{exam.title}</h3>
+              <p>{exam.subject || 'Medical Science'} • {exam.difficulty || 'Intermediate'}</p>
+              <div className="exam-footer">
+                <span className="exam-meta"><Clock size={14} /> {exam.time_limit_minutes || 60}m</span>
+                <span className="exam-meta"><BookOpen size={14} /> {exam.grade || 'Clinical'}</span>
+              </div>
+            </Link>
+          ))}
+          {newExams.length === 0 && <p className="text-muted">No new exams found. Check back later!</p>}
+        </div>
+      </section>
+
+      {/* Suggested Features Section */}
+      <section className="suggested-features">
+        <div className="section-header">
+          <h2 className="section-title">AI-Powered Roadmap</h2>
+          <p className="section-desc">Future-ready features designed for your clinical mastery</p>
+        </div>
+        <div className="features-carousel">
+          {[
+            { title: 'AI Performance Analysis', desc: 'Get a deep-dive report of your clinical strengths.', icon: <Sparkles />, status: 'Coming Soon' },
+            { title: 'Topic Weakness Radar', desc: 'Identify which medical concepts need more focus.', icon: <Search />, status: 'In Development' },
+            { title: 'Global Leaderboard', desc: 'Compare your progress with students worldwide.', icon: <Award />, status: 'Beta' },
+          ].map((f, i) => (
+            <div key={i} className="feature-card glass">
+              <div className="feature-status">{f.status}</div>
+              <div className="feature-icon">{f.icon}</div>
+              <h3>{f.title}</h3>
+              <p>{f.desc}</p>
+            </div>
+          ))}
+        </div>
       </section>
 
       {/* Curriculum Journey Section */}
@@ -351,6 +431,70 @@ const CurriculumOverview: React.FC = () => {
           .search-bar-premium input { width: 100%; text-align: center; }
           .search-btn { width: 100%; }
         }
+
+        .new-exams-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+          gap: 2rem;
+          margin-top: 1.5rem;
+        }
+        .new-exam-card {
+          background: white;
+          padding: 2rem;
+          border-radius: 2rem;
+          border: 1px solid var(--border);
+          text-decoration: none;
+          position: relative;
+          transition: all 0.3s ease;
+        }
+        .new-exam-card:hover {
+          transform: translateY(-5px);
+          box-shadow: var(--shadow-premium);
+          border-color: var(--primary);
+        }
+        .exam-tag {
+          position: absolute;
+          top: 1rem;
+          right: 1rem;
+          background: var(--accent);
+          color: white;
+          padding: 0.25rem 0.75rem;
+          border-radius: 99px;
+          font-size: 0.7rem;
+          font-weight: 800;
+          text-transform: uppercase;
+        }
+        .new-exam-card h3 { font-size: 1.25rem; color: var(--text-main); margin-bottom: 0.5rem; margin-top: 1rem; }
+        .new-exam-card p { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem; }
+        .exam-footer { display: flex; gap: 1rem; border-top: 1px solid #f1f5f9; padding-top: 1rem; }
+        .exam-meta { display: flex; align-items: center; gap: 0.4rem; font-size: 0.8rem; color: var(--text-dim); font-weight: 600; }
+
+        .suggested-features { display: flex; flex-direction: column; gap: 2rem; }
+        .features-carousel { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem; }
+        .feature-card {
+          padding: 2.5rem;
+          border-radius: 2.5rem;
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
+          position: relative;
+          background: white;
+        }
+        .feature-status {
+          position: absolute;
+          top: 1.5rem;
+          right: 1.5rem;
+          font-size: 0.65rem;
+          font-weight: 900;
+          color: var(--primary);
+          text-transform: uppercase;
+          background: var(--primary-light);
+          padding: 0.2rem 0.6rem;
+          border-radius: 4px;
+        }
+        .feature-icon { width: 48px; height: 48px; background: white; border-radius: 1rem; display: flex; align-items: center; justify-content: center; color: var(--primary); box-shadow: var(--shadow-sm); }
+        .feature-card h3 { font-size: 1.1rem; color: var(--text-main); }
+        .feature-card p { color: var(--text-muted); font-size: 0.9rem; line-height: 1.5; }
       `}</style>
     </div>
   );

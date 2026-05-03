@@ -1,6 +1,6 @@
 /**
- * MEDEXAM Backend - Cloud Infrastructure (Version 4.0.0 - Professional)
- * This script acts as the backend for the MEDEXAM project.
+ * MEDEXAM Core Backend (Version 3.2.0 - Master)
+ * This script acts as the secure cloud gateway for the MEDEXAM platform.
  */
 
 const SPREADSHEET_ID = '1wjo94ElGv7T-Hq5AoLQ7wleMYnu5c51ia7mbZX8FhEc';
@@ -542,7 +542,7 @@ function rowToObject(row, headers) {
  * to securely save your API key.
  */
 function SETUP_OPENROUTER_KEY() {
-  const apiKey = "YOUR_API_KEY_HERE"; 
+  const apiKey = "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"; 
   PropertiesService.getScriptProperties().setProperty('OPENROUTER_API_KEY', apiKey);
   Logger.log("✅ API Key saved successfully!");
 }
@@ -556,9 +556,10 @@ function handleAIChat(user, payload) {
 - Your goal is to provide high-level academic support, exam strategies, and concept explanations.
 - Name: MEDEXAM AI PRO.
 - Context: Medical education for the student ${user.username}.
-- Language: Respond in the same language as the user (English or Arabic).
+- Language: English (Crucial: Always respond in English).
 - Tone: Professional, expert, and clinically precise.
-- Important: Do NOT mention Google Drive, Apps Script, or backend technical details.`;
+- Capabilities: You can analyze exam results, explain complex medical topics, and provide study plans.
+- Important: Do NOT mention technical details about the backend infrastructure.`;
 
   const chatHistory = [
     { role: 'system', content: systemPrompt },
@@ -591,9 +592,9 @@ Requirements:
 4. Provide a "Clinical Pearl" or a key takeaway.
 
 Guidelines:
-- Language: Use English if the question is in English, or Arabic if the question is in Arabic.
+- Language: English (Crucial: Always respond in English).
 - Tone: Professional, academic, and clear.
-- Brand: Refer to yourself as MEDEXAM AI.`;
+- Brand: Refer to yourself as MEDEXAM AI Specialist.`;
 
   const response = callOpenRouter([{ role: 'user', content: prompt }], questionContext?.apiKey);
   logAction(user.id, 'AI_EXPLAIN', `Explained question: ${questionContext.questionText.substring(0, 30)}...`);
@@ -606,12 +607,12 @@ function callOpenRouter(messages, payloadKey) {
   const apiKey = payloadKey || props.getProperty('OPENROUTER_API_KEY');
   
   if (!apiKey || apiKey === "YOUR_API_KEY_HERE") {
-    return "⚠️ Error: AI API Key not configured. Please check your cloud environment variables.";
+    return "⚠️ Error: API Key not found. Please ensure VITE_OPENROUTER_API_KEY is configured in your cloud settings.";
   }
 
   const url = 'https://openrouter.ai/api/v1/chat/completions';
   const payload = {
-    model: 'google/gemini-2.0-flash-exp:free', 
+    model: 'google/gemini-2.0-flash-001', 
     messages: messages,
     temperature: 0.7,
     top_p: 1,
@@ -643,7 +644,7 @@ function callOpenRouter(messages, payloadKey) {
     }
   } catch (e) {
     Logger.log('AI Fetch Error: ' + e.message);
-    throw new Error('AI Engine Connection Failed: ' + e.message);
+    throw new Error('AI Gateway connection failed: ' + e.message);
   }
 }
 

@@ -125,7 +125,7 @@ const Leaderboard: React.FC = () => {
 
       <div className="privacy-note">
         <Star size={14} />
-        <span>Data is synchronized with Google Sheets.</span>
+        <span>Data is synchronized with MEDEXAM Cloud.</span>
       </div>
 
       <style>{`

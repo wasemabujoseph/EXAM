@@ -30,7 +30,7 @@ const AIGuide: React.FC<Props> = ({ userName, embedded = false }) => {
       setMessages([
         { 
           role: 'assistant', 
-          content: `Hi **${userName || 'Waseem'}**! I am your **MEDEXAM AI Mentor**. How can I help you excel in your medical studies today? ✨` 
+          content: `Welcome to **MEDEXAM AI PRO**, **${userName || 'Scholar'}**. I am your advanced clinical mentor. How can I assist you with your medical studies, exam strategies, or clinical concepts today?` 
         }
       ]);
     }
@@ -66,8 +66,6 @@ const AIGuide: React.FC<Props> = ({ userName, embedded = false }) => {
       const result = await api.aiChat(newMessages, context);
       if (result && result.content) {
         setMessages(prev => [...prev, { role: 'assistant', content: result.content }]);
-      } else if (result && result.error) {
-        throw new Error(result.error);
       } else {
         throw new Error('Empty response from AI');
       }
@@ -83,14 +81,10 @@ const AIGuide: React.FC<Props> = ({ userName, embedded = false }) => {
   };
 
   const quickActions = [
-    { label: 'Analyze my performance', action: 'performance' },
-    { label: 'Medical exam strategies', action: 'strategies' },
-    { label: 'Explain this page', action: 'explain' }
+    { label: 'Analyze my performance' },
+    { label: 'How to improve my score?' },
+    { label: 'Explain this page' }
   ];
-
-  const handleQuickAction = (label: string) => {
-    handleSend(label);
-  };
 
   const ChatWindow = (
     <div className={`ai-chat-window ${embedded ? 'embedded' : 'floating'} ${isOpen ? 'is-open' : ''}`}>
@@ -145,7 +139,7 @@ const AIGuide: React.FC<Props> = ({ userName, embedded = false }) => {
       {/* Quick Actions */}
       <div className="ai-quick-actions">
         {quickActions.map((action, idx) => (
-          <button key={idx} onClick={() => handleQuickAction(action.label)} className="ai-action-btn">
+          <button key={idx} onClick={() => handleSend(action.label)} className="ai-action-btn">
             {action.label}
           </button>
         ))}
@@ -158,7 +152,7 @@ const AIGuide: React.FC<Props> = ({ userName, embedded = false }) => {
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleSend()}
-            placeholder="Ask your medical mentor..."
+            placeholder="Ask your medical mentor (English only)..."
             dir="auto"
           />
           <button onClick={() => handleSend()} disabled={loading || !input.trim()} className="ai-send-btn">

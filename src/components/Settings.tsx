@@ -38,7 +38,7 @@ const Settings: React.FC = () => {
               <Cloud size={18} />
               <div>
                 <strong>Secure Cloud Backend</strong>
-                <p>Your exams and attempts are stored securely in our private cloud infrastructure. No personal exam content is stored in your browser's persistent storage.</p>
+                <p>Your exams and attempts are stored securely in the MEDEXAM Cloud infrastructure. No personal exam content is stored in your browser's persistent storage.</p>
               </div>
             </div>
             <div className="info-item">
@@ -52,7 +52,7 @@ const Settings: React.FC = () => {
               <CheckCircle size={18} />
               <div>
                 <strong>Data Ownership</strong>
-                <p>You own your data. You have full control over your records at all times through your secure academic profile.</p>
+                <p>You own your data. Since it resides in your personal Google Sheet, you have full control over your records at all times.</p>
               </div>
             </div>
           </div>
@@ -74,7 +74,7 @@ const Settings: React.FC = () => {
             </div>
             <div className="info-row">
               <span>Backend Type:</span>
-              <strong>MEDEXAM Cloud Pro (v4.0)</strong>
+              <strong>MEDEXAM Core API (v3.2.0)</strong>
             </div>
             <div className="info-row">
               <span>Local Storage:</span>

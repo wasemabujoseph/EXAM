@@ -1,11 +1,11 @@
 /**
- * API Client for MEDEXAM Cloud Backend
+ * API Client for MEDEXAM Core Cloud Backend
  */
 
 const API_URL = import.meta.env.VITE_APPS_SCRIPT_API_URL?.trim();
 
 if (!API_URL) {
-  console.warn('⚠️ VITE_APPS_SCRIPT_API_URL is not defined. Cloud features are disabled.');
+  console.warn('⚠️ VITE_APPS_SCRIPT_API_URL is not defined. MEDEXAM Core features are disabled.');
 } else {
   console.log('✅ API Client Initialized with URL:', API_URL);
 }
@@ -48,7 +48,7 @@ async function request<T>(action: string, payload: any = {}): Promise<T> {
     clearTimeout(timeoutId);
 
     if (!response.ok) {
-      throw new Error(`Server status ${response.status}. Ensure the backend is properly deployed.`);
+      throw new Error(`Cloud connection failed (${response.status}). Service might be under maintenance.`);
     }
 
     const text = await response.text();
@@ -62,9 +62,9 @@ async function request<T>(action: string, payload: any = {}): Promise<T> {
       console.error('❌ Malformed API response:', text);
       const isHtml = text.trim().toLowerCase().startsWith('<!doctype html') || text.trim().toLowerCase().startsWith('<html');
       if (isHtml) {
-        throw new Error('Backend returned HTML instead of JSON. This usually means the deployment URL is wrong or the service is unavailable.');
+        throw new Error('Backend infrastructure error. The cloud gateway returned an unexpected response format.');
       }
-      throw new Error('Malformed backend response. Check cloud deployment and permissions.');
+      throw new Error('Cloud response integrity check failed. Please refresh and try again.');
     }
 
     console.log(`✅ API [${action}] Response:`, result);
@@ -88,7 +88,7 @@ async function request<T>(action: string, payload: any = {}): Promise<T> {
     
     if (error.message.includes('Failed to fetch')) {
       console.error(`📡 API [${action}] Network Error`);
-      throw new Error('Could not connect to backend. Check your internet connection and cloud status.');
+      throw new Error('Could not establish connection to MEDEXAM Cloud. Please check your network connectivity.');
     }
 
     console.error(`❌ API [${action}] Error:`, error.message);

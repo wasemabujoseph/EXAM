@@ -77,14 +77,10 @@ const ReviewAttempt: React.FC = () => {
     const qs = attempt.questionsSnapshot || attempt.questions || [];
     const wrongQs = qs.filter((q: any, i: number) => {
       const uAns = (attempt.answers[i] || attempt.answers[q.id] || []).sort().join(',');
-      const cAns = (q.answers || q.correct_answers || [q.correctAnswer]).sort().join(',');
+      const qAnswers = q.answers || q.correct_answers || [q.correctAnswer] || [];
+      const cAns = qAnswers.sort().join(',');
       return uAns !== cAns;
     });
-
-    if (wrongQs.length === 0) {
-      alert('Congratulations! You got all questions correct.');
-      return;
-    }
 
     navigate(`/dashboard/exam/cloud/${attempt.examId}`, { 
       state: { 
@@ -176,7 +172,7 @@ const ReviewAttempt: React.FC = () => {
                     disabled={explainLoading[i]}
                   >
                     {explainLoading[i] ? <Loader2 size={14} className="spinner" /> : <Sparkles size={14} />}
-                    {aiExplanations[i] ? 'Explained' : 'Explain with AI'}
+                    {aiExplanations[i] ? 'Deep Insights Ready' : 'AI Medical Explanation'}
                   </button>
                 </div>
               </div>
@@ -323,13 +319,7 @@ const ReviewAttempt: React.FC = () => {
           font-weight: 700;
           color: #64748b;
         }
-        .opt-text { 
-          flex: 1; 
-          font-size: 0.95rem; 
-          color: #475569; 
-          word-break: break-word;
-          overflow-wrap: break-word;
-        }
+        .opt-text { flex: 1; font-size: 0.95rem; color: #475569; }
         .opt-status-icon { margin-left: auto; }
 
         .correct-opt {
