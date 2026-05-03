@@ -13,6 +13,8 @@ import {
   Zap,
   Activity
 } from 'lucide-react';
+import { useVault } from '../context/VaultContext';
+import { api } from '../lib/api';
 
 const CurriculumOverview: React.FC = () => {
   const { user } = useVault();
@@ -37,9 +39,9 @@ const CurriculumOverview: React.FC = () => {
         // Calculate stats
         if (attempts.length > 0) {
           const total = attempts.length;
-          const avg = Math.round(attempts.reduce((acc, a) => acc + (a.percentage || 0), 0) / total);
-          const top = Math.max(...attempts.map(a => a.percentage || 0));
-          const time = Math.round(attempts.reduce((acc, a) => acc + (a.duration_seconds || 0), 0) / 60);
+          const avg = Math.round(attempts.reduce((acc: number, a: any) => acc + (a.percentage || 0), 0) / total);
+          const top = Math.max(...attempts.map((a: any) => a.percentage || 0));
+          const time = Math.round(attempts.reduce((acc: number, a: any) => acc + (a.duration_seconds || 0), 0) / 60);
           setUserStats({ totalAttempts: total, avgScore: avg, topScore: top, studyTimeMin: time });
         }
 
