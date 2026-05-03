@@ -566,7 +566,7 @@ function handleAIChat(user, payload) {
     ...messages
   ];
 
-  const response = callOpenRouter(chatHistory, context?.apiKey);
+  const response = callOpenRouter(chatHistory);
   logAction(user.id, 'AI_CHAT', `Interaction on ${context?.pageTitle || 'unknown'}`);
   
   return { content: response };
@@ -596,23 +596,23 @@ Guidelines:
 - Tone: Professional, academic, and clear.
 - Brand: Refer to yourself as MEDEXAM AI Specialist.`;
 
-  const response = callOpenRouter([{ role: 'user', content: prompt }], questionContext?.apiKey);
+  const response = callOpenRouter([{ role: 'user', content: prompt }]);
   logAction(user.id, 'AI_EXPLAIN', `Explained question: ${questionContext.questionText.substring(0, 30)}...`);
   
   return { content: response };
 }
 
-function callOpenRouter(messages, payloadKey) {
+function callOpenRouter(messages) {
   const props = PropertiesService.getScriptProperties();
-  const apiKey = payloadKey || props.getProperty('OPENROUTER_API_KEY');
+  const apiKey = props.getProperty('OPENROUTER_API_KEY');
   
   if (!apiKey || apiKey === "YOUR_API_KEY_HERE") {
-    return "⚠️ Error: API Key not found. Please ensure VITE_OPENROUTER_API_KEY is configured in your cloud settings.";
+    return "⚠️ OpenRouter API key is missing in Apps Script Script Properties.";
   }
 
   const url = 'https://openrouter.ai/api/v1/chat/completions';
   const payload = {
-    model: 'google/gemini-2.0-flash-001', 
+    model: 'openai/gpt-oss-120b:free', 
     messages: messages,
     temperature: 0.7,
     top_p: 1,
@@ -625,8 +625,8 @@ function callOpenRouter(messages, payloadKey) {
     contentType: 'application/json',
     headers: {
       'Authorization': 'Bearer ' + apiKey,
-      'HTTP-Referer': 'https://imtihani-pro.com', 
-      'X-Title': 'Imtihani Pro'
+      'HTTP-Referer': 'https://exam-cyx.pages.dev', 
+      'X-Title': 'EXAM Medical Assistant'
     },
     payload: JSON.stringify(payload),
     muteHttpExceptions: true
@@ -634,17 +634,24 @@ function callOpenRouter(messages, payloadKey) {
 
   try {
     const response = UrlFetchApp.fetch(url, options);
-    const json = JSON.parse(response.getContentText());
+    const responseCode = response.getResponseCode();
+    const responseText = response.getContentText();
     
+    if (responseCode !== 200) {
+      Logger.log(`❌ OpenRouter Error (HTTP ${responseCode}): ${responseText}`);
+      return `⚠️ AI Error (Status ${responseCode}). Please try again later.`;
+    }
+
+    const json = JSON.parse(responseText);
     if (json.choices && json.choices[0]) {
       return json.choices[0].message.content;
     } else {
-      Logger.log('OpenRouter Error: ' + response.getContentText());
-      throw new Error('AI Engine returned an empty response');
+      Logger.log('❌ OpenRouter Empty Choice: ' + responseText);
+      return '⚠️ The AI engine returned an empty response. Please try a different query.';
     }
   } catch (e) {
-    Logger.log('AI Fetch Error: ' + e.message);
-    throw new Error('AI Gateway connection failed: ' + e.message);
+    Logger.log('❌ AI Exception: ' + e.message);
+    return '⚠️ Could not reach the medical brain. Please check your network connection.';
   }
 }
 

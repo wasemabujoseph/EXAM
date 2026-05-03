@@ -50,8 +50,7 @@ const ReviewAttempt: React.FC = () => {
         options: q.options,
         correctOption: q.answers.join(','),
         studentOption: userAns.join(','),
-        isCorrect: userAns.sort().join(',') === q.answers.sort().join(','),
-        apiKey: import.meta.env.VITE_OPENROUTER_API_KEY
+        isCorrect: userAns.sort().join(',') === q.answers.sort().join(',')
       };
 
       const result = await api.aiExplain(questionContext);
