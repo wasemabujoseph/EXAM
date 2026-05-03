@@ -552,12 +552,13 @@ function handleAIChat(user, payload) {
   const { messages, context } = payload;
   
   // Build a smart system prompt based on user role/plan
-  const systemPrompt = `أنت المساعد الأكاديمي "مُرشد إمتحاني PRO". 
-مهمتك: تقديم نصائح دراسية بناءة بناءً على سياق الطالب.
-اسم المستخدم: ${user.username}
-الخطة: ${user.plan}
-سياق الصفحة الحالية: ${context?.pageTitle || 'عام'}
-القواعد: كن ذكياً، مختصراً، ومهنياً. استخدم اللغة العربية السليمة والمحفزة. لا تخرج عن سياق منصة "إمتحاني".`;
+  const systemPrompt = `You are the MEDEXAM AI Mentor, a premium medical education assistant.
+- Your goal is to provide high-level academic support, exam strategies, and concept explanations.
+- Name: MEDEXAM AI PRO.
+- Context: Medical education for the student ${user.username}.
+- Language: Respond in the same language as the user (English or Arabic).
+- Tone: Professional, expert, and clinically precise.
+- Important: Do NOT mention Google Drive, Apps Script, or backend technical details.`;
 
   const chatHistory = [
     { role: 'system', content: systemPrompt },
@@ -574,24 +575,25 @@ function handleAIExplain(user, payload) {
   if (!user) throw new Error('Unauthorized');
   const { questionContext } = payload;
   
-  const prompt = `أنت معلم خبير ومساعد أكاديمي. مهمتك هي شرح سؤال محدد من امتحان.
+  const prompt = `You are the MEDEXAM Specialist. Explain the following question to a medical student.
   
-سياق السؤال:
-- نص السؤال: ${questionContext.questionText}
-- الخيارات المتاحة: ${JSON.stringify(questionContext.options)}
-- الإجابة الصحيحة: ${questionContext.correctOption}
-- إجابة الطالب: ${questionContext.studentOption || 'لم يجب'}
-- الحالة: ${questionContext.isCorrect ? 'إجابة صحيحة' : 'إجابة خاطئة'}
+Context:
+- Question: ${questionContext.questionText}
+- Options: ${JSON.stringify(questionContext.options)}
+- Correct: ${questionContext.correctOption}
+- Student choice: ${questionContext.studentOption || 'None'}
+- Status: ${questionContext.isCorrect ? 'Correct' : 'Incorrect'}
 
-المطلوب منك تقديم شرح تعليمي مفصل باللغة العربية يتضمن:
-1. ما هي الإجابة الصحيحة ولماذا؟
-2. تحليل إجابة الطالب وتوضيح السبب.
-3. لماذا الخيارات الأخرى غير صحيحة؟
-4. الفكرة التعليمية أو القانون العلمي وراء السؤال.
+Requirements:
+1. Explain the medical rationale for the correct answer.
+2. Analyze why the student's choice was ${questionContext.isCorrect ? 'right' : 'wrong'}.
+3. Clarify why other distractors are incorrect.
+4. Provide a "Clinical Pearl" or a key takeaway.
 
-قواعد:
-- اجعل الأسلوب واضحاً، ممتعاً، وموجزاً.
-- التزام العلامة التجارية: لا تقترح البحث في مواقع أخرى. أنت مرشد الطالب الوحيد داخل منصة "إمتحاني".`;
+Guidelines:
+- Language: Use English if the question is in English, or Arabic if the question is in Arabic.
+- Tone: Professional, academic, and clear.
+- Brand: Refer to yourself as MEDEXAM AI.`;
 
   const response = callOpenRouter([{ role: 'user', content: prompt }], questionContext?.apiKey);
   logAction(user.id, 'AI_EXPLAIN', `Explained question: ${questionContext.questionText.substring(0, 30)}...`);

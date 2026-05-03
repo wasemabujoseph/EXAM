@@ -49,7 +49,7 @@ const Dashboard: React.FC = () => {
           <button onClick={() => setIsSidebarOpen(true)} className="icon-btn">
             <Menu size={24} />
           </button>
-          <span className="mobile-logo">EXAM CLOUD</span>
+          <span className="mobile-logo">MEDEXAM</span>
           <div className="avatar-small">
             {profileName.charAt(0)}
           </div>
@@ -60,7 +60,7 @@ const Dashboard: React.FC = () => {
           <div className="sidebar-header">
             <div className="logo-box">
               <BookOpen size={24} />
-              <span>EXAM CLOUD</span>
+              <span>MEDEXAM</span>
             </div>
             <button onClick={() => setIsSidebarOpen(false)} className="close-btn md-hidden">
               <X size={24} />
@@ -182,6 +182,7 @@ const Dashboard: React.FC = () => {
             font-size: 1.5rem;
             color: var(--text-main);
             letter-spacing: -0.04em;
+            text-transform: uppercase;
           }
 
           .logo-box svg {

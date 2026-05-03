@@ -171,7 +171,7 @@ const ReviewAttempt: React.FC = () => {
                     disabled={explainLoading[i]}
                   >
                     {explainLoading[i] ? <Loader2 size={14} className="spinner" /> : <Sparkles size={14} />}
-                    {aiExplanations[i] ? 'تم التوضيح' : 'توضيح بالذكاء الاصطناعي'}
+                    {aiExplanations[i] ? 'Explained' : 'Explain with AI'}
                   </button>
                 </div>
               </div>
@@ -200,9 +200,9 @@ const ReviewAttempt: React.FC = () => {
                 <div className="explanation-box ai-style">
                   <div className="explanation-title">
                     <HelpCircle size={16} />
-                    <span>{aiExplanations[i] ? 'توضيح الذكاء الاصطناعي' : 'Explanation'}</span>
+                    <span>{aiExplanations[i] ? 'AI Insight' : 'Explanation'}</span>
                   </div>
-                  <div className="explanation-text" dir="rtl">
+                  <div className="explanation-text" dir="auto">
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>
                       {aiExplanations[i] || q.explanation}
                     </ReactMarkdown>

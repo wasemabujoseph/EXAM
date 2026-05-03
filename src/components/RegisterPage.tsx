@@ -50,7 +50,7 @@ const RegisterPage: React.FC = () => {
             <ShieldCheck size={32} />
           </div>
           <h1>Create Account</h1>
-          <p>Join the cloud exam platform</p>
+          <p>Join the MEDEXAM academic portal</p>
         </div>
 
         <form onSubmit={handleSubmit} className="login-form">

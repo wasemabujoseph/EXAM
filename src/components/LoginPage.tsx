@@ -19,7 +19,7 @@ const LoginPage: React.FC = () => {
 
     // Create a timeout to alert if it's taking too long
     const timeout = setTimeout(() => {
-      if (isLoading) setError('The backend is taking longer than usual. Please check your internet or re-deploy the Apps Script.');
+      if (isLoading) setError('The server is taking longer than usual. Please check your connection.');
     }, 15000);
 
     try {
@@ -44,8 +44,8 @@ const LoginPage: React.FC = () => {
           <div className="logo-circle">
             <GraduationCap size={32} />
           </div>
-          <h1>MD Exam Hub</h1>
-          <p>Sign in to your account</p>
+          <h1>MEDEXAM</h1>
+          <p>Access your medical education portal</p>
         </div>
 
         <form onSubmit={handleSubmit} className="login-form">
@@ -102,7 +102,7 @@ const LoginPage: React.FC = () => {
           <p>Don't have an account? <Link to="/register">Register</Link></p>
           <div className="security-info">
             <Lock size={12} />
-            <span>Secure cloud storage via Google Apps Script</span>
+            <span>Secure Academic Data Portal</span>
           </div>
         </div>
       </div>
