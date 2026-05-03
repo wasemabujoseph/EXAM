@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useVault } from '../context/VaultContext';
 import { curriculum } from '../data/curriculum';
@@ -11,16 +11,19 @@ import {
   Timer, 
   CheckCircle,
   X,
-  AlertCircle,
   Hash,
-  Loader2
+  Loader2,
+  Layout,
+  Layers,
+  Pause,
+  Play,
+  AlertCircle
 } from 'lucide-react';
 
 const ExamRunner: React.FC = () => {
   const { type, id } = useParams<{ type: string; id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
-
   const { user, refreshUser } = useVault();
   
   const [exam, setExam] = useState<any>(null);
@@ -36,29 +39,26 @@ const ExamRunner: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [startedAt] = useState(Date.now());
 
-  // Plan Limit Check
   useEffect(() => {
     if (user && user.role !== 'admin' && user.plan === 'free') {
       if (user.attempt_count >= user.trial_limit) {
-        alert('You have reached your 4 free exam attempts. Please upgrade to PRO to continue.');
+        alert('You have reached your free exam attempts limit. Please upgrade to PRO to continue.');
         navigate('/dashboard');
       }
     }
-  }, [user]);
+  }, [user, navigate]);
 
   useEffect(() => {
     const fetchExam = async () => {
       setIsLoading(true);
       let foundExam: any = null;
-      
       try {
-        // Handle Redo Modes
         if (location.state?.redoMode) {
           foundExam = location.state.exam;
           if (location.state.redoMode === 'wrong-only' && location.state.wrongQuestions) {
             foundExam = {
               ...foundExam,
-              title: `Retry Wrong Questions - ${foundExam.title}`,
+              title: `Retry: ${foundExam.title}`,
               questions: location.state.wrongQuestions
             };
           }
@@ -71,7 +71,7 @@ const ExamRunner: React.FC = () => {
             const subject = semester?.subjects.find(s => s.name === subjectName);
             if (subject) {
               foundExam = {
-                id: id,
+                id,
                 title: subject.name,
                 questions: subject.sub.exams.length > 0 ? subject.sub.exams[0].questions : [],
               };
@@ -88,17 +88,14 @@ const ExamRunner: React.FC = () => {
         setExam(foundExam);
         const qs = foundExam.examData?.questions || foundExam.questions || [];
         setQuestions(qs);
-        // Default time: 1 min per question unless exam has time_limit
-        const limit = foundExam.time_limit_minutes || foundExam.timeLimit || (qs.length * 1);
-        setTimeRemaining(limit > 0 ? limit * 60 : null);
+        const limit = foundExam.time_limit_minutes || foundExam.timeLimit || (qs.length * 1.5);
+        setTimeRemaining(limit > 0 ? Math.floor(limit * 60) : null);
       }
       setIsLoading(false);
     };
-
     fetchExam();
   }, [type, id, location.state]);
 
-  // Timer logic
   useEffect(() => {
     if (timeRemaining === null || timeRemaining <= 0 || isSubmitting || isTimerPaused) return;
     const timer = setInterval(() => {
@@ -108,23 +105,18 @@ const ExamRunner: React.FC = () => {
   }, [timeRemaining, isSubmitting, isTimerPaused]);
 
   useEffect(() => {
-    if (timeRemaining === 0) {
-      handleSubmit(true);
-    }
+    if (timeRemaining === 0) handleSubmit(true);
   }, [timeRemaining]);
 
   const handleAnswerChange = (qIndex: number, optionId: string, checked: boolean) => {
     const q = questions[qIndex];
-    // Some exams might have answers array, some might have correct_answers
     const correctCount = (q.answers || q.correct_answers || [q.correctAnswer]).length;
     const isMultiple = correctCount > 1;
-    
     setAnswers(prev => {
       const current = prev[qIndex] || [];
       let next: string[];
       if (isMultiple) {
-        if (checked) next = [...current, optionId];
-        else next = current.filter(id => id !== optionId);
+        next = checked ? [...current, optionId] : current.filter(id => id !== optionId);
       } else {
         next = checked ? [optionId] : [];
       }
@@ -142,20 +134,16 @@ const ExamRunner: React.FC = () => {
   };
 
   const handleSubmit = async (auto = false) => {
-    if (!auto && !confirm('Are you sure you want to submit?')) return;
+    if (!auto && !confirm('Submit this exam now? You will be able to review your answers after submission.')) return;
     setIsSubmitting(true);
-
     let correctCount = 0;
     questions.forEach((q, i) => {
       const userAns = (answers[i] || []).sort().join(',');
-      // Handle both formats
       const qAnswers = q.answers || q.correct_answers || [q.correctAnswer];
       const correctAns = qAnswers.sort().join(',');
       if (userAns === correctAns) correctCount++;
     });
-
     const durationSeconds = Math.floor((Date.now() - startedAt) / 1000);
-
     try {
       const response = await api.saveAttempt({
         examId: exam.id || id,
@@ -166,7 +154,7 @@ const ExamRunner: React.FC = () => {
         durationSeconds,
         mode: location.state?.redoMode || 'normal'
       });
-      await refreshUser(); // Update attempt count locally
+      await refreshUser();
       navigate(`/dashboard/review/${response.id}`);
     } catch (err: any) {
       alert(err.message || 'Failed to save attempt. Please try again.');
@@ -174,8 +162,8 @@ const ExamRunner: React.FC = () => {
     }
   };
 
-  if (isLoading) return <div className="loading-screen"><Loader2 className="spinner" /> Loading exam...</div>;
-  if (!exam) return <div className="error-screen">Exam not found.</div>;
+  if (isLoading) return <div className="exam-loading"><Loader2 className="animate-spin" size={48} /><span>Preparing your exam workspace...</span></div>;
+  if (!exam) return <div className="exam-error"><AlertCircle size={48} /><span>Exam not found or failed to load.</span><button onClick={() => navigate(-1)}>Go Back</button></div>;
 
   const currentQ = questions[currentIndex];
   const formatTime = (seconds: number) => {
@@ -185,155 +173,124 @@ const ExamRunner: React.FC = () => {
   };
 
   return (
-    <div className="exam-runner animate-fade-in">
-      <header className="runner-header">
-        <div className="runner-info">
-          <button className="exit-btn" onClick={() => navigate(-1)}>
+    <div className="exam-session">
+      {/* Header Section */}
+      <header className="exam-header">
+        <div className="header-left">
+          <button className="icon-btn-exit" onClick={() => navigate(-1)} aria-label="Exit Exam">
             <X size={20} />
           </button>
-          <div className="title-stack">
-            <h1>{exam.title}</h1>
-            <p>Question {currentIndex + 1} of {questions.length}</p>
+          <div className="exam-title-group">
+            <h1 className="text-ellipsis">{exam.title}</h1>
+            <span className="q-counter">Question {currentIndex + 1} of {questions.length}</span>
           </div>
         </div>
 
-        <div className="runner-stats">
-          <button 
-            className="mode-btn" 
-            onClick={() => setDisplayMode(prev => prev === 'single' ? 'full' : 'single')}
-          >
-            {displayMode === 'single' ? 'Full Page View' : 'Single Question View'}
-          </button>
-
-          <div className={`stat-item timer ${isTimerPaused ? 'paused' : ''}`}>
-            <Timer size={20} />
-            <span>{timeRemaining !== null ? formatTime(timeRemaining) : '--:--'}</span>
-            <button 
-              className="pause-btn" 
-              onClick={() => setIsTimerPaused(!isTimerPaused)}
-            >
-              {isTimerPaused ? 'Resume' : 'Pause'}
-            </button>
-          </div>
-
-          <button className="submit-btn" onClick={() => handleSubmit()} disabled={isSubmitting}>
-            {isSubmitting ? <Loader2 className="spinner" size={18} /> : 'Submit Exam'}
-          </button>
+        <div className="header-right">
+           <div className={`exam-timer ${isTimerPaused ? 'is-paused' : ''}`}>
+             <Timer size={18} />
+             <span>{timeRemaining !== null ? formatTime(timeRemaining) : '--:--'}</span>
+             <button className="pause-toggle" onClick={() => setIsTimerPaused(!isTimerPaused)}>
+               {isTimerPaused ? <Play size={14} /> : <Pause size={14} />}
+             </button>
+           </div>
+           <button className="exam-submit-btn" onClick={() => handleSubmit()} disabled={isSubmitting}>
+             {isSubmitting ? <Loader2 className="animate-spin" size={18} /> : <span>Submit</span>}
+           </button>
         </div>
       </header>
 
-      <div className="runner-layout">
-        <main className={`question-area ${displayMode}-mode`}>
+      {/* Main Content */}
+      <div className="exam-viewport">
+        <main className={`exam-main ${displayMode === 'full' ? 'is-full' : ''}`}>
           {displayMode === 'single' ? (
-            <>
-              <div className="question-card-run">
-                <div className="q-header">
-                  <span className="q-num">Q{currentIndex + 1}</span>
-                  <p className="q-text">{currentQ.text || currentQ.question}</p>
-                </div>
+            <div className="question-wrapper animate-fade-in">
+               <div className="question-card">
+                  <div className="question-header">
+                    <span className="question-label">Question {currentIndex + 1}</span>
+                    <p className="question-text text-wrap-safe">{currentQ.text || currentQ.question}</p>
+                  </div>
 
-                <div className="options-list-run">
-                  {currentQ.options.map((opt: any) => (
-                    <label key={opt.id} className={`opt-row-run ${(answers[currentIndex] || []).includes(opt.id) ? 'active' : ''}`}>
+                  <div className="options-container">
+                    {currentQ.options.map((opt: any) => (
+                      <label key={opt.id} className={`option-item ${(answers[currentIndex] || []).includes(opt.id) ? 'selected' : ''}`}>
+                        <input 
+                          type={(currentQ.answers || currentQ.correct_answers || [currentQ.correctAnswer]).length > 1 ? 'checkbox' : 'radio'}
+                          name={`q-${currentIndex}`}
+                          checked={(answers[currentIndex] || []).includes(opt.id)}
+                          onChange={(e) => handleAnswerChange(currentIndex, opt.id, e.target.checked)}
+                        />
+                        <span className="option-letter">{opt.id}</span>
+                        <span className="option-text text-wrap-safe">{opt.text}</span>
+                      </label>
+                    ))}
+                  </div>
+
+                  <div className="question-tools">
+                    <button className={`tool-btn flag ${flags.has(currentIndex) ? 'active' : ''}`} onClick={() => toggleFlag(currentIndex)}>
+                      <Flag size={18} />
+                      <span>{flags.has(currentIndex) ? 'Flagged' : 'Flag'}</span>
+                    </button>
+                    <div className="note-input-wrapper">
+                      <StickyNote size={18} />
                       <input 
-                        type={(currentQ.answers || currentQ.correct_answers || [currentQ.correctAnswer]).length > 1 ? 'checkbox' : 'radio'}
-                        name={`q-${currentIndex}`}
-                        checked={(answers[currentIndex] || []).includes(opt.id)}
-                        onChange={(e) => handleAnswerChange(currentIndex, opt.id, e.target.checked)}
+                        type="text" 
+                        placeholder="Add a private note..." 
+                        value={notes[currentIndex] || ''}
+                        onChange={(e) => setNotes({...notes, [currentIndex]: e.target.value})}
                       />
-                      <span className="opt-badge-run">{opt.id}</span>
-                      <span className="opt-text-run">{opt.text}</span>
-                    </label>
-                  ))}
-                </div>
+                    </div>
+                  </div>
+               </div>
 
-                <div className="q-footer-run">
-                  <button 
-                    className={`flag-btn ${flags.has(currentIndex) ? 'active' : ''}`}
-                    onClick={() => toggleFlag(currentIndex)}
-                  >
-                    <Flag size={18} />
-                    {flags.has(currentIndex) ? 'Flagged' : 'Flag Question'}
+               {/* Standard Navigation */}
+               <div className="desktop-navigation">
+                  <button className="nav-step-btn" disabled={currentIndex === 0} onClick={() => setCurrentIndex(prev => prev - 1)}>
+                    <ChevronLeft size={20} /> <span>Previous</span>
                   </button>
-                  
-                  <div className="notes-area">
-                    <StickyNote size={18} />
-                    <input 
-                      type="text" 
-                      placeholder="Private note for this question..." 
-                      value={notes[currentIndex] || ''}
-                      onChange={(e) => setNotes({...notes, [currentIndex]: e.target.value})}
-                    />
+                  <div className="exam-progress">
+                    <div className="progress-fill" style={{ width: `${((currentIndex + 1) / questions.length) * 100}%` }} />
                   </div>
-                </div>
-              </div>
-
-              <div className="nav-controls-run">
-                <button 
-                  disabled={currentIndex === 0}
-                  onClick={() => setCurrentIndex(prev => prev - 1)}
-                  className="nav-btn"
-                >
-                  <ChevronLeft size={20} /> Previous
-                </button>
-                <div className="progress-track">
-                  <div 
-                    className="progress-bar-run" 
-                    style={{ width: `${((currentIndex + 1) / (questions.length || 1)) * 100}%` }}
-                  ></div>
-                </div>
-                <button 
-                  disabled={currentIndex === questions.length - 1}
-                  onClick={() => setCurrentIndex(prev => prev + 1)}
-                  className="nav-btn"
-                >
-                  Next <ChevronRight size={20} />
-                </button>
-              </div>
-            </>
+                  <button className="nav-step-btn" disabled={currentIndex === questions.length - 1} onClick={() => setCurrentIndex(prev => prev + 1)}>
+                    <span>Next</span> <ChevronRight size={20} />
+                  </button>
+               </div>
+            </div>
           ) : (
-            <div className="full-page-scroll">
+            <div className="full-exam-view scroll-container">
               {questions.map((q, idx) => (
-                <div key={idx} id={`q-anchor-${idx}`} className="question-card-run full-mode-card">
-                  <div className="q-header">
-                    <span className="q-num">Question {idx + 1}</span>
-                    <p className="q-text">{q.text || q.question}</p>
-                  </div>
-                  <div className="options-list-run">
+                <div key={idx} className="full-mode-question">
+                  <h3>{idx + 1}. {q.text || q.question}</h3>
+                  <div className="full-options-grid">
                     {q.options.map((opt: any) => (
-                      <label key={opt.id} className={`opt-row-run ${(answers[idx] || []).includes(opt.id) ? 'active' : ''}`}>
+                      <label key={opt.id} className={`option-item ${(answers[idx] || []).includes(opt.id) ? 'selected' : ''}`}>
                         <input 
                           type={(q.answers || q.correct_answers || [q.correctAnswer]).length > 1 ? 'checkbox' : 'radio'}
-                          name={`q-${idx}`}
+                          name={`q-full-${idx}`}
                           checked={(answers[idx] || []).includes(opt.id)}
                           onChange={(e) => handleAnswerChange(idx, opt.id, e.target.checked)}
                         />
-                        <span className="opt-badge-run">{opt.id}</span>
-                        <span className="opt-text-run">{opt.text}</span>
+                        <span className="option-letter">{opt.id}</span>
+                        <span className="option-text">{opt.text}</span>
                       </label>
                     ))}
                   </div>
                 </div>
               ))}
-              <div className="p-10 text-center">
-                <button className="submit-btn large mx-auto" onClick={() => handleSubmit()} disabled={isSubmitting}>
-                  {isSubmitting ? <Loader2 className="spinner" size={24} /> : 'Final Submission'}
-                </button>
-              </div>
             </div>
           )}
         </main>
 
-        <aside className="navigator-sidebar">
-          <div className="nav-grid-head">
-            <Hash size={18} />
-            <span>Navigator</span>
+        {/* Side Question Navigator */}
+        <aside className="exam-navigator">
+          <div className="nav-header">
+             <Hash size={18} /> <span>Question Navigator</span>
           </div>
-          <div className="q-grid">
+          <div className="nav-grid">
             {questions.map((_, i) => (
               <button
                 key={i}
-                className={`q-grid-btn ${currentIndex === i ? 'current' : ''} ${answers[i]?.length > 0 ? 'done' : ''} ${flags.has(i) ? 'flagged' : ''}`}
+                className={`nav-grid-item ${currentIndex === i ? 'active' : ''} ${answers[i]?.length > 0 ? 'completed' : ''} ${flags.has(i) ? 'flagged' : ''}`}
                 onClick={() => setCurrentIndex(i)}
               >
                 {i + 1}
@@ -341,431 +298,241 @@ const ExamRunner: React.FC = () => {
             ))}
           </div>
           <div className="nav-legend">
-            <div className="legend-item"><span className="dot current"></span> Current</div>
-            <div className="legend-item"><span className="dot done"></span> Answered</div>
-            <div className="legend-item"><span className="dot flagged"></span> Flagged</div>
+            <div className="legend-item"><span className="dot active" /> Current</div>
+            <div className="legend-item"><span className="dot completed" /> Answered</div>
+            <div className="legend-item"><span className="dot flagged" /> Flagged</div>
+          </div>
+
+          <div className="view-mode-toggle">
+             <button 
+               className={`mode-toggle-btn ${displayMode === 'single' ? 'active' : ''}`}
+               onClick={() => setDisplayMode('single')}
+             >
+               <Layout size={18} /> Single
+             </button>
+             <button 
+               className={`mode-toggle-btn ${displayMode === 'full' ? 'active' : ''}`}
+               onClick={() => setDisplayMode('full')}
+             >
+               <Layers size={18} /> Full Page
+             </button>
           </div>
         </aside>
       </div>
 
-      <style>{`
-        .loading-screen, .error-screen {
-          height: 100vh;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 1.5rem;
-          font-weight: 800;
-          color: var(--primary);
-          background: var(--background);
-        }
+      {/* Mobile Sticky Bottom Navigation */}
+      <footer className="mobile-footer-nav">
+        <button 
+          className="mob-nav-btn" 
+          disabled={currentIndex === 0} 
+          onClick={() => setCurrentIndex(prev => prev - 1)}
+        >
+          <ChevronLeft size={24} />
+        </button>
+        
+        <button className="mob-questions-btn" onClick={() => {
+           const nav = document.querySelector('.exam-navigator');
+           nav?.classList.toggle('mob-show');
+        }}>
+          Questions ({currentIndex + 1}/{questions.length})
+        </button>
 
-        .exam-runner {
+        <button 
+          className="mob-nav-btn" 
+          disabled={currentIndex === questions.length - 1} 
+          onClick={() => setCurrentIndex(prev => prev + 1)}
+        >
+          <ChevronRight size={24} />
+        </button>
+      </footer>
+
+      <style>{`
+        .exam-session {
           position: fixed;
           inset: 0;
-          background: var(--background);
-          z-index: 1000;
+          background: var(--bg);
+          z-index: 2000;
           display: flex;
           flex-direction: column;
-          font-family: 'Space Grotesk', 'Inter', sans-serif;
+          color: var(--text);
         }
 
-        .runner-header {
-          height: 80px;
-          background: rgba(255, 255, 255, 0.8);
-          backdrop-filter: blur(20px);
-          -webkit-backdrop-filter: blur(20px);
+        .exam-header {
+          height: var(--header-height);
+          background: var(--surface);
           border-bottom: 1px solid var(--border);
+          padding: 0 1.5rem;
           display: flex;
           align-items: center;
           justify-content: space-between;
-          padding: 0 2.5rem;
-          z-index: 10;
+          z-index: 100;
         }
 
-        .runner-info { display: flex; align-items: center; gap: 2rem; }
+        .header-left, .header-right { display: flex; align-items: center; gap: 1rem; }
         
-        .exit-btn {
-          width: 44px;
-          height: 44px;
-          border-radius: 1rem;
-          border: 1px solid var(--border);
-          background: var(--surface);
+        .icon-btn-exit {
+          width: 40px; height: 40px;
+          border-radius: var(--radius-lg);
+          background: var(--bg-soft);
           color: var(--text-muted);
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: all 0.2s;
+        }
+        .icon-btn-exit:hover { background: var(--danger-soft); color: var(--danger); }
+
+        .exam-title-group h1 { font-size: 1.1rem; max-width: 200px; margin: 0; }
+        .q-counter { font-size: 0.75rem; font-weight: 700; color: var(--primary); text-transform: uppercase; }
+
+        .exam-timer {
+          display: flex; align-items: center; gap: 0.5rem;
+          background: var(--danger-soft); color: var(--danger);
+          padding: 0.5rem 0.75rem; border-radius: var(--radius-lg);
+          font-family: monospace; font-weight: 800; font-size: 1.1rem;
+        }
+        .exam-timer.is-paused { background: var(--bg-soft); color: var(--text-muted); }
+        .pause-toggle { background: var(--surface); color: inherit; padding: 4px; border-radius: 4px; margin-left: 4px; }
+
+        .exam-submit-btn {
+          background: var(--primary); color: white;
+          padding: 0 1.25rem; height: 40px; border-radius: var(--radius-lg);
+          font-weight: 800; box-shadow: var(--shadow-md);
         }
 
-        .exit-btn:hover {
-          background: var(--danger);
-          color: white;
-          border-color: var(--danger);
-          transform: rotate(90deg);
+        .exam-viewport { flex: 1; display: flex; overflow: hidden; position: relative; }
+
+        .exam-main {
+          flex: 1; overflow-y: auto; padding: 2rem;
+          display: flex; flex-direction: column; align-items: center;
         }
 
-        .title-stack h1 { 
-          font-size: 1.25rem; 
-          font-weight: 900; 
-          color: var(--text-main); 
-          margin: 0; 
-          letter-spacing: -0.03em;
-        }
+        .question-wrapper { width: 100%; max-width: 900px; display: flex; flex-direction: column; gap: 2rem; }
 
-        .title-stack p { 
-          font-size: 0.8rem; 
-          font-weight: 700;
-          color: var(--primary); 
-          margin: 0; 
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-        }
-        
-        .runner-stats { display: flex; align-items: center; gap: 2rem; }
-        
-        .mode-btn {
-          background: var(--primary-light);
-          color: var(--primary);
-          border: 1px solid rgba(99, 102, 241, 0.1);
-          padding: 0.6rem 1.25rem;
-          border-radius: 0.75rem;
-          font-weight: 800;
-          font-size: 0.75rem;
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-        }
-
-        .mode-btn:hover {
-          background: var(--primary);
-          color: white;
-        }
-
-        .stat-item.timer { 
-          display: flex; 
-          align-items: center; 
-          gap: 0.75rem; 
-          padding: 0.6rem 1.25rem;
-          background: #fef2f2;
-          color: var(--danger);
-          border-radius: 0.75rem;
-          font-family: 'JetBrains Mono', monospace; 
-          font-size: 1.25rem; 
-          font-weight: 800;
-          border: 1px solid rgba(239, 68, 68, 0.1);
-        }
-
-        .stat-item.timer.paused {
-          background: var(--background);
-          color: var(--text-dim);
-        }
-        
-        .pause-btn {
-          padding: 0.35rem 0.75rem;
-          border-radius: 0.5rem;
-          background: white;
-          border: 1px solid currentColor;
-          font-size: 0.7rem;
-          font-weight: 800;
-          text-transform: uppercase;
-        }
-
-        .submit-btn {
-          background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
-          color: white;
-          border: none;
-          padding: 0.75rem 2rem;
-          border-radius: var(--radius);
-          font-weight: 800;
-          box-shadow: 0 8px 15px -3px var(--primary-glow);
-        }
-
-        .runner-layout {
-          flex: 1;
-          display: flex;
-          padding: 3rem;
-          gap: 3rem;
-          overflow: hidden;
-          max-width: 1400px;
-          margin: 0 auto;
-          width: 100%;
-        }
-
-        .question-area {
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          gap: 2rem;
-          overflow-y: auto;
-          padding-right: 1rem;
-        }
-
-        .question-card-run {
-          background: white;
-          padding: 3.5rem;
-          border-radius: var(--radius-xl);
+        .question-card {
+          background: var(--surface);
+          padding: clamp(1.25rem, 5vw, 3rem);
+          border-radius: var(--radius-2xl);
           border: 1px solid var(--border);
           box-shadow: var(--shadow-lg);
-          animation: slideUp 0.5s ease-out;
         }
 
-        .q-header { margin-bottom: 2.5rem; }
-        .q-num { 
-          font-size: 0.9rem; 
-          font-weight: 900; 
-          color: var(--primary); 
-          text-transform: uppercase; 
-          margin-bottom: 1rem; 
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
+        .question-header { margin-bottom: 2rem; }
+        .question-label { font-size: 0.8rem; font-weight: 800; color: var(--primary); text-transform: uppercase; display: block; margin-bottom: 0.5rem; }
+        .question-text { font-size: clamp(1.1rem, 3vw, 1.5rem); font-weight: 700; color: var(--text-strong); line-height: 1.4; }
+
+        .options-container { display: flex; flex-direction: column; gap: 1rem; }
+
+        .option-item {
+          display: flex; align-items: center; gap: 1rem;
+          padding: 1.25rem 1.5rem; border-radius: var(--radius-xl);
+          background: var(--bg-soft); border: 2px solid transparent;
+          cursor: pointer; transition: all 0.2s;
         }
-        .q-num::after { content: ''; flex: 1; height: 1px; background: var(--primary-light); }
-        
-        .q-text { 
-          font-size: 1.5rem; 
-          font-weight: 800; 
-          color: var(--text-main); 
-          line-height: 1.4; 
-          letter-spacing: -0.02em;
+        .option-item:hover { border-color: var(--primary-soft); background: var(--surface); }
+        .option-item.selected { border-color: var(--primary); background: var(--surface); box-shadow: var(--shadow-md); }
+
+        .option-letter {
+          width: 32px; height: 32px; flex-shrink: 0;
+          background: var(--surface); border: 2px solid var(--border);
+          border-radius: 8px; display: flex; align-items: center; justify-content: center;
+          font-weight: 900; font-size: 0.9rem;
         }
-        
-        .options-list-run { display: flex; flex-direction: column; gap: 1.25rem; margin-bottom: 3rem; }
-        
-        .opt-row-run {
-          display: flex;
-          align-items: center;
-          gap: 1.5rem;
-          padding: 1.5rem 2rem;
-          border-radius: var(--radius);
-          border: 2px solid var(--background);
-          background: var(--background);
-          cursor: pointer;
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        .option-item.selected .option-letter { background: var(--primary); color: white; border-color: var(--primary); }
+        .option-text { font-weight: 600; font-size: 1.05rem; }
+
+        .question-tools {
+          margin-top: 2rem; padding-top: 2rem; border-top: 1px solid var(--border);
+          display: flex; flex-wrap: wrap; gap: 1rem; align-items: center;
         }
 
-        .opt-row-run:hover { 
-          background: white; 
-          border-color: var(--primary-light);
-          transform: translateX(8px);
+        .tool-btn {
+          display: flex; align-items: center; gap: 0.5rem;
+          padding: 0.5rem 1rem; border-radius: var(--radius-md);
+          background: var(--bg-soft); color: var(--text-muted); font-weight: 700;
+        }
+        .tool-btn.flag.active { background: var(--warning-soft); color: var(--warning); border: 1px solid var(--warning); }
+
+        .note-input-wrapper {
+          flex: 1; min-width: 200px;
+          display: flex; align-items: center; gap: 0.75rem;
+          background: var(--bg-soft); padding: 0.5rem 1rem; border-radius: var(--radius-md);
+        }
+        .note-input-wrapper input { background: transparent; border: none; padding: 0; }
+
+        .desktop-navigation { display: flex; align-items: center; gap: 2rem; width: 100%; margin-top: auto; }
+        .nav-step-btn {
+          padding: 0 1.5rem; height: 48px; border-radius: var(--radius-lg);
+          background: var(--surface); border: 1px solid var(--border);
+          font-weight: 800; color: var(--text-strong);
+        }
+        .exam-progress { flex: 1; height: 10px; background: var(--border); border-radius: 5px; overflow: hidden; }
+        .progress-fill { height: 100%; background: var(--primary); transition: width 0.3s ease; }
+
+        .exam-navigator {
+          width: 300px; background: var(--surface); border-left: 1px solid var(--border);
+          padding: 1.5rem; display: flex; flex-direction: column; gap: 1.5rem;
         }
 
-        .opt-row-run.active { 
-          background: white; 
-          border-color: var(--primary); 
-          box-shadow: var(--shadow-md);
+        .nav-header { font-weight: 800; text-transform: uppercase; font-size: 0.8rem; color: var(--text-soft); display: flex; align-items: center; gap: 0.5rem; }
+        .nav-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.5rem; }
+        .nav-grid-item {
+          aspect-ratio: 1; border-radius: 8px; border: 1px solid var(--border);
+          background: var(--bg-soft); font-weight: 800; font-size: 0.85rem;
+        }
+        .nav-grid-item.active { background: var(--primary); color: white; border-color: var(--primary); transform: scale(1.1); z-index: 1; }
+        .nav-grid-item.completed { background: var(--primary-soft); color: var(--primary); border-color: var(--primary); }
+        .nav-grid-item.flagged { border-color: var(--warning); color: var(--warning); background: var(--warning-soft); }
+
+        .nav-legend { display: flex; flex-direction: column; gap: 0.5rem; padding-top: 1rem; border-top: 1px solid var(--border); }
+        .legend-item { display: flex; align-items: center; gap: 0.5rem; font-size: 0.75rem; font-weight: 700; color: var(--text-soft); }
+        .dot { width: 10px; height: 10px; border-radius: 3px; }
+        .dot.active { background: var(--primary); }
+        .dot.completed { background: var(--primary-soft); border: 1px solid var(--primary); }
+        .dot.flagged { background: var(--warning); }
+
+        .view-mode-toggle { margin-top: auto; display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+        .mode-toggle-btn {
+          height: 36px; border-radius: 8px; border: 1px solid var(--border);
+          font-size: 0.75rem; font-weight: 800; color: var(--text-muted);
+        }
+        .mode-toggle-btn.active { background: var(--bg-soft); color: var(--primary); border-color: var(--primary); }
+
+        .mobile-footer-nav { display: none; }
+
+        .exam-loading, .exam-error {
+          position: fixed; inset: 0; background: var(--bg); z-index: 3000;
+          display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.5rem;
         }
 
-        .opt-row-run input { 
-          width: 24px; 
-          height: 24px; 
-          accent-color: var(--primary);
-          cursor: pointer;
+        /* Responsive */
+        @media (max-width: 1024px) {
+          .exam-navigator {
+            position: fixed; top: var(--header-height); bottom: 0; right: 0;
+            transform: translateX(100%); transition: transform 0.3s ease;
+            box-shadow: var(--shadow-xl); z-index: 500;
+          }
+          .exam-navigator.mob-show { transform: translateX(0); }
+          .desktop-navigation { display: none; }
+          .mobile-footer-nav {
+            display: flex; position: fixed; bottom: 0; left: 0; right: 0;
+            height: 72px; background: var(--surface); border-top: 1px solid var(--border);
+            padding: 0 1rem; padding-bottom: var(--safe-bottom);
+            align-items: center; justify-content: space-between; z-index: 100;
+          }
+          .mob-nav-btn { width: 48px; height: 48px; border-radius: 12px; background: var(--bg-soft); color: var(--text-strong); }
+          .mob-questions-btn { flex: 1; margin: 0 1rem; height: 48px; border-radius: 12px; background: var(--primary); color: white; font-weight: 800; }
+          .exam-main { padding: 1.25rem; padding-bottom: 100px; }
+          .question-card { padding: 1.5rem; }
+          .exam-title-group h1 { max-width: 150px; font-size: 1rem; }
         }
 
-        .opt-badge-run {
-          width: 36px;
-          height: 36px;
-          border-radius: 0.75rem;
-          background: white;
-          border: 2px solid var(--border);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-weight: 900;
-          font-size: 1rem;
-          transition: all 0.2s;
-        }
-
-        .opt-row-run.active .opt-badge-run { 
-          background: var(--primary); 
-          color: white; 
-          border-color: var(--primary); 
-          transform: scale(1.1);
-        }
-
-        .opt-text-run { 
-          flex: 1; 
-          font-weight: 700; 
-          color: var(--text-main); 
-          font-size: 1.1rem;
-        }
- 
-        .q-footer-run {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding-top: 2.5rem;
-          border-top: 2px solid var(--background);
-        }
-
-        .flag-btn {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-          background: var(--background);
-          border: 1px solid var(--border);
-          padding: 0.75rem 1.25rem;
-          border-radius: 0.75rem;
-          font-weight: 800;
-          color: var(--text-dim);
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-
-        .flag-btn.active { 
-          background: #fff7ed;
-          color: #ea580c; 
-          border-color: #fdba74;
-          box-shadow: 0 4px 10px rgba(234, 88, 12, 0.1);
-        }
-
-        .notes-area {
-          flex: 0.8;
-          display: flex;
-          align-items: center;
-          gap: 1rem;
-          background: var(--background);
-          padding: 0.75rem 1.5rem;
-          border-radius: 1rem;
-          border: 1px solid var(--border);
-          transition: focus-within 0.2s;
-        }
-
-        .notes-area:focus-within {
-          border-color: var(--primary-light);
-          background: white;
-        }
-
-        .notes-area input {
-          background: none;
-          border: none;
-          flex: 1;
-          font-size: 0.95rem;
-          font-weight: 600;
-          color: var(--text-main);
-        }
- 
-        .nav-controls-run {
-          display: flex;
-          align-items: center;
-          gap: 3rem;
-          margin-top: auto;
-          padding-top: 1rem;
-        }
-
-        .nav-btn {
-          display: flex;
-          align-items: center;
-          gap: 1rem;
-          padding: 1rem 2rem;
-          border-radius: 1rem;
-          border: 2px solid var(--border);
-          background: white;
-          font-weight: 800;
-          color: var(--text-main);
-          transition: all 0.2s;
-        }
-
-        .nav-btn:hover:not(:disabled) {
-          border-color: var(--primary);
-          color: var(--primary);
-        }
-
-        .progress-track {
-          flex: 1;
-          height: 12px;
-          background: var(--border);
-          border-radius: 6px;
-          overflow: hidden;
-          box-shadow: var(--shadow-inner);
-        }
-
-        .progress-bar-run { 
-          height: 100%; 
-          background: linear-gradient(90deg, var(--primary) 0%, var(--primary-hover) 100%); 
-          transition: width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); 
-        }
- 
-        .navigator-sidebar {
-          width: 320px;
-          background: white;
-          padding: 2.5rem;
-          border-radius: var(--radius-xl);
-          border: 1px solid var(--border);
-          display: flex;
-          flex-direction: column;
-          gap: 2rem;
-          box-shadow: var(--shadow-md);
-        }
-
-        .nav-grid-head { 
-          display: flex; 
-          align-items: center; 
-          gap: 1rem; 
-          font-weight: 900; 
-          color: var(--text-main); 
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-          font-size: 0.9rem;
-        }
-
-        .q-grid {
-          display: grid;
-          grid-template-columns: repeat(5, 1fr);
-          gap: 0.75rem;
-        }
-
-        .q-grid-btn {
-          aspect-ratio: 1;
-          border-radius: 0.75rem;
-          border: 2px solid var(--background);
-          background: var(--background);
-          font-weight: 900;
-          color: var(--text-dim);
-          transition: all 0.3s;
-        }
-
-        .q-grid-btn:hover { border-color: var(--primary-light); color: var(--primary); }
-        
-        .q-grid-btn.current { 
-          background: var(--primary); 
-          color: white; 
-          border-color: var(--primary); 
-          box-shadow: 0 4px 10px var(--primary-glow);
-          transform: scale(1.1);
-        }
-
-        .q-grid-btn.done { 
-          background: white; 
-          color: var(--primary); 
-          border-color: var(--primary-light); 
-        }
-
-        .q-grid-btn.flagged { 
-          border-color: #ea580c; 
-          color: #ea580c; 
-          background: #fff7ed;
-        }
-        
-        .nav-legend { 
-          display: flex; 
-          flex-direction: column; 
-          gap: 0.75rem; 
-          padding-top: 1.5rem; 
-          border-top: 1px solid var(--border); 
-        }
-
-        .legend-item { display: flex; align-items: center; gap: 0.75rem; font-size: 0.8rem; font-weight: 700; color: var(--text-muted); }
-        .dot { width: 12px; height: 12px; border-radius: 4px; }
-        .dot.current { background: var(--primary); }
-        .dot.done { border: 2px solid var(--primary-light); background: white; }
-        .dot.flagged { background: #ea580c; }
-  
-        @media (max-width: 1200px) {
-          .navigator-sidebar { display: none; }
-          .runner-layout { padding: 1.5rem; }
+        @media (max-width: 480px) {
+          .exam-header { padding: 0 0.5rem; gap: 0.25rem; height: 64px; }
+          .exam-timer { font-size: 0.85rem; padding: 0.35rem 0.5rem; gap: 0.25rem; min-width: 80px; }
+          .exam-submit-btn { padding: 0 0.6rem; font-size: 0.85rem; height: 36px; }
+          .header-left { gap: 0.25rem; min-width: 0; }
+          .exam-title-group h1 { font-size: 0.85rem; max-width: 100px; }
+          .q-counter { font-size: 0.65rem; }
+          .question-text { font-size: 1.15rem; line-height: 1.3; }
+          .option-text { font-size: 0.95rem; }
+          .option-item { padding: 1rem; gap: 0.75rem; }
         }
       `}</style>
     </div>

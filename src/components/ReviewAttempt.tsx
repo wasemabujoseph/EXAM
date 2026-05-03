@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { useVault } from '../context/VaultContext';
 import { api } from '../lib/api';
 import { 
   ChevronLeft, 
@@ -13,7 +12,8 @@ import {
   Clock,
   TrendingUp,
   Loader2,
-  Sparkles
+  Sparkles,
+  RotateCcw
 } from 'lucide-react';
 
 const ReviewAttempt: React.FC = () => {
@@ -38,7 +38,6 @@ const ReviewAttempt: React.FC = () => {
         setIsLoading(false);
       }
     };
-
     loadAttempt();
   }, [attemptId]);
 
@@ -52,7 +51,6 @@ const ReviewAttempt: React.FC = () => {
         studentOption: userAns.join(','),
         isCorrect: userAns.sort().join(',') === q.answers.sort().join(',')
       };
-
       const result = await api.aiExplain(questionContext);
       setAiExplanations(prev => ({ ...prev, [index]: result.content }));
     } catch (err: any) {
@@ -80,7 +78,6 @@ const ReviewAttempt: React.FC = () => {
       const cAns = qAnswers.sort().join(',');
       return uAns !== cAns;
     });
-
     navigate(`/dashboard/exam/cloud/${attempt.examId}`, { 
       state: { 
         redoMode: 'wrong-only',
@@ -90,355 +87,217 @@ const ReviewAttempt: React.FC = () => {
     });
   };
 
-  if (isLoading) return <div className="loading-screen"><Loader2 className="spinner" /> Loading review...</div>;
-
-  if (!attempt) {
-    return (
-      <div className="error-state">
-        <AlertCircle size={48} />
-        <h2>Attempt not found</h2>
-        <Link to="/dashboard/history" className="back-link">Back to History</Link>
-      </div>
-    );
-  }
+  if (isLoading) return <div className="page-loading"><Loader2 className="animate-spin" /> <span>Loading performance report...</span></div>;
+  if (!attempt) return <div className="page-error"><AlertCircle size={48} /> <h2>Review data not found</h2><Link to="/dashboard/history">Return to History</Link></div>;
 
   const scorePercent = attempt.percent || Math.round((attempt.score / (attempt.totalQuestions || attempt.total)) * 100);
-  const correctCount = attempt.score;
-  const totalQuestions = attempt.totalQuestions || attempt.total;
   const timeSpentMin = attempt.durationSeconds ? Math.round(attempt.durationSeconds / 60) : Math.round(attempt.timeMs / 1000 / 60);
 
   return (
-    <div className="review-container animate-fade-in">
-      <header className="page-header">
-        <Link to="/dashboard/history" className="back-breadcrumb">
+    <div className="review-page animate-fade-in">
+      <header className="review-header">
+        <Link to="/dashboard/history" className="back-link-nav">
           <ChevronLeft size={20} /> Back to History
         </Link>
-        <h1 className="page-title">Review: {attempt.examTitle}</h1>
-        <div className="attempt-summary-row">
-          <div className="summary-pill">
-            <TrendingUp size={16} />
-            <strong>{scorePercent}%</strong>
-            <span>Score</span>
-          </div>
-          <div className="summary-pill">
-            <CheckCircle size={16} />
-            <strong>{correctCount}/{totalQuestions}</strong>
-            <span>Correct</span>
-          </div>
-          <div className="summary-pill">
-            <Clock size={16} />
-            <strong>{timeSpentMin}m</strong>
-            <span>Time</span>
-          </div>
+        <div className="review-title-section">
+          <h1>{attempt.examTitle}</h1>
+          <p>Attempted on {new Date(attempt.createdAt || attempt.date).toLocaleDateString()}</p>
+        </div>
 
-          <div className="redo-actions">
-            <button 
-              onClick={handleRedoFull}
-              className="redo-btn primary"
-            >
-              Redo Full Exam
-            </button>
-
-            {scorePercent < 100 && (
-              <button 
-                onClick={handleRedoWrong}
-                className="redo-btn secondary"
-              >
-                Redo Wrong Questions
-              </button>
-            )}
+        <div className="review-stats-summary">
+          <div className="summary-card">
+            <div className="summary-icon score"><TrendingUp size={20} /></div>
+            <div className="summary-val">
+              <span className="val-main">{scorePercent}%</span>
+              <span className="val-label">Accuracy</span>
+            </div>
           </div>
+          <div className="summary-card">
+            <div className="summary-icon qcount"><CheckCircle size={20} /></div>
+            <div className="summary-val">
+              <span className="val-main">{attempt.score}/{attempt.totalQuestions || attempt.total}</span>
+              <span className="val-label">Correct</span>
+            </div>
+          </div>
+          <div className="summary-card">
+            <div className="summary-icon time"><Clock size={20} /></div>
+            <div className="summary-val">
+              <span className="val-main">{timeSpentMin || 1}m</span>
+              <span className="val-label">Duration</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="review-header-actions">
+           <button className="btn-redo-alt" onClick={handleRedoFull}><RotateCcw size={18} /> Redo Full</button>
+           {scorePercent < 100 && (
+             <button className="btn-redo-main" onClick={handleRedoWrong}><Sparkles size={18} /> Redo Mistakes</button>
+           )}
         </div>
       </header>
 
-      <div className="review-list">
+      <div className="review-list-stack">
         {(attempt.questionsSnapshot || attempt.questions || []).map((q: any, i: number) => {
           const userAns = attempt.answers[i] || attempt.answers[q.id] || [];
-          const isCorrect = userAns.length > 0 && 
-            userAns.sort().join(',') === q.answers.sort().join(',');
+          const isCorrect = userAns.length > 0 && userAns.sort().join(',') === q.answers.sort().join(',');
 
           return (
-            <div key={i} className={`review-card ${isCorrect ? 'is-correct' : 'is-wrong'}`}>
-              <div className="review-q-head">
-                <div className="q-status-icon">
+            <div key={i} className={`review-q-card ${isCorrect ? 'is-correct' : 'is-wrong'}`}>
+              <div className="review-q-header">
+                <div className="q-status-badge">
                   {isCorrect ? <CheckCircle size={24} /> : <XCircle size={24} />}
+                  <span>Question {i + 1}</span>
                 </div>
-                <div style={{ flex: 1 }}>
-                  <h3>Q{i + 1}: {q.text}</h3>
-                  <button 
-                    className="ai-explain-btn"
-                    onClick={() => handleAIExplain(q, i, userAns)}
-                    disabled={explainLoading[i]}
-                  >
-                    {explainLoading[i] ? <Loader2 size={14} className="spinner" /> : <Sparkles size={14} />}
-                    {aiExplanations[i] ? 'Deep Insights Ready' : 'AI Medical Explanation'}
-                  </button>
-                </div>
+                <button 
+                  className={`ai-btn ${aiExplanations[i] ? 'has-data' : ''}`}
+                  onClick={() => handleAIExplain(q, i, userAns)}
+                  disabled={explainLoading[i]}
+                >
+                  {explainLoading[i] ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
+                  <span>AI Insight</span>
+                </button>
               </div>
 
-              <div className="review-options">
-                {q.options.map((opt: any) => {
-                  const isUserChoice = userAns.includes(opt.id);
-                  const isCorrectChoice = q.answers.includes(opt.id);
-                  
-                  let statusClass = '';
-                  if (isCorrectChoice) statusClass = 'correct-opt';
-                  else if (isUserChoice && !isCorrectChoice) statusClass = 'wrong-opt';
+              <div className="review-q-body">
+                <p className="q-text-large text-wrap-safe">{q.text}</p>
+                
+                <div className="review-options-list">
+                  {q.options.map((opt: any) => {
+                    const isUserChoice = userAns.includes(opt.id);
+                    const isCorrectChoice = q.answers.includes(opt.id);
+                    
+                    let state = '';
+                    if (isCorrectChoice) state = 'correct';
+                    else if (isUserChoice) state = 'wrong';
 
-                  return (
-                    <div key={opt.id} className={`review-opt-row ${statusClass}`}>
-                      <span className="opt-badge">{opt.label || opt.display}</span>
-                      <span className="opt-text">{opt.text}</span>
-                      {isCorrectChoice && <CheckCircle size={16} className="opt-status-icon" />}
-                      {isUserChoice && !isCorrectChoice && <XCircle size={16} className="opt-status-icon" />}
+                    return (
+                      <div key={opt.id} className={`review-opt-item ${state}`}>
+                        <span className="opt-marker">{opt.id}</span>
+                        <span className="opt-text">{opt.text}</span>
+                        <div className="opt-icon-wrap">
+                           {isCorrectChoice && <CheckCircle size={18} />}
+                           {isUserChoice && !isCorrectChoice && <XCircle size={18} />}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {(aiExplanations[i] || q.explanation) && (
+                  <div className="explanation-area">
+                    <div className="exp-header">
+                       <HelpCircle size={16} /> 
+                       <span>{aiExplanations[i] ? 'AI Detailed Explanation' : 'Explanation'}</span>
                     </div>
-                  );
-                })}
+                    <div className="exp-content markdown-body" dir="auto">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        {aiExplanations[i] || q.explanation}
+                      </ReactMarkdown>
+                    </div>
+                  </div>
+                )}
               </div>
-
-              {(aiExplanations[i] || q.explanation) && (
-                <div className="explanation-box ai-style">
-                  <div className="explanation-title">
-                    <HelpCircle size={16} />
-                    <span>{aiExplanations[i] ? 'AI Insight' : 'Explanation'}</span>
-                  </div>
-                  <div className="explanation-text" dir="auto">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                      {aiExplanations[i] || q.explanation}
-                    </ReactMarkdown>
-                  </div>
-                </div>
-              )}
             </div>
           );
         })}
       </div>
 
       <style>{`
-        .loading-screen {
-          padding: 5rem;
-          text-align: center;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 1rem;
-          font-weight: 700;
-          color: var(--text-muted);
+        .review-page { display: flex; flex-direction: column; gap: 3rem; }
+
+        .review-header {
+          background: var(--surface); padding: 2.5rem; border-radius: var(--radius-2xl);
+          border: 1px solid var(--border); box-shadow: var(--shadow-premium);
+          display: flex; flex-direction: column; gap: 2rem;
         }
-        .spinner { animation: spin 1s linear infinite; }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        .review-container {
-          display: flex;
-          flex-direction: column;
-          gap: 2rem;
+
+        .back-link-nav { display: flex; align-items: center; gap: 0.5rem; color: var(--text-soft); font-weight: 700; font-size: 0.9rem; text-decoration: none; }
+        .back-link-nav:hover { color: var(--primary); }
+
+        .review-title-section h1 { font-size: 1.75rem; margin-bottom: 0.5rem; }
+        .review-title-section p { color: var(--text-muted); font-weight: 600; }
+
+        .review-stats-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; }
+        .summary-card {
+          background: var(--bg-soft); padding: 1.25rem; border-radius: var(--radius-xl);
+          display: flex; align-items: center; gap: 1rem; border: 1px solid var(--border);
         }
-        .back-breadcrumb {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          color: var(--text-muted);
-          font-size: 0.875rem;
-          text-decoration: none;
-          margin-bottom: 1rem;
+        .summary-icon { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
+        .summary-icon.score { background: var(--primary-soft); color: var(--primary); }
+        .summary-icon.qcount { background: var(--success-soft); color: var(--success); }
+        .summary-icon.time { background: var(--accent-soft); color: var(--accent); }
+        .summary-val { display: flex; flex-direction: column; }
+        .val-main { font-size: 1.25rem; font-weight: 900; color: var(--text-strong); }
+        .val-label { font-size: 0.7rem; font-weight: 800; color: var(--text-soft); text-transform: uppercase; }
+
+        .review-header-actions { display: flex; gap: 1rem; }
+        .btn-redo-main { flex: 1; background: var(--primary); color: white; height: 48px; border-radius: var(--radius-lg); font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 0.75rem; box-shadow: var(--shadow-md); }
+        .btn-redo-alt { background: var(--surface); border: 2px solid var(--border); color: var(--text-strong); padding: 0 1.5rem; height: 48px; border-radius: var(--radius-lg); font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 0.75rem; }
+
+        .review-list-stack { display: flex; flex-direction: column; gap: 2rem; }
+        .review-q-card {
+          background: var(--surface); border-radius: var(--radius-2xl);
+          border: 1px solid var(--border); overflow: hidden;
+          display: flex; flex-direction: column;
         }
-        .back-breadcrumb:hover { color: var(--primary); }
+        .review-q-card.is-correct { border-left: 8px solid var(--success); }
+        .review-q-card.is-wrong { border-left: 8px solid var(--danger); }
+
+        .review-q-header {
+          padding: 1.5rem 2rem; border-bottom: 1px solid var(--border);
+          display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+        }
+        .q-status-badge { display: flex; align-items: center; gap: 1rem; font-weight: 800; color: var(--text-soft); }
+        .is-correct .q-status-badge { color: var(--success); }
+        .is-wrong .q-status-badge { color: var(--danger); }
+
+        .ai-btn {
+          background: var(--primary-soft); color: var(--primary);
+          padding: 0 1rem; height: 36px; border-radius: 99px;
+          display: flex; align-items: center; gap: 0.5rem; font-weight: 800; font-size: 0.8rem;
+        }
+        .ai-btn.has-data { background: var(--primary); color: white; }
+
+        .review-q-body { padding: 2rem; display: flex; flex-direction: column; gap: 2rem; }
+        .q-text-large { font-size: 1.25rem; font-weight: 700; color: var(--text-strong); line-height: 1.5; }
+
+        .review-options-list { display: flex; flex-direction: column; gap: 0.75rem; }
+        .review-opt-item {
+          display: flex; align-items: center; gap: 1.25rem;
+          padding: 1rem 1.5rem; border-radius: var(--radius-xl);
+          background: var(--bg-soft); border: 1px solid var(--border);
+        }
+        .review-opt-item.correct { background: var(--success-soft); border-color: var(--success); color: var(--success-text); }
+        .review-opt-item.wrong { background: var(--danger-soft); border-color: var(--danger); color: var(--danger-text); }
+
+        .opt-marker {
+          width: 28px; height: 28px; flex-shrink: 0;
+          background: var(--surface); border: 1px solid var(--border);
+          border-radius: 6px; display: flex; align-items: center; justify-content: center;
+          font-weight: 800; font-size: 0.8rem;
+        }
+        .review-opt-item.correct .opt-marker { background: var(--success); color: white; border-color: var(--success); }
+        .review-opt-item.wrong .opt-marker { background: var(--danger); color: white; border-color: var(--danger); }
         
-        .attempt-summary-row {
-          display: flex;
-          gap: 1rem;
-          margin-top: 1.5rem;
-        }
-        .summary-pill {
-          background: white;
-          padding: 0.75rem 1.25rem;
-          border-radius: 1rem;
-          border: 1px solid var(--border);
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-          font-size: 0.875rem;
-        }
-        .summary-pill strong { font-size: 1.125rem; color: var(--text-main); }
-        .summary-pill span { color: var(--text-muted); text-transform: uppercase; font-size: 0.7rem; font-weight: 700; }
+        .opt-text { flex: 1; font-weight: 600; }
+        .opt-icon-wrap { width: 24px; display: flex; justify-content: flex-end; }
 
-        .review-list {
-          display: flex;
-          flex-direction: column;
-          gap: 1.5rem;
+        .explanation-area {
+          background: var(--bg-soft); padding: 1.5rem; border-radius: var(--radius-xl);
+          border: 1px solid var(--border); display: flex; flex-direction: column; gap: 1rem;
         }
-        .review-card {
-          background: white;
-          padding: 1.5rem;
-          border-radius: var(--radius);
-          border: 1px solid var(--border);
-          border-left: 6px solid #cbd5e1;
-        }
-        .review-card.is-correct { border-left-color: var(--success); }
-        .review-card.is-wrong { border-left-color: var(--danger); }
-
-        .review-q-head {
-          display: flex;
-          gap: 1rem;
-          margin-bottom: 1.5rem;
-        }
-        .review-q-head h3 { font-size: 1.125rem; font-weight: 700; color: var(--text-main); line-height: 1.4; }
-        .q-status-icon {
-          color: #cbd5e1;
-          flex-shrink: 0;
-        }
-        .is-correct .q-status-icon { color: var(--success); }
-        .is-wrong .q-status-icon { color: var(--danger); }
-
-        .review-options {
-          display: flex;
-          flex-direction: column;
-          gap: 0.75rem;
-          margin-bottom: 1.5rem;
-        }
-        .review-opt-row {
-          display: flex;
-          align-items: center;
-          gap: 1rem;
-          padding: 0.75rem 1rem;
-          background: #f8fafc;
-          border: 1px solid var(--border);
-          border-radius: 0.75rem;
-          position: relative;
-        }
-        .opt-badge {
-          width: 24px;
-          height: 24px;
-          background: white;
-          border: 1px solid var(--border);
-          border-radius: 4px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 0.75rem;
-          font-weight: 700;
-          color: #64748b;
-        }
-        .opt-text { flex: 1; font-size: 0.95rem; color: #475569; }
-        .opt-status-icon { margin-left: auto; }
-
-        .correct-opt {
-          background: #f0fdf4;
-          border-color: #bbf7d0;
-          color: #166534;
-        }
-        .correct-opt .opt-badge { background: var(--success); color: white; border-color: var(--success); }
-        .correct-opt .opt-status-icon { color: var(--success); }
-
-        .wrong-opt {
-          background: #fef2f2;
-          border-color: #fecaca;
-          color: #991b1b;
-        }
-        .wrong-opt .opt-badge { background: var(--danger); color: white; border-color: var(--danger); }
-        .wrong-opt .opt-status-icon { color: var(--danger); }
-
-        .explanation-box {
-          background: #e6ebf2;
-          padding: 1.25rem;
-          border-radius: 0.75rem;
-          border: 1px solid var(--border);
-        }
-        .explanation-title {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          font-weight: 700;
-          color: var(--primary);
-          margin-bottom: 0.5rem;
-          font-size: 0.875rem;
-        }
-        .explanation-box p { font-size: 0.9rem; color: var(--text-main); line-height: 1.5; }
-
-        .error-state {
-          padding: 5rem;
-          text-align: center;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 1rem;
-        }
-        .back-link {
-          color: var(--primary);
-          font-weight: 700;
-          text-decoration: none;
-        }
-
-        .redo-actions {
-          display: flex;
-          gap: 0.75rem;
-          margin-left: auto;
-        }
-        .redo-btn {
-          padding: 0.75rem 1.5rem;
-          border-radius: 0.75rem;
-          font-weight: 700;
-          font-size: 0.875rem;
-          border: none;
-          cursor: pointer;
-          transition: all 0.2s;
-          white-space: nowrap;
-        }
-        .redo-btn.primary {
-          background: var(--primary);
-          color: white;
-          box-shadow: 0 4px 10px var(--primary-glow);
-        }
-        .redo-btn.secondary {
-          background: #ecfdf5;
-          color: var(--success);
-          border: 1px solid #bbf7d0;
-        }
-        .redo-btn:hover {
-          transform: translateY(-2px);
-          filter: brightness(1.05);
-        }
-        
-        .ai-explain-btn {
-          margin-top: 0.75rem;
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          padding: 0.5rem 1rem;
-          background: var(--primary-light);
-          color: var(--primary);
-          border: 1px solid rgba(99, 102, 241, 0.2);
-          border-radius: 0.75rem;
-          font-size: 0.75rem;
-          font-weight: 800;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-        
-        .ai-explain-btn:hover:not(:disabled) {
-          background: var(--primary);
-          color: white;
-          transform: scale(1.05);
-        }
-        
-        .ai-explain-btn:disabled {
-          opacity: 0.6;
-          cursor: not-allowed;
-        }
-
-        .explanation-box.ai-style {
-          background: linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%);
-          border: 1px solid #dbeafe;
-          box-shadow: var(--shadow-sm);
-        }
-
-        .explanation-text {
-          line-height: 1.6;
-        }
+        .exp-header { display: flex; align-items: center; gap: 0.75rem; font-weight: 800; color: var(--primary); font-size: 0.85rem; text-transform: uppercase; }
+        .exp-content { font-size: 0.95rem; color: var(--text-main); line-height: 1.7; }
 
         @media (max-width: 768px) {
-          .attempt-summary-row { flex-direction: column; }
-          .redo-actions { margin-left: 0; width: 100%; }
-          .redo-btn { flex: 1; text-align: center; }
+          .review-header { padding: 1.25rem; gap: 1.25rem; }
+          .review-stats-summary { grid-template-columns: 1fr; gap: 0.75rem; }
+          .review-header-actions { flex-direction: column; gap: 0.75rem; }
+          .btn-redo-main, .btn-redo-alt { width: 100%; height: 44px; font-size: 0.9rem; }
+          .review-q-header { flex-direction: column; align-items: flex-start; gap: 1rem; }
+          .ai-btn { width: 100%; justify-content: center; }
+          .review-q-body { padding: 1.25rem; }
+          .q-text-large { font-size: 1.1rem; }
         }
       `}</style>
     </div>

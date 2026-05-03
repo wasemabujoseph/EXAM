@@ -1,174 +1,180 @@
 import React from 'react';
 import { useVault } from '../context/VaultContext';
+import ThemeToggle from './ThemeToggle';
 import { 
-  Settings as SettingsIcon, 
   Trash2, 
   Shield, 
   Lock,
   Cloud,
   CheckCircle,
-  Database
+  Database,
+  Moon,
+  LogOut
 } from 'lucide-react';
 
 const Settings: React.FC = () => {
   const { user, logout } = useVault();
 
-  const handleReset = () => {
-    if (confirm('Are you sure you want to sign out and clear local session data? This will not delete your data from the cloud.')) {
+  const handleLogout = () => {
+    if (confirm('Are you sure you want to sign out? Your cloud data will remain safe.')) {
       logout();
-      window.location.href = '/';
     }
   };
 
   return (
-    <div className="settings-container animate-fade-in">
-      <header className="page-header">
-        <h1 className="page-title">Settings & Account</h1>
-        <p className="page-subtitle">Manage your cloud connection and preferences</p>
+    <div className="settings-page animate-fade-in">
+      <header className="page-header-alt">
+        <div className="header-info">
+          <h1>Settings & Account</h1>
+          <p>Personalize your experience and manage your academic profile.</p>
+        </div>
       </header>
 
-      <div className="settings-grid">
-        <section className="settings-section card">
-          <div className="section-head">
-            <Shield size={20} />
-            <h2>Security & Privacy</h2>
+      <div className="settings-layout-grid">
+        {/* Appearance Section */}
+        <section className="settings-block">
+          <div className="block-header">
+            <Moon size={20} />
+            <h2>Appearance</h2>
           </div>
-          <div className="security-info-box">
-            <div className="info-item">
-              <Cloud size={18} />
-              <div>
-                <strong>Secure Cloud Backend</strong>
-                <p>Your exams and attempts are stored securely in the MEDEXAM Cloud infrastructure. No personal exam content is stored in your browser's persistent storage.</p>
+          <div className="block-content">
+            <div className="theme-setting-row">
+              <div className="theme-text">
+                <strong>Color Theme</strong>
+                <p>Choose between light, dark, or system preference.</p>
               </div>
-            </div>
-            <div className="info-item">
-              <Lock size={18} />
-              <div>
-                <strong>Authenticated Sessions</strong>
-                <p>We use secure tokens to communicate with your backend. Your password is never stored in plain text and is handled only during the login process.</p>
-              </div>
-            </div>
-            <div className="info-item">
-              <CheckCircle size={18} />
-              <div>
-                <strong>Data Ownership</strong>
-                <p>You own your data. Since it resides in your personal Google Sheet, you have full control over your records at all times.</p>
-              </div>
+              <ThemeToggle />
             </div>
           </div>
         </section>
 
-        <section className="settings-section card">
-          <div className="section-head">
-            <Database size={20} />
-            <h2>System Information</h2>
+        {/* Security Section */}
+        <section className="settings-block">
+          <div className="block-header">
+            <Shield size={20} />
+            <h2>Privacy & Security</h2>
           </div>
-          <div className="system-info">
-            <div className="info-row">
-              <span>Account Type:</span>
-              <strong>{user?.role?.toUpperCase() || 'USER'}</strong>
+          <div className="block-content security-stack">
+            <div className="sec-item">
+              <Cloud size={18} />
+              <div className="sec-text">
+                <strong>Encrypted Cloud Sync</strong>
+                <p>Your data is stored in the MEDEXAM Cloud, secured via private Google Apps Script infrastructure.</p>
+              </div>
             </div>
-            <div className="info-row">
-              <span>Username:</span>
+            <div className="sec-item">
+              <Lock size={18} />
+              <div className="sec-text">
+                <strong>Secure Authentication</strong>
+                <p>Sessions are tokenized. We never store plain-text passwords in the browser.</p>
+              </div>
+            </div>
+            <div className="sec-item">
+               <CheckCircle size={18} />
+               <div className="sec-text">
+                 <strong>GDPR & Data Ownership</strong>
+                 <p>You have full ownership of your data stored in your personal cloud sheet.</p>
+               </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Account Info Section */}
+        <section className="settings-block">
+          <div className="block-header">
+            <Database size={20} />
+            <h2>Account Details</h2>
+          </div>
+          <div className="block-content info-table">
+            <div className="info-entry">
+              <span>Account Role</span>
+              <strong>{user?.role?.toUpperCase() || 'STUDENT'}</strong>
+            </div>
+            <div className="info-entry">
+              <span>Username</span>
               <strong>{user?.username}</strong>
             </div>
-            <div className="info-row">
-              <span>Backend Type:</span>
-              <strong>MEDEXAM Core API (v3.2.0)</strong>
+            <div className="info-entry">
+              <span>Platform Version</span>
+              <strong>v3.5.0-stable</strong>
             </div>
-            <div className="info-row">
-              <span>Local Storage:</span>
-              <strong>Session Only</strong>
+            <div className="info-entry">
+              <span>Cloud Status</span>
+              <strong className="text-success">Connected</strong>
             </div>
           </div>
         </section>
 
-        <section className="settings-section card danger-zone">
-          <div className="section-head">
+        {/* Danger Zone Section */}
+        <section className="settings-block danger-block">
+          <div className="block-header">
             <Trash2 size={20} />
             <h2>Account Actions</h2>
           </div>
-          <p className="section-desc">Sign out and clear all cached session data from this browser.</p>
-          <button className="reset-btn" onClick={handleReset}>
-            <Trash2 size={18} />
-            Sign Out & Clear Session
-          </button>
+          <div className="block-content">
+            <p className="danger-note">Sign out of your account and clear all local cache. Your cloud exams will not be affected.</p>
+            <button className="btn-logout-settings" onClick={handleLogout}>
+              <LogOut size={18} />
+              <span>Sign Out from Device</span>
+            </button>
+          </div>
         </section>
       </div>
 
       <style>{`
-        .settings-container {
-          display: flex;
-          flex-direction: column;
-          gap: 2rem;
-        }
-        .settings-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 2rem;
-        }
-        .settings-section {
-          background: white;
-          padding: 1.5rem;
-          border-radius: var(--radius);
-          border: 1px solid var(--border);
-          display: flex;
-          flex-direction: column;
-          gap: 1.25rem;
-        }
-        .section-desc {
-          font-size: 0.9rem;
-          color: var(--text-muted);
-          margin: 0;
-        }
-        .security-info-box {
-          display: flex;
-          flex-direction: column;
-          gap: 1.25rem;
-        }
-        .info-item {
-          display: flex;
-          gap: 1rem;
-          font-size: 0.875rem;
-        }
-        .info-item strong { display: block; color: var(--text-main); margin-bottom: 0.25rem; }
-        .info-item p { margin: 0; color: #64748b; line-height: 1.5; }
-        
-        .system-info {
-          display: flex;
-          flex-direction: column;
-          gap: 1rem;
-        }
-        .info-row {
-          display: flex;
-          justify-content: space-between;
-          padding-bottom: 0.75rem;
-          border-bottom: 1px solid #f1f5f9;
-          font-size: 0.9rem;
-        }
-        .info-row span { color: var(--text-muted); }
-        .info-row strong { color: var(--text-main); }
+        .settings-page { display: flex; flex-direction: column; gap: 2.5rem; }
 
-        .danger-zone { border-color: #fee2e2; }
-        .danger-zone h2 { color: var(--danger); }
-        .reset-btn {
-          background: #fef2f2;
-          color: var(--danger);
-          border: 1px solid #fee2e2;
-          padding: 0.75rem;
-          border-radius: 0.75rem;
-          font-weight: 700;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 0.75rem;
-          cursor: pointer;
+        .settings-layout-grid {
+          display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: start;
+        }
+
+        .settings-block {
+          background: var(--surface); border: 1px solid var(--border);
+          border-radius: var(--radius-2xl); box-shadow: var(--shadow-sm);
+          display: flex; flex-direction: column;
+        }
+
+        .block-header {
+          padding: 1.5rem 2rem; border-bottom: 1px solid var(--border);
+          display: flex; align-items: center; gap: 1rem; color: var(--primary);
+        }
+        .block-header h2 { font-size: 1.2rem; color: var(--text-strong); }
+
+        .block-content { padding: 2rem; }
+
+        .theme-setting-row { display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; }
+        .theme-text strong { display: block; font-size: 1rem; color: var(--text-strong); margin-bottom: 0.25rem; }
+        .theme-text p { font-size: 0.85rem; color: var(--text-muted); }
+
+        .security-stack { display: flex; flex-direction: column; gap: 1.5rem; }
+        .sec-item { display: flex; gap: 1rem; color: var(--text-soft); }
+        .sec-text strong { display: block; font-size: 0.95rem; color: var(--text-strong); margin-bottom: 0.25rem; }
+        .sec-text p { font-size: 0.85rem; color: var(--text-muted); line-height: 1.5; }
+
+        .info-table { display: flex; flex-direction: column; gap: 1rem; }
+        .info-entry { display: flex; justify-content: space-between; padding-bottom: 0.75rem; border-bottom: 1px solid var(--border-soft); font-size: 0.9rem; }
+        .info-entry span { color: var(--text-muted); font-weight: 600; }
+        .info-entry strong { color: var(--text-strong); font-weight: 700; }
+
+        .danger-block { border-color: var(--danger-soft); }
+        .danger-block .block-header { color: var(--danger); }
+        .danger-note { font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1.5rem; font-weight: 500; }
+        
+        .btn-logout-settings {
+          width: 100%; height: 48px; border-radius: var(--radius-lg);
+          background: var(--danger-soft); color: var(--danger);
+          font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 0.75rem;
           transition: all 0.2s;
         }
-        .reset-btn:hover { background: var(--danger); color: white; border-color: var(--danger); }
+        .btn-logout-settings:hover { background: var(--danger); color: white; }
 
         @media (max-width: 1024px) {
-          .settings-grid { grid-template-columns: 1fr; }
+          .settings-layout-grid { grid-template-columns: 1fr; }
+        }
+
+        @media (max-width: 640px) {
+          .block-content { padding: 1.5rem; }
+          .theme-setting-row { flex-direction: column; align-items: flex-start; }
         }
       `}</style>
     </div>

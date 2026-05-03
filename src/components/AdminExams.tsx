@@ -3,26 +3,22 @@ import { api } from '../lib/api';
 import { 
   Plus, 
   Search, 
-  Filter, 
   FileText, 
-  Eye, 
-  Edit3, 
   Trash2, 
   Globe, 
   Lock, 
-  Tag, 
   Clock,
   Loader2,
   CheckCircle,
   AlertCircle,
   X,
-  FileJson
+  FileJson,
+  Edit2
 } from 'lucide-react';
 
 const AdminExams: React.FC = () => {
   const [exams, setExams] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isParsing, setIsParsing] = useState(false);
   const [rawText, setRawText] = useState('');
   const [parsedQuestions, setParsedQuestions] = useState<any[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -53,40 +49,24 @@ const AdminExams: React.FC = () => {
   }, []);
 
   const handleParse = () => {
-    // Basic MCQ Parser logic
     const questions: any[] = [];
     const blocks = rawText.split(/\d+\.\s/).filter(b => b.trim());
-    
     blocks.forEach((block, idx) => {
       const lines = block.split('\n').map(l => l.trim()).filter(l => l);
       if (lines.length < 3) return;
-
       const questionText = lines[0];
       const options: any[] = [];
       let correctAnswer = '';
-
       lines.slice(1).forEach(line => {
         const match = line.match(/^([A-D])\)\s*(.*)/i);
-        if (match) {
-          options.push({ id: match[1].toUpperCase(), text: match[2] });
-        } else if (line.toLowerCase().startsWith('answer:')) {
-          correctAnswer = line.split(':')[1].trim().toUpperCase();
-        }
+        if (match) options.push({ id: match[1].toUpperCase(), text: match[2] });
+        else if (line.toLowerCase().startsWith('answer:')) correctAnswer = line.split(':')[1].trim().toUpperCase();
       });
-
       if (options.length > 0) {
-        questions.push({
-          id: idx + 1,
-          question: questionText,
-          options,
-          correctAnswer: correctAnswer || options[0].id,
-          explanation: ''
-        });
+        questions.push({ id: idx + 1, question: questionText, options, correctAnswer: correctAnswer || options[0].id, explanation: '' });
       }
     });
-
     setParsedQuestions(questions);
-    setIsParsing(false);
   };
 
   const handleSaveExam = async () => {
@@ -94,13 +74,8 @@ const AdminExams: React.FC = () => {
       alert('Please provide a title and at least one question.');
       return;
     }
-
     try {
-      await api.saveExam({
-        ...examMeta,
-        examData: { questions: parsedQuestions },
-        status: 'published'
-      });
+      await api.saveExam({ ...examMeta, examData: { questions: parsedQuestions }, status: 'published' });
       setShowAddModal(false);
       setParsedQuestions([]);
       setRawText('');
@@ -120,197 +95,222 @@ const AdminExams: React.FC = () => {
     }
   };
 
-  if (isLoading) return <div className="flex items-center justify-center p-20"><Loader2 className="animate-spin text-indigo-600" size={48} /></div>;
+  if (isLoading) return <div className="page-loading"><Loader2 className="animate-spin" /> <span>Loading exam inventory...</span></div>;
 
   return (
-    <div className="space-y-8">
-      <div className="flex justify-between items-end">
-        <div>
-          <h1 className="text-3xl font-black text-slate-900 tracking-tight">Exam Inventory</h1>
-          <p className="text-slate-500 font-medium">Manage public repository and curriculum assessments</p>
+    <div className="admin-exams-page animate-fade-in">
+      <header className="admin-view-header">
+        <div className="header-txt">
+          <h1>Exam Inventory</h1>
+          <p>Curate public assessments and clinical practice materials.</p>
         </div>
-        <button 
-          onClick={() => setShowAddModal(true)}
-          className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200"
-        >
+        <button className="btn-create-exam" onClick={() => setShowAddModal(true)}>
           <Plus size={20} />
-          Create New Exam
+          <span>New Exam</span>
         </button>
-      </div>
+      </header>
 
-      {/* Exam List */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="admin-exams-grid">
         {exams.map((exam) => (
-          <div key={exam.id} className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex justify-between items-start mb-4">
-              <div className={`p-3 rounded-2xl ${exam.is_public === 'TRUE' ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-50 text-slate-400'}`}>
-                {exam.is_public === 'TRUE' ? <Globe size={24} /> : <Lock size={24} />}
+          <div key={exam.id} className="admin-exam-card">
+            <div className="exam-card-top">
+              <div className={`pub-badge ${exam.is_public === 'TRUE' ? 'is-public' : 'is-private'}`}>
+                {exam.is_public === 'TRUE' ? <Globe size={18} /> : <Lock size={18} />}
               </div>
-              <div className="flex gap-2">
-                <button className="p-2 text-slate-400 hover:bg-slate-50 rounded-lg transition-colors"><Edit3 size={18} /></button>
-                <button 
-                  onClick={() => handleDeleteExam(exam.id)}
-                  className="p-2 text-red-400 hover:bg-red-50 rounded-lg transition-colors"
-                >
-                  <Trash2 size={18} />
-                </button>
+              <div className="exam-card-actions">
+                <button className="icon-btn-edit"><Edit2 size={16} /></button>
+                <button className="icon-btn-delete" onClick={() => handleDeleteExam(exam.id)}><Trash2 size={16} /></button>
               </div>
             </div>
             
-            <h3 className="text-lg font-bold text-slate-900 mb-2 truncate">{exam.title}</h3>
-            <p className="text-sm text-slate-500 line-clamp-2 mb-4 h-10">{exam.description || 'No description provided.'}</p>
-            
-            <div className="flex flex-wrap gap-2 mb-4">
-              <span className="px-3 py-1 bg-slate-100 text-slate-600 text-xs font-bold rounded-full">{exam.subject}</span>
-              <span className="px-3 py-1 bg-slate-100 text-slate-600 text-xs font-bold rounded-full">{exam.grade}</span>
-              <span className="px-3 py-1 bg-indigo-50 text-indigo-600 text-xs font-bold rounded-full flex items-center gap-1">
-                <Clock size={12} /> {exam.time_limit_minutes}m
-              </span>
+            <div className="exam-card-body">
+              <h3 className="text-ellipsis">{exam.title}</h3>
+              <p className="description-text line-clamp-2">{exam.description || 'Global clinical assessment.'}</p>
+              
+              <div className="exam-tags-row">
+                <span className="tag-pill">{exam.subject}</span>
+                <span className="tag-pill">{exam.grade}</span>
+                <span className="tag-pill time"><Clock size={12} /> {exam.time_limit_minutes}m</span>
+              </div>
             </div>
 
-            <div className="pt-4 border-t border-slate-100 flex justify-between items-center text-xs font-bold text-slate-400">
-              <span>{new Date(exam.created_at).toLocaleDateString()}</span>
-              <span className="uppercase tracking-widest text-indigo-500">{exam.difficulty}</span>
+            <div className="exam-card-footer">
+              <span className="date-txt">{new Date(exam.created_at).toLocaleDateString()}</span>
+              <span className={`diff-txt ${exam.difficulty}`}>{exam.difficulty}</span>
             </div>
           </div>
         ))}
       </div>
 
-      {/* Add Exam Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
-          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowAddModal(false)}></div>
-          <div className="relative bg-white w-full max-w-4xl max-h-[90vh] rounded-[2rem] shadow-2xl overflow-hidden flex flex-col">
-            <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-              <div className="flex items-center gap-4">
-                <div className="bg-indigo-600 p-2 rounded-xl text-white">
-                  <FileJson size={24} />
-                </div>
+        <div className="modal-overlay">
+          <div className="admin-modal animate-slide-up">
+            <header className="modal-header">
+              <div className="modal-title">
+                <div className="icon-box"><FileJson size={24} /></div>
                 <div>
-                  <h2 className="text-xl font-bold text-slate-900">Create Public Exam</h2>
-                  <p className="text-sm text-slate-500 font-medium">Define metadata and parse MCQ content</p>
+                  <h2>Create Public Exam</h2>
+                  <p>Define metadata and MCQ content</p>
                 </div>
               </div>
-              <button onClick={() => setShowAddModal(false)} className="p-2 hover:bg-slate-100 rounded-full text-slate-400 transition-colors">
-                <X size={24} />
-              </button>
-            </div>
+              <button className="btn-modal-close" onClick={() => setShowAddModal(false)}><X size={24} /></button>
+            </header>
 
-            <div className="flex-1 overflow-y-auto p-8">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* Meta Data */}
-                <div className="space-y-6">
-                  <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest">Exam Metadata</h3>
-                  <div className="space-y-4">
-                    <div className="space-y-1.5">
-                      <label className="text-sm font-bold text-slate-700">Exam Title</label>
-                      <input 
-                        className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 font-medium"
-                        placeholder="e.g. Final Anatomy Quiz"
-                        value={examMeta.title}
-                        onChange={(e) => setExamMeta({...examMeta, title: e.target.value})}
-                      />
+            <div className="modal-scroll-body">
+              <div className="modal-grid-layout">
+                <div className="modal-form-col">
+                  <h4 className="modal-section-label">General Metadata</h4>
+                  <div className="form-stack">
+                    <div className="input-group">
+                      <label>Exam Title</label>
+                      <input placeholder="e.g. Clinical Medicine 2024" value={examMeta.title} onChange={e => setExamMeta({...examMeta, title: e.target.value})} />
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-1.5">
-                        <label className="text-sm font-bold text-slate-700">Subject</label>
-                        <input className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 font-medium" placeholder="Biology" value={examMeta.subject} onChange={(e) => setExamMeta({...examMeta, subject: e.target.value})} />
+                    <div className="grid-split">
+                      <div className="input-group">
+                        <label>Subject</label>
+                        <input placeholder="Anatomy" value={examMeta.subject} onChange={e => setExamMeta({...examMeta, subject: e.target.value})} />
                       </div>
-                      <div className="space-y-1.5">
-                        <label className="text-sm font-bold text-slate-700">Grade / Year</label>
-                        <input className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 font-medium" placeholder="Year 1" value={examMeta.grade} onChange={(e) => setExamMeta({...examMeta, grade: e.target.value})} />
+                      <div className="input-group">
+                        <label>Year / Grade</label>
+                        <input placeholder="Year 3" value={examMeta.grade} onChange={e => setExamMeta({...examMeta, grade: e.target.value})} />
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-1.5">
-                        <label className="text-sm font-bold text-slate-700">Time Limit (mins)</label>
-                        <input type="number" className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 font-medium" value={examMeta.timeLimit} onChange={(e) => setExamMeta({...examMeta, timeLimit: parseInt(e.target.value) || 0})} />
+                    <div className="grid-split">
+                      <div className="input-group">
+                        <label>Time Limit (min)</label>
+                        <input type="number" value={examMeta.timeLimit} onChange={e => setExamMeta({...examMeta, timeLimit: parseInt(e.target.value) || 0})} />
                       </div>
-                      <div className="space-y-1.5">
-                        <label className="text-sm font-bold text-slate-700">Difficulty</label>
-                        <select className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 font-bold text-slate-600" value={examMeta.difficulty} onChange={(e) => setExamMeta({...examMeta, difficulty: e.target.value})}>
+                      <div className="input-group">
+                        <label>Difficulty</label>
+                        <select value={examMeta.difficulty} onChange={e => setExamMeta({...examMeta, difficulty: e.target.value})}>
                           <option value="easy">Easy</option>
                           <option value="medium">Medium</option>
                           <option value="hard">Hard</option>
                         </select>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3 p-4 bg-emerald-50 rounded-2xl border border-emerald-100">
-                      <Globe className="text-emerald-600" size={20} />
-                      <div className="flex-1">
-                        <p className="text-sm font-bold text-emerald-900">Publish to Repository</p>
-                        <p className="text-xs text-emerald-600 font-medium">Make this exam visible to all students</p>
-                      </div>
-                      <input type="checkbox" checked={examMeta.isPublic} onChange={(e) => setExamMeta({...examMeta, isPublic: e.target.checked})} className="w-6 h-6 rounded-lg text-emerald-600 focus:ring-emerald-500 border-none bg-white" />
+                    <div className="visibility-toggle">
+                       <Globe size={18} className="text-success" />
+                       <div className="toggle-info">
+                          <p>Public Visibility</p>
+                          <span>Visible to all registered students</span>
+                       </div>
+                       <input type="checkbox" checked={examMeta.isPublic} onChange={e => setExamMeta({...examMeta, isPublic: e.target.checked})} />
                     </div>
                   </div>
                 </div>
 
-                {/* Parser */}
-                <div className="space-y-6">
-                  <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest">Question Content</h3>
-                  <div className="space-y-4">
-                    <div className="bg-slate-900 rounded-2xl p-4 overflow-hidden">
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-xs font-bold text-slate-500">PASTE TEXT BELOW (MCQ Format)</span>
-                        <button 
-                          onClick={handleParse}
-                          className="px-3 py-1 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-500 transition-colors"
-                        >
-                          AUTO PARSE
-                        </button>
-                      </div>
-                      <textarea 
-                        className="w-full h-48 bg-transparent border-none focus:ring-0 text-slate-300 font-mono text-sm leading-relaxed resize-none"
-                        placeholder="1. What is the powerhouse of the cell?&#10;A) Nucleus&#10;B) Mitochondria&#10;C) Ribosome&#10;D) Golgi&#10;Answer: B"
-                        value={rawText}
-                        onChange={(e) => setRawText(e.target.value)}
-                      />
+                <div className="modal-parser-col">
+                  <h4 className="modal-section-label">MCQ Content</h4>
+                  <div className="parser-card">
+                    <div className="parser-header">
+                       <span>FORMATTED TEXT</span>
+                       <button onClick={handleParse}>PARSE CONTENT</button>
                     </div>
-
-                    <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200 min-h-[140px]">
-                      <div className="flex justify-between items-center mb-4">
-                        <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Parsed Result</span>
-                        <span className="text-indigo-600 font-bold text-sm">{parsedQuestions.length} Questions</span>
-                      </div>
-                      <div className="space-y-3">
+                    <textarea 
+                      placeholder="1. Question?&#10;A) Opt 1&#10;B) Opt 2&#10;Answer: B"
+                      value={rawText}
+                      onChange={e => setRawText(e.target.value)}
+                    />
+                  </div>
+                  <div className="parser-preview">
+                     <div className="preview-info">
+                        <span>PARSED PREVIEW</span>
+                        <strong>{parsedQuestions.length} Questions</strong>
+                     </div>
+                     <div className="preview-list-mini">
                         {parsedQuestions.slice(0, 3).map((q, i) => (
-                          <div key={i} className="flex items-center gap-3 p-2 bg-white rounded-lg border border-slate-100 text-xs font-medium text-slate-600">
-                            <CheckCircle size={14} className="text-emerald-500" />
-                            <span className="truncate">{q.question}</span>
-                          </div>
+                          <div key={i} className="preview-row-item"><CheckCircle size={14} className="text-success" /> <span>{q.question}</span></div>
                         ))}
-                        {parsedQuestions.length > 3 && <p className="text-center text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-2">... and {parsedQuestions.length - 3} more</p>}
-                        {parsedQuestions.length === 0 && (
-                          <div className="flex flex-col items-center justify-center pt-4 text-slate-400 opacity-50">
-                            <AlertCircle size={32} />
-                            <p className="text-[10px] font-bold uppercase mt-2">No content parsed</p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
+                        {parsedQuestions.length > 3 && <p className="preview-more">... and {parsedQuestions.length - 3} more</p>}
+                        {parsedQuestions.length === 0 && <div className="preview-empty"><AlertCircle size={32} /><p>No parsed content</p></div>}
+                     </div>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="p-8 border-t border-slate-100 flex justify-end gap-4 bg-slate-50/50">
-              <button 
-                onClick={() => setShowAddModal(false)}
-                className="px-6 py-3 text-slate-600 font-bold hover:text-slate-900 transition-colors"
-              >
-                Cancel
-              </button>
-              <button 
-                onClick={handleSaveExam}
-                className="px-10 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100"
-              >
-                Save & Publish
-              </button>
-            </div>
+            <footer className="modal-footer">
+               <button className="btn-modal-cancel" onClick={() => setShowAddModal(false)}>Cancel</button>
+               <button className="btn-modal-save" onClick={handleSaveExam}>Save & Publish Exam</button>
+            </footer>
           </div>
         </div>
       )}
+
+      <style>{`
+        .admin-exams-page { display: flex; flex-direction: column; gap: 2.5rem; }
+        .btn-create-exam { background: var(--primary); color: white; padding: 0 1.5rem; height: 52px; border-radius: 14px; display: flex; align-items: center; gap: 0.75rem; font-weight: 800; box-shadow: var(--shadow-md); }
+
+        .admin-exams-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 1.5rem; }
+        .admin-exam-card { background: var(--surface); padding: 1.5rem; border-radius: 20px; border: 1px solid var(--border); display: flex; flex-direction: column; gap: 1rem; transition: all 0.2s; }
+        .admin-exam-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); border-color: var(--primary); }
+
+        .exam-card-top { display: flex; justify-content: space-between; align-items: center; }
+        .pub-badge { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; }
+        .pub-badge.is-public { background: var(--success-soft); color: var(--success); }
+        .pub-badge.is-private { background: var(--bg-soft); color: var(--text-soft); }
+        
+        .exam-card-actions { display: flex; gap: 0.5rem; }
+        .icon-btn-edit, .icon-btn-delete { width: 32px; height: 32px; border-radius: 8px; color: var(--text-soft); display: flex; align-items: center; justify-content: center; }
+        .icon-btn-edit:hover { background: var(--bg-soft); color: var(--primary); }
+        .icon-btn-delete:hover { background: var(--danger-soft); color: var(--danger); }
+
+        .exam-card-body h3 { font-size: 1.1rem; color: var(--text-strong); }
+        .description-text { font-size: 0.85rem; color: var(--text-muted); line-height: 1.5; height: 2.6rem; }
+
+        .exam-tags-row { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+        .tag-pill { background: var(--bg-soft); color: var(--text-soft); padding: 4px 10px; border-radius: 6px; font-size: 0.7rem; font-weight: 800; }
+        .tag-pill.time { background: var(--primary-soft); color: var(--primary); }
+
+        .exam-card-footer { display: flex; justify-content: space-between; border-top: 1px solid var(--border-soft); padding-top: 1rem; margin-top: 0.5rem; font-size: 0.75rem; font-weight: 800; }
+        .date-txt { color: var(--text-soft); }
+        .diff-txt { text-transform: uppercase; color: var(--primary); }
+
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(8px); z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 1.5rem; }
+        .admin-modal { background: var(--surface); width: 100%; max-width: 1000px; max-height: 90vh; border-radius: 28px; display: flex; flex-direction: column; overflow: hidden; box-shadow: var(--shadow-premium); }
+        .modal-header { padding: 1.5rem 2.5rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: var(--bg-soft-fade); }
+        .modal-title { display: flex; align-items: center; gap: 1rem; }
+        .modal-title .icon-box { background: var(--primary); color: white; padding: 10px; border-radius: 14px; }
+        .modal-title h2 { font-size: 1.25rem; }
+        .modal-title p { font-size: 0.8rem; color: var(--text-muted); font-weight: 600; }
+
+        .modal-scroll-body { flex: 1; overflow-y: auto; padding: 2.5rem; }
+        .modal-grid-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; }
+        .modal-section-label { font-size: 0.75rem; font-weight: 900; color: var(--text-soft); text-transform: uppercase; margin-bottom: 1.5rem; border-left: 4px solid var(--primary); padding-left: 10px; }
+
+        .form-stack { display: flex; flex-direction: column; gap: 1.25rem; }
+        .grid-split { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+        .input-group { display: flex; flex-direction: column; gap: 0.5rem; }
+        .input-group label { font-size: 0.8rem; font-weight: 800; color: var(--text-soft); }
+        .input-group input, .input-group select { width: 100%; height: 44px; padding: 0 1rem; border-radius: 12px; border: 1px solid var(--border); background: var(--bg-soft-fade); font-weight: 700; color: var(--text-strong); }
+
+        .visibility-toggle { display: flex; align-items: center; gap: 1rem; padding: 1rem; background: var(--success-soft-fade); border: 1px solid var(--success-soft); border-radius: 16px; margin-top: 1rem; }
+        .toggle-info { flex: 1; }
+        .toggle-info p { font-size: 0.9rem; font-weight: 800; color: var(--text-strong); }
+        .toggle-info span { font-size: 0.75rem; color: var(--text-muted); }
+        .visibility-toggle input { width: 22px; height: 22px; cursor: pointer; }
+
+        .parser-card { background: #0f172a; border-radius: 20px; padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem; }
+        .parser-header { display: flex; justify-content: space-between; align-items: center; font-size: 0.7rem; font-weight: 800; color: #64748b; }
+        .parser-header button { background: var(--primary); color: white; padding: 4px 12px; border-radius: 6px; }
+        .parser-card textarea { width: 100%; height: 200px; background: transparent; border: none; color: #e2e8f0; font-family: monospace; font-size: 0.85rem; line-height: 1.5; resize: none; outline: none; }
+
+        .parser-preview { margin-top: 2rem; background: var(--bg-soft-fade); border: 1px solid var(--border); border-radius: 20px; padding: 1.5rem; }
+        .preview-info { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; font-size: 0.75rem; font-weight: 800; color: var(--text-soft); }
+        .preview-list-mini { display: flex; flex-direction: column; gap: 0.75rem; }
+        .preview-row-item { display: flex; gap: 0.75rem; font-size: 0.8rem; font-weight: 700; color: var(--text-strong); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .preview-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem; opacity: 0.3; }
+
+        .modal-footer { padding: 1.5rem 2.5rem; border-top: 1px solid var(--border); background: var(--bg-soft-fade); display: flex; justify-content: flex-end; gap: 1rem; }
+        .btn-modal-cancel { font-weight: 800; color: var(--text-soft); padding: 0 1.5rem; }
+        .btn-modal-save { background: var(--primary); color: white; height: 52px; padding: 0 2rem; border-radius: 14px; font-weight: 800; box-shadow: var(--shadow-md); }
+
+        @media (max-width: 992px) {
+          .modal-grid-layout { grid-template-columns: 1fr; gap: 2.5rem; }
+          .admin-exams-grid { grid-template-columns: 1fr; }
+        }
+      `}</style>
     </div>
   );
 };

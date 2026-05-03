@@ -2,14 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../lib/api';
 import { 
   Search, 
-  History, 
   User, 
-  FileText, 
-  TrendingUp, 
-  Calendar,
   ExternalLink,
   Loader2,
-  Filter
+  Calendar,
+  Clock,
+  CheckCircle,
+  XCircle,
+  AlertTriangle
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -37,80 +37,167 @@ const AdminAttempts: React.FC = () => {
     a.exam_id.toLowerCase().includes(search.toLowerCase())
   );
 
-  if (isLoading) return <div className="flex items-center justify-center p-20"><Loader2 className="animate-spin text-indigo-600" size={48} /></div>;
+  if (isLoading) return <div className="page-loading"><Loader2 className="animate-spin" /> <span>Syncing submission logs...</span></div>;
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-black text-slate-900 tracking-tight">Attempt Audit</h1>
-        <p className="text-slate-500 font-medium">Monitor all student submissions and performance metrics</p>
-      </div>
+    <div className="admin-attempts-page animate-fade-in">
+      <header className="admin-view-header">
+        <div className="header-txt">
+          <h1>Attempt Audit</h1>
+          <p>Global monitoring of all student submissions and score distributions.</p>
+        </div>
+      </header>
 
-      <div className="flex gap-4 items-center bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-        <div className="flex-1 relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+      <div className="admin-filters-bar">
+        <div className="admin-search-wrap">
+          <Search size={18} />
           <input 
             type="text" 
-            placeholder="Search by student or exam ID..." 
-            className="w-full pl-12 pr-4 py-3 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 font-medium"
+            placeholder="Search by student name or exam ID..." 
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
       </div>
 
-      <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="bg-slate-50 border-bottom border-slate-200">
-              <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Student</th>
-              <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Score</th>
-              <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Mode</th>
-              <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Date</th>
-              <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest text-right">Review</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {filteredAttempts.map((a) => (
-              <tr key={a.id} className="hover:bg-slate-50/50 transition-colors">
-                <td className="px-6 py-5">
-                  <div className="flex items-center gap-3">
-                    <User size={16} className="text-slate-400" />
-                    <span className="font-bold text-slate-900">{a.username}</span>
-                  </div>
-                  <p className="text-[10px] text-slate-400 font-mono mt-1">{a.exam_id}</p>
-                </td>
-                <td className="px-6 py-5">
-                  <div className="flex flex-col">
-                    <span className={`text-lg font-black ${parseInt(a.percentage) >= 50 ? 'text-emerald-600' : 'text-red-600'}`}>
-                      {a.percentage}%
-                    </span>
-                    <span className="text-xs text-slate-400 font-bold">{a.score}/{a.total_questions}</span>
-                  </div>
-                </td>
-                <td className="px-6 py-5">
-                  <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${a.mode === 'retry_wrong' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-600'}`}>
-                    {a.mode || 'normal'}
-                  </span>
-                </td>
-                <td className="px-6 py-5 text-sm text-slate-500 font-medium">
-                  {new Date(a.created_at).toLocaleDateString()}<br/>
-                  {new Date(a.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </td>
-                <td className="px-6 py-5 text-right">
-                  <Link 
-                    to={`/dashboard/review/${a.id}`}
-                    className="inline-flex items-center gap-2 text-indigo-600 hover:text-indigo-700 font-bold text-sm"
-                  >
-                    View Details
-                    <ExternalLink size={16} />
-                  </Link>
-                </td>
+      <div className="admin-attempts-list-container">
+        {/* Desktop Table */}
+        <div className="admin-table-responsive">
+          <table className="admin-table-premium">
+            <thead>
+              <tr>
+                <th>Student & Exam</th>
+                <th>Performance</th>
+                <th>Session Mode</th>
+                <th>Timestamp</th>
+                <th className="text-right">Action</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {filteredAttempts.map((a) => (
+                <tr key={a.id}>
+                  <td>
+                    <div className="student-profile-mini">
+                      <User size={16} className="text-soft" />
+                      <div className="student-meta">
+                        <span className="student-name">{a.username}</span>
+                        <span className="exam-id-tag">{a.exam_id}</span>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <div className="score-stack">
+                      <span className={`score-pct ${parseInt(a.percentage) >= 60 ? 'pass' : 'fail'}`}>{a.percentage}%</span>
+                      <span className="score-raw">{a.score}/{a.total_questions} Qs</span>
+                    </div>
+                  </td>
+                  <td>
+                    <span className={`mode-pill ${a.mode === 'retry_wrong' ? 'is-retry' : 'is-normal'}`}>
+                      {a.mode || 'standard'}
+                    </span>
+                  </td>
+                  <td>
+                    <div className="time-stack">
+                       <span>{new Date(a.created_at).toLocaleDateString()}</span>
+                       <small>{new Date(a.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</small>
+                    </div>
+                  </td>
+                  <td className="text-right">
+                    <Link to={`/dashboard/review/${a.id}`} className="btn-audit-review">
+                       <ExternalLink size={16} />
+                       <span>Review</span>
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Mobile Stack */}
+        <div className="admin-attempts-mobile-stack">
+           {filteredAttempts.map((a) => (
+             <div key={a.id} className="attempt-mobile-card">
+                <div className="card-header-row">
+                   <div className="student-box">
+                      <User size={14} />
+                      <strong>{a.username}</strong>
+                   </div>
+                   <span className={`score-pct-small ${parseInt(a.percentage) >= 60 ? 'pass' : 'fail'}`}>{a.percentage}%</span>
+                </div>
+                <div className="card-body-row">
+                   <div className="exam-detail">
+                      <span className="label">Exam ID</span>
+                      <span className="value">{a.exam_id}</span>
+                   </div>
+                   <div className="exam-detail">
+                      <span className="label">Mode</span>
+                      <span className="value capitalize">{a.mode || 'standard'}</span>
+                   </div>
+                </div>
+                <div className="card-footer-row">
+                   <div className="time-info"><Calendar size={12} /> {new Date(a.created_at).toLocaleDateString()}</div>
+                   <Link to={`/dashboard/review/${a.id}`} className="btn-mob-review">View Session</Link>
+                </div>
+             </div>
+           ))}
+        </div>
       </div>
+
+      <style>{`
+        .admin-attempts-page { display: flex; flex-direction: column; gap: 2.5rem; }
+
+        .admin-search-wrap { position: relative; display: flex; align-items: center; max-width: 600px; }
+        .admin-search-wrap svg { position: absolute; left: 1rem; color: var(--text-soft); }
+        .admin-search-wrap input { width: 100%; height: 48px; padding: 0 1rem 0 3rem; border-radius: 12px; border: 1px solid var(--border); background: var(--surface); color: var(--text-strong); font-weight: 700; }
+
+        .admin-table-premium { width: 100%; border-collapse: separate; border-spacing: 0; }
+        .admin-table-premium th { padding: 1rem 1.5rem; text-align: left; font-size: 0.75rem; font-weight: 800; color: var(--text-soft); text-transform: uppercase; border-bottom: 2px solid var(--border); }
+        .admin-table-premium td { padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border-soft); vertical-align: middle; }
+
+        .student-profile-mini { display: flex; align-items: center; gap: 0.75rem; }
+        .student-meta { display: flex; flex-direction: column; }
+        .student-name { font-weight: 800; color: var(--text-strong); }
+        .exam-id-tag { font-size: 0.65rem; color: var(--text-muted); font-family: monospace; }
+
+        .score-stack { display: flex; flex-direction: column; }
+        .score-pct { font-size: 1.1rem; font-weight: 900; }
+        .score-pct.pass { color: var(--success); }
+        .score-pct.fail { color: var(--danger); }
+        .score-raw { font-size: 0.7rem; font-weight: 800; color: var(--text-soft); }
+
+        .mode-pill { font-size: 0.65rem; font-weight: 900; text-transform: uppercase; padding: 2px 8px; border-radius: 4px; }
+        .mode-pill.is-retry { background: var(--warning-soft); color: var(--warning); }
+        .mode-pill.is-normal { background: var(--bg-soft); color: var(--text-soft); }
+
+        .time-stack { display: flex; flex-direction: column; font-size: 0.8rem; font-weight: 700; color: var(--text-soft); }
+        .time-stack small { font-size: 0.7rem; color: var(--text-muted); }
+
+        .btn-audit-review { display: flex; align-items: center; gap: 0.5rem; color: var(--primary); font-weight: 800; font-size: 0.85rem; text-decoration: none; }
+        .btn-audit-review:hover { text-decoration: underline; }
+
+        .admin-attempts-mobile-stack { display: none; flex-direction: column; gap: 1rem; }
+        .attempt-mobile-card { background: var(--surface); padding: 1.5rem; border-radius: 20px; border: 1px solid var(--border); display: flex; flex-direction: column; gap: 1.25rem; }
+        .card-header-row { display: flex; justify-content: space-between; align-items: center; }
+        .student-box { display: flex; align-items: center; gap: 0.5rem; color: var(--text-strong); }
+        .score-pct-small { font-weight: 900; font-size: 1rem; }
+        .score-pct-small.pass { color: var(--success); }
+        .score-pct-small.fail { color: var(--danger); }
+        
+        .card-body-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+        .exam-detail { display: flex; flex-direction: column; gap: 2px; }
+        .exam-detail .label { font-size: 0.65rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; }
+        .exam-detail .value { font-size: 0.8rem; font-weight: 700; color: var(--text-soft); }
+
+        .card-footer-row { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-soft); padding-top: 1rem; }
+        .time-info { display: flex; align-items: center; gap: 4px; font-size: 0.75rem; font-weight: 700; color: var(--text-muted); }
+        .btn-mob-review { color: var(--primary); font-weight: 800; font-size: 0.85rem; text-decoration: none; }
+
+        @media (max-width: 768px) {
+          .admin-table-responsive { display: none; }
+          .admin-attempts-mobile-stack { display: flex; }
+        }
+      `}</style>
     </div>
   );
 };

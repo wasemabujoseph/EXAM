@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useVault } from '../context/VaultContext';
 import { api } from '../lib/api';
 import { 
   Trophy, 
@@ -7,9 +6,9 @@ import {
   Star,
   Target,
   Award,
-  BookOpen,
   Loader2,
-  Users
+  Users,
+  Calendar
 } from 'lucide-react';
 
 const Leaderboard: React.FC = () => {
@@ -23,7 +22,6 @@ const Leaderboard: React.FC = () => {
       try {
         const data = await api.getLeaderboard();
         setLeaderboardData(data);
-        
         const total = data.length;
         const avg = data.length > 0 ? Math.round(data.reduce((acc: number, cur: any) => acc + (cur.score/cur.totalQuestions)*100, 0) / data.length) : 0;
         const top = data.length > 0 ? Math.round((data[0].score / data[0].totalQuestions) * 100) : 0;
@@ -34,226 +32,172 @@ const Leaderboard: React.FC = () => {
         setIsLoading(false);
       }
     };
-
     loadLeaderboard();
   }, []);
 
-  if (isLoading) return <div className="loading-screen"><Loader2 className="spinner" /> Loading rankings...</div>;
+  if (isLoading) return <div className="page-loading"><Loader2 className="animate-spin" /> <span>Updating global rankings...</span></div>;
 
   return (
-    <div className="leaderboard-container animate-fade-in">
-      <header className="page-header">
-        <h1 className="page-title">Global Leaderboard</h1>
-        <p className="page-subtitle">Top performances across the platform</p>
+    <div className="leaderboard-page animate-fade-in">
+      <header className="page-header-alt">
+        <div className="header-info">
+          <h1>Global Leaderboard</h1>
+          <p>Top medical students across the platform.</p>
+        </div>
+        <div className="header-icon-wrap">
+           <Trophy size={32} />
+        </div>
       </header>
 
-      <div className="stats-row">
-        <div className="stat-card">
-          <Trophy size={24} className="stat-icon gold" />
-          <div className="stat-content">
+      <div className="leader-stats-grid">
+        <div className="leader-stat-card">
+          <div className="stat-icon-circle blue"><Users size={20} /></div>
+          <div className="stat-data">
             <span className="stat-label">Total Entries</span>
             <span className="stat-value">{stats.total}</span>
           </div>
         </div>
-        <div className="stat-card">
-          <Target size={24} className="stat-icon blue" />
-          <div className="stat-content">
+        <div className="leader-stat-card">
+          <div className="stat-icon-circle green"><Target size={20} /></div>
+          <div className="stat-data">
             <span className="stat-label">Avg. Accuracy</span>
             <span className="stat-value">{stats.avg}%</span>
           </div>
         </div>
-        <div className="stat-card">
-          <Award size={24} className="stat-icon green" />
-          <div className="stat-content">
-            <span className="stat-label">Top Performance</span>
+        <div className="leader-stat-card">
+          <div className="stat-icon-circle gold"><Award size={20} /></div>
+          <div className="stat-data">
+            <span className="stat-label">Highest Score</span>
             <span className="stat-value">{stats.top}%</span>
           </div>
         </div>
       </div>
 
-      <div className="leaderboard-card card">
-        <div className="card-head">
-          <Star size={20} />
-          <h2>Cloud Rankings</h2>
+      <div className="leaderboard-table-card">
+        <div className="table-head">
+           <Star size={18} />
+           <h2>Rankings</h2>
         </div>
 
-        <div className="leaderboard-table">
-          <div className="table-header">
-            <div className="col rank">Rank</div>
-            <div className="col user">User</div>
-            <div className="col score">Score</div>
-            <div className="col date">Date</div>
-          </div>
+        <div className="leaderboard-responsive-list">
+          {leaderboardData.length > 0 ? (
+            leaderboardData.map((item, index) => {
+              const percent = item.percent || Math.round((item.score / item.totalQuestions) * 100);
+              const scoreDisplay = item.scoreDisplay || (item.totalQuestions ? `${item.score}/${item.totalQuestions}` : item.score);
+              const isTopThree = index < 3;
 
-          <div className="table-body">
-            {leaderboardData.length > 0 ? (
-              leaderboardData.map((item, index) => {
-                const percent = item.percent || Math.round((item.score / item.totalQuestions) * 100);
-                const scoreDisplay = item.scoreDisplay || (item.totalQuestions ? `${item.score}/${item.totalQuestions}` : item.score);
-                
-                return (
-                  <div key={index} className="table-row">
-                    <div className="col rank">
-                      {index === 0 ? <Medal size={20} className="gold" /> : 
-                       index === 1 ? <Medal size={20} className="silver" /> :
-                       index === 2 ? <Medal size={20} className="bronze" /> :
-                       index + 1}
-                    </div>
-                    <div className="col user">
-                      <div className="user-info">
-                        <Users size={14} className="user-icon" />
-                        <strong>{item.username}</strong>
-                      </div>
-                    </div>
-                    <div className="col score">
-                      <span className="percent-badge">{percent}%</span> 
-                      <span className="raw-score">{scoreDisplay}</span>
-                    </div>
-                    <div className="col date">{new Date(item.createdAt || item.date).toLocaleDateString()}</div>
+              return (
+                <div key={index} className={`leader-row ${isTopThree ? 'top-rank' : ''}`}>
+                  <div className="rank-col">
+                    {index === 0 ? <Medal size={24} className="medal-gold" /> : 
+                     index === 1 ? <Medal size={24} className="medal-silver" /> :
+                     index === 2 ? <Medal size={24} className="medal-bronze" /> :
+                     <span className="rank-num">{index + 1}</span>}
                   </div>
-                );
-              })
-            ) : (
-              <div className="empty-table">
-                <BookOpen size={48} />
-                <p>No rankings available yet.</p>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
+                  
+                  <div className="user-col">
+                    <div className="user-avatar-placeholder">
+                      {item.username.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="user-name-info">
+                       <span className="username text-ellipsis">{item.username}</span>
+                       <span className="mobile-meta"><Calendar size={12} /> {new Date(item.createdAt || item.date).toLocaleDateString()}</span>
+                    </div>
+                  </div>
 
-      <div className="privacy-note">
-        <Star size={14} />
-        <span>Data is synchronized with MEDEXAM Cloud.</span>
+                  <div className="score-col">
+                    <div className="percent-pill">{percent}%</div>
+                    <span className="raw-score-txt">{scoreDisplay}</span>
+                  </div>
+
+                  <div className="date-col">
+                    <span>{new Date(item.createdAt || item.date).toLocaleDateString()}</span>
+                  </div>
+                </div>
+              );
+            })
+          ) : (
+            <div className="empty-leaderboard">
+               <Users size={48} />
+               <p>No entries yet. Be the first to top the charts!</p>
+            </div>
+          )}
+        </div>
       </div>
 
       <style>{`
-        .loading-screen {
-          padding: 5rem;
-          text-align: center;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 1rem;
-          font-weight: 700;
-          color: var(--text-muted);
-        }
-        .spinner { animation: spin 1s linear infinite; }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        .leaderboard-container {
-          display: flex;
-          flex-direction: column;
-          gap: 2rem;
-        }
-        .stats-row {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 1.5rem;
-        }
-        .stat-card {
-          background: white;
-          padding: 1.5rem;
-          border-radius: var(--radius);
-          border: 1px solid var(--border);
-          display: flex;
-          align-items: center;
-          gap: 1.25rem;
-        }
-        .stat-icon { padding: 0.75rem; border-radius: 1rem; }
-        .stat-icon.gold { background: #fffbeb; color: #b45309; }
-        .stat-icon.blue { background: #eff6ff; color: #1d4ed8; }
-        .stat-icon.green { background: #ecfdf5; color: #047857; }
-        .stat-content { display: flex; flex-direction: column; }
-        .stat-label { font-size: 0.75rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; }
-        .stat-value { font-size: 1.5rem; font-weight: 800; color: var(--text-main); }
+        .leaderboard-page { display: flex; flex-direction: column; gap: 2.5rem; }
 
-        .leaderboard-card {
-          background: white;
-          border-radius: var(--radius);
-          border: 1px solid var(--border);
-          overflow: hidden;
+        .leader-stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; }
+        .leader-stat-card {
+          background: var(--surface); padding: 1.5rem; border-radius: var(--radius-xl);
+          border: 1px solid var(--border); display: flex; align-items: center; gap: 1.25rem;
+          box-shadow: var(--shadow-sm);
         }
-        .card-head {
-          padding: 1.25rem 1.5rem;
-          border-bottom: 1px solid var(--border);
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-          background: #f8fafc;
-        }
-        .card-head h2 { font-size: 1.125rem; font-weight: 700; color: var(--text-main); margin: 0; }
+        .stat-icon-circle { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
+        .stat-icon-circle.blue { background: var(--primary-soft); color: var(--primary); }
+        .stat-icon-circle.green { background: var(--success-soft); color: var(--success); }
+        .stat-icon-circle.gold { background: var(--warning-soft); color: var(--warning); }
+        .stat-data { display: flex; flex-direction: column; }
+        .stat-label { font-size: 0.75rem; font-weight: 800; color: var(--text-soft); text-transform: uppercase; }
+        .stat-value { font-size: 1.5rem; font-weight: 900; color: var(--text-strong); }
 
-        .leaderboard-table {
-          display: flex;
-          flex-direction: column;
+        .leaderboard-table-card {
+          background: var(--surface); border-radius: var(--radius-2xl);
+          border: 1px solid var(--border); overflow: hidden; box-shadow: var(--shadow-md);
         }
-        .table-header {
-          display: flex;
-          padding: 1rem 1.5rem;
-          background: #f1f5f9;
-          font-size: 0.75rem;
-          font-weight: 700;
-          color: #64748b;
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-        }
-        .table-row {
-          display: flex;
-          padding: 1.25rem 1.5rem;
-          border-bottom: 1px solid var(--border);
-          align-items: center;
-          font-size: 0.9375rem;
+        .table-head { padding: 1.5rem 2rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 0.75rem; color: var(--text-strong); }
+        .table-head h2 { font-size: 1.1rem; margin: 0; }
+
+        .leader-row {
+          display: grid; grid-template-columns: 80px 1fr 180px 140px;
+          align-items: center; padding: 1.25rem 2rem; border-bottom: 1px solid var(--border);
           transition: background 0.2s;
         }
-        .table-row:hover { background: #f8fafc; }
-        .table-row:last-child { border-bottom: none; }
-        
-        .col { flex: 1; }
-        .col.rank { flex: 0 0 80px; display: flex; justify-content: center; font-weight: 800; color: #94a3b8; }
-        .col.user { flex: 2; }
-        .col.score { flex: 1.5; display: flex; align-items: center; gap: 0.75rem; }
-        .col.date { flex: 1; color: var(--text-muted); }
+        .leader-row:hover { background: var(--bg-soft); }
+        .leader-row:last-child { border-bottom: none; }
+        .leader-row.top-rank { background: var(--primary-soft-fade); }
 
-        .user-info { display: flex; align-items: center; gap: 0.5rem; }
-        .user-icon { color: #94a3b8; }
+        .rank-col { display: flex; justify-content: center; }
+        .rank-num { font-size: 1.1rem; font-weight: 900; color: var(--text-soft); }
+        .medal-gold { color: #fbbf24; }
+        .medal-silver { color: #94a3b8; }
+        .medal-bronze { color: #b45309; }
 
-        .percent-badge {
-          background: var(--primary-light);
-          color: var(--primary);
-          padding: 0.2rem 0.5rem;
-          border-radius: 0.4rem;
-          font-weight: 700;
-          font-size: 0.8rem;
+        .user-col { display: flex; align-items: center; gap: 1rem; }
+        .user-avatar-placeholder {
+          width: 36px; height: 36px; border-radius: 10px; background: var(--primary); color: white;
+          display: flex; align-items: center; justify-content: center; font-weight: 800;
         }
-        .raw-score { font-size: 0.85rem; color: #64748b; }
+        .user-name-info { display: flex; flex-direction: column; }
+        .username { font-weight: 700; color: var(--text-strong); }
+        .mobile-meta { display: none; font-size: 0.7rem; color: var(--text-soft); align-items: center; gap: 4px; }
 
-        .gold { color: #fbbf24; }
-        .silver { color: #94a3b8; }
-        .bronze { color: #b45309; }
-
-        .empty-table {
-          padding: 4rem 2rem;
-          text-align: center;
-          color: #94a3b8;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 1rem;
+        .score-col { display: flex; align-items: center; gap: 1rem; }
+        .percent-pill {
+          background: var(--bg-soft); color: var(--primary);
+          padding: 4px 12px; border-radius: 8px; font-weight: 800; font-size: 0.9rem;
+          border: 1px solid var(--border);
         }
-        .privacy-note {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 0.5rem;
-          font-size: 0.75rem;
-          color: #94a3b8;
-          margin-top: 1rem;
+        .raw-score-txt { font-size: 0.85rem; color: var(--text-soft); font-weight: 600; }
+
+        .date-col { color: var(--text-soft); font-size: 0.9rem; font-weight: 600; }
+
+        .empty-leaderboard { padding: 5rem 2rem; text-align: center; color: var(--text-soft); display: flex; flex-direction: column; align-items: center; gap: 1rem; }
+
+        @media (max-width: 992px) {
+          .leader-row { grid-template-columns: 60px 1fr 140px; }
+          .date-col { display: none; }
         }
 
-        @media (max-width: 768px) {
-          .stats-row { grid-template-columns: 1fr; }
-          .col.date { display: none; }
+        @media (max-width: 640px) {
+          .leader-stats-grid { grid-template-columns: 1fr; }
+          .leader-row { grid-template-columns: 50px 1fr 80px; padding: 1.25rem; }
+          .score-col { flex-direction: column; align-items: flex-end; gap: 4px; }
+          .raw-score-txt { display: none; }
+          .mobile-meta { display: flex; }
+          .user-col { gap: 0.75rem; }
+          .user-avatar-placeholder { display: none; }
         }
       `}</style>
     </div>

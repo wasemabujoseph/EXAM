@@ -9,10 +9,9 @@ import {
   Download, 
   Clock, 
   Plus,
-  Search,
-  FileJson,
   Loader2,
-  Cloud
+  Cloud,
+  FileQuestion
 } from 'lucide-react';
 
 const MyExams: React.FC = () => {
@@ -32,13 +31,11 @@ const MyExams: React.FC = () => {
         setIsLoading(false);
       }
     };
-
     loadExams();
   }, []);
 
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this exam?')) return;
-    
     try {
       await api.deleteExam(id);
       setExams(prev => prev.filter(e => e.id !== id));
@@ -57,224 +54,156 @@ const MyExams: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
-  if (isLoading) return <div className="loading-screen"><Loader2 className="spinner" /> Loading exams...</div>;
+  if (isLoading) return <div className="page-loading"><Loader2 className="animate-spin" /> <span>Loading your cloud library...</span></div>;
 
   return (
-    <div className="my-exams-container animate-fade-in">
-      <header className="page-header">
-        <h1 className="page-title">My Exams</h1>
-        <p className="page-subtitle">Exams stored in your cloud library</p>
-        <button className="add-btn" onClick={() => navigate('/dashboard/generate')}>
+    <div className="my-exams-page animate-fade-in">
+      <header className="page-header-alt">
+        <div className="header-info">
+          <h1>My Cloud Exams</h1>
+          <p>Managed assessments and private study materials.</p>
+        </div>
+        <button className="header-action-btn" onClick={() => navigate('/dashboard/generate')}>
           <Plus size={20} />
-          Create New Exam
+          <span>New Exam</span>
         </button>
       </header>
 
       {exams.length > 0 ? (
-        <div className="exams-grid">
+        <div className="exams-responsive-grid">
           {exams.map((exam) => (
-            <div key={exam.id} className="exam-card">
-              <div className="exam-card-head">
-                <div className="exam-icon">
+            <div key={exam.id} className="exam-cloud-card">
+              <div className="card-top">
+                <div className="exam-type-icon">
                   <Cloud size={24} />
                 </div>
-                <div className="exam-info">
-                  <h3>{exam.title}</h3>
-                  <p>{(exam.examData?.questions || exam.questions || []).length} Questions</p>
+                <div className="exam-main-info">
+                  <h3 className="text-ellipsis">{exam.title}</h3>
+                  <span className="q-count">{(exam.examData?.questions || exam.questions || []).length} Questions</span>
                 </div>
               </div>
               
-              <div className="exam-card-body">
-                <div className="meta-item">
+              <div className="card-mid">
+                <div className="meta-row">
                   <Clock size={14} />
-                  <span>Added: {new Date(exam.createdAt || exam.date).toLocaleDateString()}</span>
+                  <span>{new Date(exam.createdAt || exam.date).toLocaleDateString()}</span>
                 </div>
               </div>
 
-              <div className="exam-card-actions">
+              <div className="card-actions">
                 <button 
-                  className="action-btn start"
+                  className="btn-start"
                   onClick={() => navigate(`/dashboard/exam/my/${exam.id}`)}
-                  title="Start Exam"
                 >
-                  <Play size={18} />
-                  Start
+                  <Play size={18} fill="currentColor" />
+                  <span>Start</span>
                 </button>
-                <button 
-                  className="action-btn"
-                  onClick={() => handleExport(exam)}
-                  title="Export JSON"
-                >
-                  <Download size={18} />
-                </button>
-                <button 
-                  className="action-btn delete"
-                  onClick={() => handleDelete(exam.id)}
-                  title="Delete"
-                >
-                  <Trash2 size={18} />
-                </button>
+                <div className="btn-group">
+                  <button onClick={() => handleExport(exam)} title="Export JSON">
+                    <Download size={18} />
+                  </button>
+                  <button onClick={() => handleDelete(exam.id)} title="Delete" className="btn-delete">
+                    <Trash2 size={18} />
+                  </button>
+                </div>
               </div>
             </div>
           ))}
         </div>
       ) : (
-        <div className="empty-state card">
-          <BookOpen size={64} />
-          <h2>No exams yet</h2>
-          <p>Generate your first exam from pasted text or import a JSON file.</p>
-          <button className="primary-btn" onClick={() => navigate('/dashboard/generate')}>
-            <Plus size={20} />
-            Generate Now
+        <div className="empty-state-box">
+          <div className="empty-icon-wrap">
+            <FileQuestion size={48} />
+          </div>
+          <h2>Your library is empty</h2>
+          <p>You haven't generated any exams yet. Start by pasting some MCQs!</p>
+          <button className="primary-button" onClick={() => navigate('/dashboard/generate')}>
+            Generate First Exam
           </button>
         </div>
       )}
 
       <style>{`
-        .loading-screen {
-          padding: 5rem;
-          text-align: center;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 1rem;
-          font-weight: 700;
-          color: var(--text-muted);
-        }
-        .spinner { animation: spin 1s linear infinite; }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        .my-exams-container {
-          display: flex;
-          flex-direction: column;
-          gap: 2rem;
-        }
-        .page-header {
-          display: flex;
-          flex-direction: column;
-          gap: 0.5rem;
-          position: relative;
-        }
-        .add-btn {
-          position: absolute;
-          right: 0;
-          top: 0;
-          background: var(--primary);
-          color: white;
-          border: none;
-          padding: 0.75rem 1.25rem;
-          border-radius: 0.75rem;
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          font-weight: 700;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-        .add-btn:hover { background: var(--primary-hover); transform: translateY(-1px); }
+        .my-exams-page { display: flex; flex-direction: column; gap: 2.5rem; }
 
-        .exams-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        .page-header-alt {
+          display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+          background: var(--surface); padding: 1.5rem 2rem; border-radius: var(--radius-xl);
+          border: 1px solid var(--border);
+        }
+        .header-info h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
+        .header-info p { color: var(--text-muted); font-size: 0.9rem; font-weight: 600; }
+        
+        .header-action-btn {
+          background: var(--primary); color: white;
+          padding: 0 1.25rem; height: 44px; border-radius: var(--radius-lg);
+          display: flex; align-items: center; gap: 0.5rem; font-weight: 800;
+        }
+
+        .exams-responsive-grid {
+          display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
           gap: 1.5rem;
         }
-        .exam-card {
-          background: white;
-          padding: 1.5rem;
-          border-radius: var(--radius);
-          border: 1px solid var(--border);
-          display: flex;
-          flex-direction: column;
-          gap: 1rem;
-          transition: all 0.2s;
-        }
-        .exam-card:hover { box-shadow: var(--shadow); transform: translateY(-2px); }
-        .exam-card-head {
-          display: flex;
-          gap: 1rem;
-          align-items: center;
-        }
-        .exam-icon {
-          width: 48px;
-          height: 48px;
-          background: #f1f5f9;
-          color: #64748b;
-          border-radius: 0.75rem;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-        .exam-info h3 {
-          font-size: 1rem;
-          font-weight: 700;
-          color: var(--text-main);
-          margin-bottom: 0.25rem;
-        }
-        .exam-info p {
-          font-size: 0.8rem;
-          color: var(--text-muted);
-        }
-        .exam-card-body {
-          flex: 1;
-        }
-        .meta-item {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          font-size: 0.75rem;
-          color: var(--text-muted);
-        }
-        .exam-card-actions {
-          display: flex;
-          gap: 0.5rem;
-          padding-top: 1rem;
-          border-top: 1px solid var(--border);
-        }
-        .action-btn {
-          height: 40px;
-          width: 40px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          border-radius: 0.5rem;
-          border: 1px solid var(--border);
-          background: white;
-          color: #64748b;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-        .action-btn:hover { background: #f8fafc; color: var(--primary); border-color: var(--primary); }
-        .action-btn.start {
-          flex: 1;
-          width: auto;
-          background: var(--primary-light);
-          color: var(--primary);
-          border: none;
-          font-weight: 700;
-          gap: 0.5rem;
-        }
-        .action-btn.start:hover { background: var(--primary); color: white; }
-        .action-btn.delete:hover { color: var(--danger); border-color: var(--danger); }
 
-        .empty-state {
-          padding: 5rem 2rem;
-          text-align: center;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 1.5rem;
-          color: #94a3b8;
+        .exam-cloud-card {
+          background: var(--surface); padding: 1.5rem;
+          border-radius: var(--radius-2xl); border: 1px solid var(--border);
+          display: flex; flex-direction: column; gap: 1.25rem;
+          transition: all 0.2s;
         }
-        .primary-btn {
-          background: var(--primary);
-          color: white;
-          border: none;
-          padding: 0.75rem 2rem;
-          border-radius: 0.75rem;
-          font-weight: 700;
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          cursor: pointer;
+        .exam-cloud-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); border-color: var(--primary); }
+
+        .card-top { display: flex; align-items: center; gap: 1rem; }
+        .exam-type-icon {
+          width: 48px; height: 48px; background: var(--bg-soft); color: var(--text-soft);
+          border-radius: var(--radius-lg); display: flex; align-items: center; justify-content: center;
+        }
+        .exam-main-info h3 { font-size: 1.1rem; color: var(--text-strong); }
+        .q-count { font-size: 0.75rem; font-weight: 800; color: var(--primary); text-transform: uppercase; }
+
+        .card-mid { flex: 1; display: flex; flex-direction: column; }
+        .meta-row { display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; color: var(--text-muted); font-weight: 600; }
+
+        .card-actions {
+          display: flex; align-items: center; gap: 0.75rem;
+          padding-top: 1rem; border-top: 1px solid var(--border);
+        }
+        .btn-start {
+          flex: 1; background: var(--primary-soft); color: var(--primary);
+          height: 40px; border-radius: var(--radius-md); font-weight: 800;
+          display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+        }
+        .btn-start:hover { background: var(--primary); color: white; }
+        
+        .btn-group { display: flex; gap: 0.5rem; }
+        .btn-group button {
+          width: 44px; height: 40px; border-radius: var(--radius-md);
+          background: var(--bg-soft); color: var(--text-soft);
+          display: flex; align-items: center; justify-content: center;
+        }
+        .btn-group button:hover { color: var(--primary); background: var(--surface); border: 1px solid var(--primary); }
+        .btn-group .btn-delete:hover { color: var(--danger); border-color: var(--danger); background: var(--danger-soft); }
+
+        @media (max-width: 480px) {
+          .card-actions { flex-direction: column; align-items: stretch; }
+          .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+          .btn-group button { width: 100%; height: 44px; }
+          .btn-start { height: 44px; }
+        }
+
+        .empty-state-box {
+          background: var(--surface); padding: 4rem 2rem; border-radius: var(--radius-2xl);
+          border: 1px dashed var(--border-strong); text-align: center;
+          display: flex; flex-direction: column; align-items: center; gap: 1.5rem;
+        }
+        .empty-icon-wrap { width: 80px; height: 80px; border-radius: 50%; background: var(--bg-soft); color: var(--text-soft); display: flex; align-items: center; justify-content: center; }
+        .empty-state-box h2 { font-size: 1.5rem; }
+        .empty-state-box p { color: var(--text-muted); max-width: 400px; font-weight: 600; }
+        .primary-button { background: var(--primary); color: white; padding: 0 2rem; height: 48px; border-radius: var(--radius-lg); font-weight: 800; }
+
+        @media (max-width: 640px) {
+          .page-header-alt { flex-direction: column; align-items: flex-start; padding: 1.25rem; }
+          .header-action-btn { width: 100%; }
         }
       `}</style>
     </div>
