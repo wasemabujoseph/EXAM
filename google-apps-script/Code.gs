@@ -606,13 +606,13 @@ function callOpenRouter(messages, payloadKey) {
   const props = PropertiesService.getScriptProperties();
   const apiKey = payloadKey || props.getProperty('OPENROUTER_API_KEY');
   
-  if (!apiKey || apiKey === "YOUR_API_KEY_HERE") {
-    return "⚠️ Error: API Key not found. Please ensure VITE_OPENROUTER_API_KEY is configured in your cloud settings.";
+  if (!apiKey || apiKey === "YOUR_API_KEY_HERE" || apiKey.length < 10) {
+    throw new Error("API Key is missing or too short. Please check your VITE_OPENROUTER_API_KEY setting.");
   }
 
   const url = 'https://openrouter.ai/api/v1/chat/completions';
   const payload = {
-    model: 'google/gemini-2.0-flash-001', 
+    model: 'openai/gpt-oss-120b:free', 
     messages: messages,
     temperature: 0.7,
     top_p: 1,
@@ -625,8 +625,8 @@ function callOpenRouter(messages, payloadKey) {
     contentType: 'application/json',
     headers: {
       'Authorization': 'Bearer ' + apiKey,
-      'HTTP-Referer': 'https://imtihani-pro.com', 
-      'X-Title': 'Imtihani Pro'
+      'HTTP-Referer': 'https://medexam-portal.com', 
+      'X-Title': 'MEDEXAM Portal'
     },
     payload: JSON.stringify(payload),
     muteHttpExceptions: true
@@ -639,7 +639,8 @@ function callOpenRouter(messages, payloadKey) {
     
     if (code !== 200) {
       Logger.log(`❌ AI Provider Error (${code}): ${text}`);
-      throw new Error(`Cloud AI Error (${code}). Check your API key and balance.`);
+      const maskedKey = apiKey.substring(0, 8) + '...' + apiKey.substring(apiKey.length - 4);
+      throw new Error(`Cloud AI Error (${code}). Your key (${maskedKey}) was rejected. Check your OpenRouter balance or key validity.`);
     }
 
     const json = JSON.parse(text);

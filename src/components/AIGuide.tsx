@@ -57,10 +57,12 @@ const AIGuide: React.FC<Props> = ({ userName, embedded = false }) => {
     setLoading(true);
 
     try {
+      const apiKey = import.meta.env.VITE_OPENROUTER_API_KEY;
+      
       const context = {
         pageTitle: document.title,
         pageUrl: window.location.href,
-        apiKey: import.meta.env.VITE_OPENROUTER_API_KEY
+        apiKey: apiKey
       };
 
       const result = await api.aiChat(newMessages, context);
