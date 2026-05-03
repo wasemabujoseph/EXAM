@@ -32,6 +32,10 @@ async function request<T>(action: string, payload: any = {}): Promise<T> {
     console.log(`📡 Sending [${action}] to:`, API_URL);
     const response = await fetch(API_URL, {
       method: 'POST',
+      mode: 'cors',
+      headers: {
+        'Content-Type': 'text/plain;charset=utf-8',
+      },
       body: JSON.stringify({
         action,
         payload,

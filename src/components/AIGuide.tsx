@@ -57,12 +57,10 @@ const AIGuide: React.FC<Props> = ({ userName, embedded = false }) => {
     setLoading(true);
 
     try {
-      const apiKey = import.meta.env.VITE_OPENROUTER_API_KEY;
-      
       const context = {
         pageTitle: document.title,
         pageUrl: window.location.href,
-        apiKey: apiKey
+        apiKey: import.meta.env.VITE_OPENROUTER_API_KEY
       };
 
       const result = await api.aiChat(newMessages, context);
@@ -72,10 +70,10 @@ const AIGuide: React.FC<Props> = ({ userName, embedded = false }) => {
         throw new Error('Empty response from AI');
       }
     } catch (err: any) {
-      const errorMessage = err.message || 'I encountered an error connecting to the medical brain.';
+      console.error('AI Chat Error:', err);
       setMessages(prev => [...prev, { 
         role: 'assistant', 
-        content: `⚠️ ${errorMessage} Please ensure your API key is configured correctly in your environment or cloud settings.` 
+        content: '⚠️ I encountered an error connecting to the medical brain. Please ensure your API key is configured correctly.' 
       }]);
     } finally {
       setLoading(false);

@@ -606,13 +606,13 @@ function callOpenRouter(messages, payloadKey) {
   const props = PropertiesService.getScriptProperties();
   const apiKey = payloadKey || props.getProperty('OPENROUTER_API_KEY');
   
-  if (!apiKey || apiKey === "YOUR_API_KEY_HERE" || apiKey.length < 10) {
-    throw new Error("API Key is missing or too short. Please check your VITE_OPENROUTER_API_KEY setting.");
+  if (!apiKey || apiKey === "YOUR_API_KEY_HERE") {
+    return "⚠️ Error: API Key not found. Please ensure VITE_OPENROUTER_API_KEY is configured in your cloud settings.";
   }
 
   const url = 'https://openrouter.ai/api/v1/chat/completions';
   const payload = {
-    model: 'openai/gpt-oss-120b:free', 
+    model: 'google/gemini-2.0-flash-001', 
     messages: messages,
     temperature: 0.7,
     top_p: 1,
@@ -625,8 +625,8 @@ function callOpenRouter(messages, payloadKey) {
     contentType: 'application/json',
     headers: {
       'Authorization': 'Bearer ' + apiKey,
-      'HTTP-Referer': 'https://medexam-portal.com', 
-      'X-Title': 'MEDEXAM Portal'
+      'HTTP-Referer': 'https://imtihani-pro.com', 
+      'X-Title': 'Imtihani Pro'
     },
     payload: JSON.stringify(payload),
     muteHttpExceptions: true
@@ -634,25 +634,17 @@ function callOpenRouter(messages, payloadKey) {
 
   try {
     const response = UrlFetchApp.fetch(url, options);
-    const text = response.getContentText();
-    const code = response.getResponseCode();
+    const json = JSON.parse(response.getContentText());
     
-    if (code !== 200) {
-      Logger.log(`❌ AI Provider Error (${code}): ${text}`);
-      const maskedKey = apiKey.substring(0, 8) + '...' + apiKey.substring(apiKey.length - 4);
-      throw new Error(`Cloud AI Error (${code}). Your key (${maskedKey}) was rejected. Check your OpenRouter balance or key validity.`);
-    }
-
-    const json = JSON.parse(text);
     if (json.choices && json.choices[0]) {
       return json.choices[0].message.content;
     } else {
-      Logger.log('❌ Unexpected AI Response: ' + text);
-      throw new Error('AI Engine returned an empty response. Possible model overload.');
+      Logger.log('OpenRouter Error: ' + response.getContentText());
+      throw new Error('AI Engine returned an empty response');
     }
   } catch (e) {
-    Logger.log('❌ AI Exception: ' + e.message);
-    throw new Error('Could not connect to MEDEXAM AI: ' + e.message);
+    Logger.log('AI Fetch Error: ' + e.message);
+    throw new Error('AI Gateway connection failed: ' + e.message);
   }
 }
 
