@@ -590,6 +590,8 @@ const ExamRunner: React.FC = () => {
           font-weight: 700; 
           color: var(--text-main); 
           font-size: 1.1rem;
+          word-break: break-word;
+          overflow-wrap: break-word;
         }
  
         .q-footer-run {

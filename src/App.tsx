@@ -22,11 +22,13 @@ import AdminExams from './components/AdminExams';
 import AdminAttempts from './components/AdminAttempts';
 import { AdminAnalytics, AdminSettings } from './components/AdminPlaceholders';
 
+import StudentStatistics from './components/StudentStatistics';
+
 const AppContent = () => {
   const { user, isLoading } = useVault();
 
   if (isLoading) {
-    return <div className="loading-screen">Connecting to EXAM Cloud...</div>;
+    return <div className="loading-screen">Connecting to MEDEXAM Cloud...</div>;
   }
 
   const isAuthenticated = !!user;
@@ -37,7 +39,8 @@ const AppContent = () => {
       <Route path="/register" element={isAuthenticated ? <Navigate to="/dashboard" /> : <RegisterPage />} />
       
       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>}>
-        <Route index element={<CurriculumOverview />} />
+        <Route index element={<Navigate to="stats" replace />} />
+        <Route path="stats" element={<StudentStatistics />} />
         <Route path="curriculum" element={<CurriculumOverview />} />
         <Route path="year/:yearId" element={<YearView />} />
         <Route path="subject/:yearId/:semesterId/:subjectName" element={<SubjectDetails />} />

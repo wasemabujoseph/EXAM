@@ -66,6 +66,8 @@ const AIGuide: React.FC<Props> = ({ userName, embedded = false }) => {
       const result = await api.aiChat(newMessages, context);
       if (result && result.content) {
         setMessages(prev => [...prev, { role: 'assistant', content: result.content }]);
+      } else if (result && result.error) {
+        throw new Error(result.error);
       } else {
         throw new Error('Empty response from AI');
       }
@@ -81,10 +83,14 @@ const AIGuide: React.FC<Props> = ({ userName, embedded = false }) => {
   };
 
   const quickActions = [
-    { label: 'Analyze my performance' },
-    { label: 'How to improve my score?' },
-    { label: 'Explain this page' }
+    { label: 'Analyze my performance', action: 'performance' },
+    { label: 'Medical exam strategies', action: 'strategies' },
+    { label: 'Explain this page', action: 'explain' }
   ];
+
+  const handleQuickAction = (label: string) => {
+    handleSend(label);
+  };
 
   const ChatWindow = (
     <div className={`ai-chat-window ${embedded ? 'embedded' : 'floating'} ${isOpen ? 'is-open' : ''}`}>
@@ -139,7 +145,7 @@ const AIGuide: React.FC<Props> = ({ userName, embedded = false }) => {
       {/* Quick Actions */}
       <div className="ai-quick-actions">
         {quickActions.map((action, idx) => (
-          <button key={idx} onClick={() => handleSend(action.label)} className="ai-action-btn">
+          <button key={idx} onClick={() => handleQuickAction(action.label)} className="ai-action-btn">
             {action.label}
           </button>
         ))}

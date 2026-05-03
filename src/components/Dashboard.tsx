@@ -30,7 +30,8 @@ const Dashboard: React.FC = () => {
   };
 
   const navItems = [
-    { icon: <LayoutDashboard size={20} />, label: 'Curriculum', path: '/dashboard/curriculum' },
+    { icon: <LayoutDashboard size={20} />, label: 'Dashboard', path: '/dashboard/stats' },
+    { icon: <BookOpen size={20} />, label: 'Curriculum', path: '/dashboard/curriculum' },
     { icon: <PlusCircle size={20} />, label: 'Generate Exam', path: '/dashboard/generate' },
     { icon: <FileText size={20} />, label: 'My Exams', path: '/dashboard/my-exams' },
     { icon: <History size={20} />, label: 'Results History', path: '/dashboard/history' },

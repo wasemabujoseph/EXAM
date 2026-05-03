@@ -1,6 +1,6 @@
 /**
- * EXAM Backend - Google Apps Script (Version 3.2.0 - Master)
- * This script acts as the backend for the EXAM project, using Google Sheets as a database.
+ * MEDEXAM Backend - Cloud Infrastructure (Version 4.0.0 - Professional)
+ * This script acts as the backend for the MEDEXAM project.
  */
 
 const SPREADSHEET_ID = '1wjo94ElGv7T-Hq5AoLQ7wleMYnu5c51ia7mbZX8FhEc';
@@ -606,12 +606,12 @@ function callOpenRouter(messages, payloadKey) {
   const apiKey = payloadKey || props.getProperty('OPENROUTER_API_KEY');
   
   if (!apiKey || apiKey === "YOUR_API_KEY_HERE") {
-    return "⚠️ عذراً، لم يتم العثور على مفتاح الـ API. يرجى إضافته إلى ملف .env باسم VITE_OPENROUTER_API_KEY أو في إعدادات Script Properties.";
+    return "⚠️ Error: AI API Key not configured. Please check your cloud environment variables.";
   }
 
   const url = 'https://openrouter.ai/api/v1/chat/completions';
   const payload = {
-    model: 'openai/gpt-oss-120b:free', 
+    model: 'google/gemini-2.0-flash-exp:free', 
     messages: messages,
     temperature: 0.7,
     top_p: 1,
@@ -643,7 +643,7 @@ function callOpenRouter(messages, payloadKey) {
     }
   } catch (e) {
     Logger.log('AI Fetch Error: ' + e.message);
-    throw new Error('فشل الاتصال بمحرك الذكاء الاصطناعي: ' + e.message);
+    throw new Error('AI Engine Connection Failed: ' + e.message);
   }
 }
 

@@ -1,5 +1,5 @@
 /**
- * API Client for Google Apps Script Backend
+ * API Client for MEDEXAM Cloud Backend
  */
 
 const API_URL = import.meta.env.VITE_APPS_SCRIPT_API_URL?.trim();
@@ -48,7 +48,7 @@ async function request<T>(action: string, payload: any = {}): Promise<T> {
     clearTimeout(timeoutId);
 
     if (!response.ok) {
-      throw new Error(`Server status ${response.status}. Ensure Apps Script is deployed as "Anyone".`);
+      throw new Error(`Server status ${response.status}. Ensure the backend is properly deployed.`);
     }
 
     const text = await response.text();
@@ -62,9 +62,9 @@ async function request<T>(action: string, payload: any = {}): Promise<T> {
       console.error('❌ Malformed API response:', text);
       const isHtml = text.trim().toLowerCase().startsWith('<!doctype html') || text.trim().toLowerCase().startsWith('<html');
       if (isHtml) {
-        throw new Error('Backend returned HTML instead of JSON. This usually means the Apps Script deployment URL is wrong or the script has a syntax error.');
+        throw new Error('Backend returned HTML instead of JSON. This usually means the deployment URL is wrong or the service is unavailable.');
       }
-      throw new Error('Malformed backend response. Check Apps Script deployment and permissions.');
+      throw new Error('Malformed backend response. Check cloud deployment and permissions.');
     }
 
     console.log(`✅ API [${action}] Response:`, result);
@@ -88,7 +88,7 @@ async function request<T>(action: string, payload: any = {}): Promise<T> {
     
     if (error.message.includes('Failed to fetch')) {
       console.error(`📡 API [${action}] Network Error`);
-      throw new Error('Could not connect to backend. Check Apps Script URL and deployment permissions.');
+      throw new Error('Could not connect to backend. Check your internet connection and cloud status.');
     }
 
     console.error(`❌ API [${action}] Error:`, error.message);

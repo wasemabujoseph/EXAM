@@ -76,10 +76,15 @@ const ReviewAttempt: React.FC = () => {
   const handleRedoWrong = () => {
     const qs = attempt.questionsSnapshot || attempt.questions || [];
     const wrongQs = qs.filter((q: any, i: number) => {
-      const uAns = (attempt.answers[i] || []).sort().join(',');
+      const uAns = (attempt.answers[i] || attempt.answers[q.id] || []).sort().join(',');
       const cAns = (q.answers || q.correct_answers || [q.correctAnswer]).sort().join(',');
       return uAns !== cAns;
     });
+
+    if (wrongQs.length === 0) {
+      alert('Congratulations! You got all questions correct.');
+      return;
+    }
 
     navigate(`/dashboard/exam/cloud/${attempt.examId}`, { 
       state: { 
@@ -318,7 +323,13 @@ const ReviewAttempt: React.FC = () => {
           font-weight: 700;
           color: #64748b;
         }
-        .opt-text { flex: 1; font-size: 0.95rem; color: #475569; }
+        .opt-text { 
+          flex: 1; 
+          font-size: 0.95rem; 
+          color: #475569; 
+          word-break: break-word;
+          overflow-wrap: break-word;
+        }
         .opt-status-icon { margin-left: auto; }
 
         .correct-opt {
