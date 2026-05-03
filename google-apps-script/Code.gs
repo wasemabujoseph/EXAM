@@ -604,10 +604,21 @@ Guidelines:
 
 function callOpenRouter(messages) {
   const props = PropertiesService.getScriptProperties();
-  const apiKey = props.getProperty('OPENROUTER_API_KEY');
+  let apiKey = props.getProperty('OPENROUTER_API_KEY');
   
-  if (!apiKey || apiKey === "YOUR_API_KEY_HERE") {
+  if (!apiKey) {
     return "⚠️ OpenRouter API key is missing in Apps Script Script Properties.";
+  }
+
+  // Normalize the key
+  apiKey = apiKey.trim();
+  apiKey = apiKey.replace(/^["']|["']$/g, ''); // Remove wrapping quotes
+  apiKey = apiKey.replace(/^Bearer\s+/i, ''); // Remove leading "Bearer "
+
+  // Validate key format
+  if (!apiKey.startsWith('sk-or-')) {
+    Logger.log('❌ Invalid Key Format: Key does not start with sk-or-');
+    return "⚠️ Invalid OpenRouter API key format. Please ensure it starts with 'sk-or-'.";
   }
 
   const url = 'https://openrouter.ai/api/v1/chat/completions';
@@ -652,6 +663,23 @@ function callOpenRouter(messages) {
   } catch (e) {
     Logger.log('❌ AI Exception: ' + e.message);
     return '⚠️ Could not reach the medical brain. Please check your network connection.';
+  }
+}
+
+/**
+ * Diagnostic function to test OpenRouter connectivity.
+ * Run this from the Apps Script editor to check your API key.
+ */
+function TEST_OPENROUTER_KEY() {
+  const result = callOpenRouter([{ role: 'user', content: 'Say hello' }]);
+  Logger.log('--- TEST RESULT ---');
+  Logger.log(result);
+  Logger.log('-------------------');
+  
+  if (result.startsWith('⚠️')) {
+    Logger.log('❌ Test Failed. Check the error message above.');
+  } else {
+    Logger.log('✅ Test Successful! OpenRouter is communicating correctly.');
   }
 }
 
