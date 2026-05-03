@@ -564,7 +564,7 @@ function handleAIChat(user, payload) {
     ...messages
   ];
 
-  const response = callOpenRouter(chatHistory);
+  const response = callOpenRouter(chatHistory, context?.apiKey);
   logAction(user.id, 'AI_CHAT', `Interaction on ${context?.pageTitle || 'unknown'}`);
   
   return { content: response };
@@ -593,18 +593,18 @@ function handleAIExplain(user, payload) {
 - اجعل الأسلوب واضحاً، ممتعاً، وموجزاً.
 - التزام العلامة التجارية: لا تقترح البحث في مواقع أخرى. أنت مرشد الطالب الوحيد داخل منصة "إمتحاني".`;
 
-  const response = callOpenRouter([{ role: 'user', content: prompt }]);
+  const response = callOpenRouter([{ role: 'user', content: prompt }], questionContext?.apiKey);
   logAction(user.id, 'AI_EXPLAIN', `Explained question: ${questionContext.questionText.substring(0, 30)}...`);
   
   return { content: response };
 }
 
-function callOpenRouter(messages) {
+function callOpenRouter(messages, payloadKey) {
   const props = PropertiesService.getScriptProperties();
-  const apiKey = props.getProperty('OPENROUTER_API_KEY');
+  const apiKey = payloadKey || props.getProperty('OPENROUTER_API_KEY');
   
-  if (!apiKey) {
-    return "⚠️ عذراً، لم يتم ضبط مفتاح برمجة الذكاء الاصطناعي (API Key) في إعدادات الخادم. يرجى مراجعة المسؤول.";
+  if (!apiKey || apiKey === "YOUR_API_KEY_HERE") {
+    return "⚠️ عذراً، لم يتم العثور على مفتاح الـ API. يرجى إضافته إلى ملف .env باسم VITE_OPENROUTER_API_KEY أو في إعدادات Script Properties.";
   }
 
   const url = 'https://openrouter.ai/api/v1/chat/completions';
