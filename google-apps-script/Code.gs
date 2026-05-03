@@ -537,6 +537,16 @@ function rowToObject(row, headers) {
 
 // --- AI Handlers ---
 
+/**
+ * ONE-TIME SETUP: Run this function once in the Apps Script editor 
+ * to securely save your API key.
+ */
+function SETUP_OPENROUTER_KEY() {
+  const apiKey = "YOUR_API_KEY_HERE"; 
+  PropertiesService.getScriptProperties().setProperty('OPENROUTER_API_KEY', apiKey);
+  Logger.log("✅ API Key saved successfully!");
+}
+
 function handleAIChat(user, payload) {
   if (!user) throw new Error('Unauthorized');
   const { messages, context } = payload;
