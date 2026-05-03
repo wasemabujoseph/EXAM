@@ -609,9 +609,12 @@ function callOpenRouter(messages) {
 
   const url = 'https://openrouter.ai/api/v1/chat/completions';
   const payload = {
-    model: 'google/gemini-2.0-flash-exp:free', // Default to a fast/free model
+    model: 'openai/gpt-oss-120b:free', 
     messages: messages,
-    temperature: 0.7
+    temperature: 0.7,
+    top_p: 1,
+    frequency_penalty: 0,
+    presence_penalty: 0
   };
 
   const options = {
@@ -619,7 +622,7 @@ function callOpenRouter(messages) {
     contentType: 'application/json',
     headers: {
       'Authorization': 'Bearer ' + apiKey,
-      'HTTP-Referer': 'https://imtihani-pro.com', // Optional
+      'HTTP-Referer': 'https://imtihani-pro.com', 
       'X-Title': 'Imtihani Pro'
     },
     payload: JSON.stringify(payload),
