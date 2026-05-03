@@ -42,430 +42,430 @@ const Dashboard: React.FC = () => {
   const profileEmail = user?.role ? user.role.toUpperCase() : 'STUDENT';
 
   return (
-    <div className="dashboard-layout">
-      {/* Mobile Header */}
-      <header className="mobile-header">
-        <button onClick={() => setIsSidebarOpen(true)} className="icon-btn">
-          <Menu size={24} />
-        </button>
-        <span className="mobile-logo">EXAM CLOUD</span>
-        <div className="avatar-small">
-          {profileName.charAt(0)}
-        </div>
-      </header>
-
-      {/* Sidebar */}
-      <aside className={`sidebar ${isSidebarOpen ? 'is-open' : ''}`}>
-        <div className="sidebar-header">
-          <div className="logo-box">
-            <BookOpen size={24} />
-            <span>EXAM CLOUD</span>
-          </div>
-          <button onClick={() => setIsSidebarOpen(false)} className="close-btn md-hidden">
-            <X size={24} />
+    <>
+      <div className="dashboard-layout">
+        {/* Mobile Header */}
+        <header className="mobile-header">
+          <button onClick={() => setIsSidebarOpen(true)} className="icon-btn">
+            <Menu size={24} />
           </button>
-        </div>
-
-        <div className="user-profile">
-          <div className="avatar">
+          <span className="mobile-logo">EXAM CLOUD</span>
+          <div className="avatar-small">
             {profileName.charAt(0)}
           </div>
-          <div className="user-info">
-            <span className="user-name">{profileName}</span>
-            <span className="user-email">{profileEmail}</span>
-          </div>
-        </div>
+        </header>
 
-        <nav className="sidebar-nav">
-          {navItems.map((item) => (
-            <NavLink 
-              key={item.path} 
-              to={item.path} 
-              className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
-              onClick={() => setIsSidebarOpen(false)}
-            >
-              {item.icon}
-              <span>{item.label}</span>
-            </NavLink>
-          ))}
-          {(user?.role === 'admin' || user?.email === 'wasemkhallaf864@gmail.com') && (
-            <NavLink 
-              to="/admin" 
-              className="nav-item admin-link"
-              onClick={() => setIsSidebarOpen(false)}
-              style={{ borderLeft: '4px solid #f59e0b', background: 'rgba(245, 158, 11, 0.05)' }}
-            >
-              <ShieldIcon size={20} style={{ color: '#f59e0b' }} />
-              <span style={{ color: '#f59e0b', fontWeight: 800 }}>Admin Panel</span>
-            </NavLink>
-          )}
-        </nav>
-
-        <div className="plan-stats">
-          <div className="stats-header">
-            <span className="label">Usage Status</span>
-            <span className={`plan-badge ${user?.plan}`}>{user?.plan?.toUpperCase()}</span>
-          </div>
-          {user?.plan === 'free' ? (
-            <div className="progress-box">
-              <div className="progress-text">
-                <span>Attempts</span>
-                <span>{user?.attempt_count} / {user?.trial_limit}</span>
-              </div>
-              <div className="progress-bar">
-                <div 
-                  className="progress-fill" 
-                  style={{ width: `${Math.min(100, ((user?.attempt_count || 0) / (user?.trial_limit || 4)) * 100)}%` }}
-                ></div>
-              </div>
+        {/* Sidebar */}
+        <aside className={`sidebar ${isSidebarOpen ? 'is-open' : ''}`}>
+          <div className="sidebar-header">
+            <div className="logo-box">
+              <BookOpen size={24} />
+              <span>EXAM CLOUD</span>
             </div>
-          ) : (
-            <div className="pro-status">
-              <span className="pro-text">Unlimited Access</span>
+            <button onClick={() => setIsSidebarOpen(false)} className="close-btn md-hidden">
+              <X size={24} />
+            </button>
+          </div>
+
+          <div className="user-profile">
+            <div className="avatar">
+              {profileName.charAt(0)}
             </div>
-          )}
-        </div>
+            <div className="user-info">
+              <span className="user-name">{profileName}</span>
+              <span className="user-email">{profileEmail}</span>
+            </div>
+          </div>
 
-        <div className="sidebar-footer">
-          <button onClick={handleLogout} className="logout-btn">
-            <LogOut size={20} />
-            <span>Sign Out</span>
-          </button>
-        </div>
-      </aside>
+          <nav className="sidebar-nav">
+            {navItems.map((item) => (
+              <NavLink 
+                key={item.path} 
+                to={item.path} 
+                className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
+                onClick={() => setIsSidebarOpen(false)}
+              >
+                {item.icon}
+                <span>{item.label}</span>
+              </NavLink>
+            ))}
+            {(user?.role === 'admin' || user?.email === 'wasemkhallaf864@gmail.com') && (
+              <NavLink 
+                to="/admin" 
+                className="nav-item admin-link"
+                onClick={() => setIsSidebarOpen(false)}
+                style={{ borderLeft: '4px solid #f59e0b', background: 'rgba(245, 158, 11, 0.05)' }}
+              >
+                <ShieldIcon size={20} style={{ color: '#f59e0b' }} />
+                <span style={{ color: '#f59e0b', fontWeight: 800 }}>Admin Panel</span>
+              </NavLink>
+            )}
+          </nav>
 
-      {/* Main Content */}
-      <main className="main-content">
-        <div className="content-container">
-          <Outlet />
-        </div>
-      </main>
+          <div className="plan-stats">
+            <div className="stats-header">
+              <span className="label">Usage Status</span>
+              <span className={`plan-badge ${user?.plan}`}>{user?.plan?.toUpperCase()}</span>
+            </div>
+            {user?.plan === 'free' ? (
+              <div className="progress-box">
+                <div className="progress-text">
+                  <span>Attempts</span>
+                  <span>{user?.attempt_count} / {user?.trial_limit}</span>
+                </div>
+                <div className="progress-bar">
+                  <div 
+                    className="progress-fill" 
+                    style={{ width: `${Math.min(100, ((user?.attempt_count || 0) / (user?.trial_limit || 4)) * 100)}%` }}
+                  ></div>
+                </div>
+              </div>
+            ) : (
+              <div className="pro-status">
+                <span className="pro-text">Unlimited Access</span>
+              </div>
+            )}
+          </div>
 
-      {/* AI Mentor */}
-      <AIGuide userName={profileName} />
+          <div className="sidebar-footer">
+            <button onClick={handleLogout} className="logout-btn">
+              <LogOut size={20} />
+              <span>Sign Out</span>
+            </button>
+          </div>
+        </aside>
 
-      {/* Mobile Overlay */}
-      {isSidebarOpen && <div className="sidebar-overlay" onClick={() => setIsSidebarOpen(false)}></div>}
+        {/* Main Content */}
+        <main className="main-content">
+          <div className="content-container">
+            <Outlet />
+          </div>
+        </main>
 
-      <style>{`
-        .dashboard-layout {
-          display: flex;
-          min-height: 100vh;
-          background-color: var(--background);
-        }
+        {/* Mobile Overlay */}
+        {isSidebarOpen && <div className="sidebar-overlay" onClick={() => setIsSidebarOpen(false)}></div>}
 
-        .sidebar {
-          width: 280px;
-          background: rgba(255, 255, 255, 0.8);
-          backdrop-filter: blur(20px);
-          -webkit-backdrop-filter: blur(20px);
-          border-right: 1px solid var(--border);
-          display: flex;
-          flex-direction: column;
-          position: fixed;
-          height: 100vh;
-          z-index: 50;
-          transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-          box-shadow: var(--shadow);
-        }
-
-        .sidebar-header {
-          padding: 2rem 1.5rem;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-        }
-
-        .logo-box {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-          font-weight: 900;
-          font-size: 1.5rem;
-          color: var(--text-main);
-          letter-spacing: -0.04em;
-        }
-
-        .logo-box svg {
-          color: var(--primary);
-          filter: drop-shadow(0 0 8px var(--primary-glow));
-        }
-
-        .user-profile {
-          padding: 1.25rem;
-          margin: 0 1rem 2rem;
-          background: var(--primary-light);
-          border-radius: var(--radius);
-          display: flex;
-          align-items: center;
-          gap: 1rem;
-          border: 1px solid rgba(99, 102, 241, 0.1);
-          transition: transform 0.2s;
-        }
-
-        .user-profile:hover {
-          transform: scale(1.02);
-        }
-
-        .avatar {
-          width: 44px;
-          height: 44px;
-          background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
-          color: white;
-          border-radius: 1rem;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-weight: 800;
-          font-size: 1.25rem;
-          box-shadow: 0 4px 10px rgba(99, 102, 241, 0.3);
-        }
-
-        .user-info {
-          display: flex;
-          flex-direction: column;
-          overflow: hidden;
-        }
-
-        .user-name {
-          font-weight: 800;
-          color: var(--text-main);
-          font-size: 0.95rem;
-          letter-spacing: -0.01em;
-        }
-
-        .user-email {
-          font-size: 0.75rem;
-          font-weight: 700;
-          color: var(--primary);
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-          opacity: 0.8;
-        }
-
-        .sidebar-nav {
-          flex: 1;
-          padding: 0 1rem;
-          display: flex;
-          flex-direction: column;
-          gap: 0.5rem;
-        }
-
-        .nav-item {
-          display: flex;
-          align-items: center;
-          gap: 1rem;
-          padding: 0.875rem 1.25rem;
-          color: var(--text-muted);
-          text-decoration: none;
-          font-weight: 700;
-          border-radius: var(--radius);
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .nav-item:hover {
-          background: var(--surface-hover);
-          color: var(--text-main);
-          padding-left: 1.5rem;
-        }
-
-        .nav-item.active {
-          background: var(--primary);
-          color: white;
-          box-shadow: 0 8px 15px -3px var(--primary-glow);
-        }
-
-        .nav-item svg {
-          transition: transform 0.3s;
-        }
-
-        .nav-item:hover svg {
-          transform: translateX(2px);
-        }
-
-        .sidebar-footer {
-          padding: 1.5rem;
-          border-top: 1px solid var(--border);
-        }
-
-        .logout-btn {
-          width: 100%;
-          display: flex;
-          align-items: center;
-          gap: 1rem;
-          padding: 1rem 1.25rem;
-          color: var(--danger);
-          background: rgba(239, 68, 68, 0.05);
-          border: 1px solid transparent;
-          font-weight: 700;
-          border-radius: var(--radius);
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-
-        .logout-btn:hover {
-          background: var(--danger);
-          color: white;
-          box-shadow: 0 8px 15px -3px rgba(239, 68, 68, 0.3);
-        }
-
-        .main-content {
-          flex: 1;
-          margin-left: 280px;
-          padding: 2.5rem;
-          transition: margin 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-
-        .content-container {
-          max-width: var(--container-max);
-          margin: 0 auto;
-          animation: fadeIn 0.6s ease-out;
-        }
-
-        .mobile-header {
-          display: none;
-          padding: 1rem 1.5rem;
-          background: rgba(255, 255, 255, 0.8);
-          backdrop-filter: blur(10px);
-          border-bottom: 1px solid var(--border);
-          align-items: center;
-          justify-content: space-between;
-          position: sticky;
-          top: 0;
-          z-index: 40;
-        }
-
-        .mobile-logo {
-          font-weight: 900;
-          letter-spacing: -0.05em;
-          color: var(--primary);
-        }
-
-        .avatar-small {
-          width: 36px;
-          height: 36px;
-          background: var(--primary);
-          color: white;
-          border-radius: 0.75rem;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 1rem;
-          font-weight: 800;
-        }
-
-        @media (max-width: 1024px) {
-          .sidebar {
-            transform: translateX(-100%);
-          }
-          .sidebar.is-open {
-            transform: translateX(0);
-          }
-          .main-content {
-            margin-left: 0;
-            padding: 1.5rem;
-          }
-          .mobile-header {
+        <style>{`
+          .dashboard-layout {
             display: flex;
+            min-height: 100vh;
+            background-color: var(--background);
           }
-          .sidebar-overlay {
+
+          .sidebar {
+            width: 280px;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
             position: fixed;
-            inset: 0;
-            background: rgba(15, 23, 42, 0.4);
-            backdrop-filter: blur(4px);
-            z-index: 45;
+            height: 100vh;
+            z-index: 50;
+            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: var(--shadow);
           }
-        }
 
-        .admin-link {
-          margin-top: 1rem;
-          background: #fff7ed;
-          color: #ea580c;
-          border: 1px solid rgba(234, 88, 12, 0.1);
-        }
+          .sidebar-header {
+            padding: 2rem 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+          }
 
-        .admin-link:hover {
-          background: #ffedd5;
-          color: #c2410c;
-        }
+          .logo-box {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-weight: 900;
+            font-size: 1.5rem;
+            color: var(--text-main);
+            letter-spacing: -0.04em;
+          }
 
-        .plan-stats {
-          margin: 1rem;
-          padding: 1.5rem;
-          background: var(--surface);
-          border-radius: var(--radius);
-          border: 1px solid var(--border);
-          box-shadow: var(--shadow-sm);
-        }
+          .logo-box svg {
+            color: var(--primary);
+            filter: drop-shadow(0 0 8px var(--primary-glow));
+          }
 
-        .stats-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 1rem;
-        }
+          .user-profile {
+            padding: 1.25rem;
+            margin: 0 1rem 2rem;
+            background: var(--primary-light);
+            border-radius: var(--radius);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            border: 1px solid rgba(99, 102, 241, 0.1);
+            transition: transform 0.2s;
+          }
 
-        .stats-header .label {
-          font-size: 0.75rem;
-          font-weight: 800;
-          color: var(--text-dim);
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-        }
+          .user-profile:hover {
+            transform: scale(1.02);
+          }
 
-        .plan-badge {
-          font-size: 0.7rem;
-          font-weight: 800;
-          padding: 0.25rem 0.6rem;
-          border-radius: 0.5rem;
-          text-transform: uppercase;
-        }
+          .avatar {
+            width: 44px;
+            height: 44px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
+            color: white;
+            border-radius: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 1.25rem;
+            box-shadow: 0 4px 10px rgba(99, 102, 241, 0.3);
+          }
 
-        .plan-badge.free { background: #fff7ed; color: #ea580c; }
-        .plan-badge.pro { background: #ecfdf5; color: #059669; }
+          .user-info {
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+          }
 
-        .progress-box {
-          display: flex;
-          flex-direction: column;
-          gap: 0.6rem;
-        }
+          .user-name {
+            font-weight: 800;
+            color: var(--text-main);
+            font-size: 0.95rem;
+            letter-spacing: -0.01em;
+          }
 
-        .progress-text {
-          display: flex;
-          justify-content: space-between;
-          font-size: 0.8rem;
-          font-weight: 700;
-          color: var(--text-muted);
-        }
+          .user-email {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--primary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            opacity: 0.8;
+          }
 
-        .progress-bar {
-          height: 8px;
-          background: var(--background);
-          border-radius: 4px;
-          overflow: hidden;
-        }
+          .sidebar-nav {
+            flex: 1;
+            padding: 0 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+          }
 
-        .progress-fill {
-          height: 100%;
-          background: linear-gradient(90deg, var(--primary) 0%, var(--primary-hover) 100%);
-          border-radius: 4px;
-          transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
-        }
+          .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.875rem 1.25rem;
+            color: var(--text-muted);
+            text-decoration: none;
+            font-weight: 700;
+            border-radius: var(--radius);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          }
 
-        .pro-status {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 0.5rem;
-          background: #ecfdf5;
-          border-radius: 0.75rem;
-          color: #059669;
-          font-size: 0.8rem;
-          font-weight: 800;
-          gap: 0.5rem;
-        }
-      `}</style>
-    </div>
+          .nav-item:hover {
+            background: var(--surface-hover);
+            color: var(--text-main);
+            padding-left: 1.5rem;
+          }
+
+          .nav-item.active {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 8px 15px -3px var(--primary-glow);
+          }
+
+          .nav-item svg {
+            transition: transform 0.3s;
+          }
+
+          .nav-item:hover svg {
+            transform: translateX(2px);
+          }
+
+          .sidebar-footer {
+            padding: 1.5rem;
+            border-top: 1px solid var(--border);
+          }
+
+          .logout-btn {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem 1.25rem;
+            color: var(--danger);
+            background: rgba(239, 68, 68, 0.05);
+            border: 1px solid transparent;
+            font-weight: 700;
+            border-radius: var(--radius);
+            cursor: pointer;
+            transition: all 0.2s;
+          }
+
+          .logout-btn:hover {
+            background: var(--danger);
+            color: white;
+            box-shadow: 0 8px 15px -3px rgba(239, 68, 68, 0.3);
+          }
+
+          .main-content {
+            flex: 1;
+            margin-left: 280px;
+            padding: 2.5rem;
+            transition: margin 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+          }
+
+          .content-container {
+            max-width: var(--container-max);
+            margin: 0 auto;
+            animation: fadeIn 0.6s ease-out;
+          }
+
+          .mobile-header {
+            display: none;
+            padding: 1rem 1.5rem;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border);
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 40;
+          }
+
+          .mobile-logo {
+            font-weight: 900;
+            letter-spacing: -0.05em;
+            color: var(--primary);
+          }
+
+          .avatar-small {
+            width: 36px;
+            height: 36px;
+            background: var(--primary);
+            color: white;
+            border-radius: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            font-weight: 800;
+          }
+
+          @media (max-width: 1024px) {
+            .sidebar {
+              transform: translateX(-100%);
+            }
+            .sidebar.is-open {
+              transform: translateX(0);
+            }
+            .main-content {
+              margin-left: 0;
+              padding: 1.5rem;
+            }
+            .mobile-header {
+              display: flex;
+            }
+            .sidebar-overlay {
+              position: fixed;
+              inset: 0;
+              background: rgba(15, 23, 42, 0.4);
+              backdrop-filter: blur(4px);
+              z-index: 45;
+            }
+          }
+
+          .admin-link {
+            margin-top: 1rem;
+            background: #fff7ed;
+            color: #ea580c;
+            border: 1px solid rgba(234, 88, 12, 0.1);
+          }
+
+          .admin-link:hover {
+            background: #ffedd5;
+            color: #c2410c;
+          }
+
+          .plan-stats {
+            margin: 1rem;
+            padding: 1.5rem;
+            background: var(--surface);
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-sm);
+          }
+
+          .stats-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+          }
+
+          .stats-header .label {
+            font-size: 0.75rem;
+            font-weight: 800;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+          }
+
+          .plan-badge {
+            font-size: 0.7rem;
+            font-weight: 800;
+            padding: 0.25rem 0.6rem;
+            border-radius: 0.5rem;
+            text-transform: uppercase;
+          }
+
+          .plan-badge.free { background: #fff7ed; color: #ea580c; }
+          .plan-badge.pro { background: #ecfdf5; color: #059669; }
+
+          .progress-box {
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+          }
+
+          .progress-text {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--text-muted);
+          }
+
+          .progress-bar {
+            height: 8px;
+            background: var(--background);
+            border-radius: 4px;
+            overflow: hidden;
+          }
+
+          .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary) 0%, var(--primary-hover) 100%);
+            border-radius: 4px;
+            transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+          }
+
+          .pro-status {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.5rem;
+            background: #ecfdf5;
+            border-radius: 0.75rem;
+            color: #059669;
+            font-size: 0.8rem;
+            font-weight: 800;
+            gap: 0.5rem;
+          }
+        `}</style>
+      </div>
+      <AIGuide userName={profileName} />
+    </>
   );
 };
 
