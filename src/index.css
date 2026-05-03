@@ -1,42 +1,32 @@
 :root {
-  /* Premium Color Palette - Modern Deep Indigo & Vibrant Accents */
-  --primary: #6366f1;
-  --primary-hover: #4f46e5;
-  --primary-light: #eef2ff;
-  --primary-glow: rgba(99, 102, 241, 0.5);
+  /* Modern Premium HSL System */
+  --p-h: 238; /* Primary Hue */
+  --p-s: 83%;
+  --p-l: 67%;
   
-  --secondary: #64748b;
-  --accent: #f43f5e;
+  --primary: hsl(var(--p-h), var(--p-s), var(--p-l));
+  --primary-glow: hsla(var(--p-h), var(--p-s), var(--p-l), 0.5);
+  --primary-hover: hsl(var(--p-h), var(--p-s), calc(var(--p-l) - 10%));
   
-  --success: #10b981;
-  --warning: #f59e0b;
-  --danger: #ef4444;
+  --accent: hsl(336, 91%, 60%); /* Rose Accent */
   
-  --background: #f8fafc;
-  --surface: #ffffff;
-  --surface-hover: #f1f5f9;
+  --surface-1: #ffffff;
+  --surface-2: #f8fafc;
+  --surface-3: #f1f5f9;
   
   --text-main: #0f172a;
-  --text-muted: #64748b;
+  --text-muted: #475569;
   --text-dim: #94a3b8;
   
-  --border: #e2e8f0;
-  --border-focus: #6366f1;
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.4);
   
-  /* Advanced Shadows */
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-  --shadow-md: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-  --shadow-lg: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
-  --shadow-xl: 0 25px 50px -12px rgb(0 0 0 / 0.25);
-  --shadow-inner: inset 0 2px 4px 0 rgb(0 0 0 / 0.05);
+  /* Premium Shadows (Soft UI) */
+  --shadow-premium: 0 10px 30px -10px rgba(0, 0, 0, 0.05), 0 20px 40px -20px rgba(0, 0, 0, 0.08);
+  --shadow-glass: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
   
-  /* Layout */
-  --radius-sm: 0.5rem;
-  --radius: 1rem;
-  --radius-lg: 1.5rem;
-  --radius-xl: 2rem;
-  --container-max: 1200px;
+  --radius-premium: 2rem;
+  --container-max: 1400px;
 }
 
 /* Base Resets */
@@ -87,17 +77,23 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Utility Classes */
 .glass {
-  background: rgba(255, 255, 255, 0.7);
+  background: var(--glass-bg);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow-glass);
 }
 
 .glass-dark {
-  background: rgba(15, 23, 42, 0.8);
+  background: rgba(15, 23, 42, 0.7);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+}
+
+.premium-gradient {
+  background: linear-gradient(135deg, hsl(var(--p-h), 80%, 95%) 0%, hsl(var(--p-h), 80%, 98%) 100%);
 }
 
 /* Keyframe Animations */
