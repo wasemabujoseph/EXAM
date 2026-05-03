@@ -1,9 +1,9 @@
-# EXAM CLOUD
+# MEDEXAM | AI Medical Learning Assistant
 
 A professional, cloud-powered medical examination platform built with **React**, **Vite**, and **Google Apps Script**.
 
 ## 🚀 Overview
-EXAM CLOUD transforms the traditional static exam experience into a robust, centralized, and secure assessment ecosystem. By leveraging **Google Sheets** as a database and **Google Apps Script** as a backend API, it provides a seamless cross-device experience without sacrificing the simplicity of serverless hosting.
+**MEDEXAM** transforms the traditional static exam experience into a robust, centralized, and secure assessment ecosystem. By leveraging **Google Sheets** as a database and **Google Apps Script** as a backend API, it provides a seamless cross-device experience without sacrificing the simplicity of serverless hosting.
 
 ## ✨ Key Features
 

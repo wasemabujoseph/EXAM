@@ -46,10 +46,7 @@ const RegisterPage: React.FC = () => {
     <div className="login-container">
       <div className="login-card animate-fade-in">
         <div className="login-header">
-          <div className="logo-circle">
-            <ShieldCheck size={32} />
-          </div>
-          <h1>Create Account</h1>
+          <img src="/brand/medexam-logo-primary.png" alt="MEDEXAM AI Medical Learning Assistant" className="login-logo" />
           <p>Join the MEDEXAM academic portal</p>
         </div>
 
@@ -181,36 +178,17 @@ const RegisterPage: React.FC = () => {
           margin-bottom: 2.5rem;
         }
 
-        .logo-circle {
-          width: 80px;
-          height: 80px;
-          background: linear-gradient(135deg, var(--success) 0%, #059669 100%);
-          color: white;
-          border-radius: 1.5rem;
-          display: flex;
-          align-items: center;
-          justify-content: center;
+        .login-logo {
+          height: 64px;
           margin: 0 auto 1.5rem;
-          box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.4);
-          transform: rotate(5deg);
-          transition: transform 0.3s ease;
-        }
-
-        .logo-circle:hover {
-          transform: rotate(0deg) scale(1.05);
-        }
-
-        .login-header h1 {
-          font-size: 2.25rem;
-          font-weight: 900;
-          color: var(--text-main);
-          margin-bottom: 0.5rem;
-          letter-spacing: -0.04em;
+          display: block;
+          object-fit: contain;
         }
 
         .login-header p {
           color: var(--text-muted);
           font-weight: 500;
+          font-size: 1.1rem;
         }
 
         .login-form {

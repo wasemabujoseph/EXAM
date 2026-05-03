@@ -338,21 +338,21 @@ const ReviewAttempt: React.FC = () => {
         .wrong-opt .opt-status-icon { color: var(--danger); }
 
         .explanation-box {
-          background: #eff6ff;
+          background: #e6ebf2;
           padding: 1.25rem;
           border-radius: 0.75rem;
-          border: 1px solid #dbeafe;
+          border: 1px solid var(--border);
         }
         .explanation-title {
           display: flex;
           align-items: center;
           gap: 0.5rem;
           font-weight: 700;
-          color: #1e40af;
+          color: var(--primary);
           margin-bottom: 0.5rem;
           font-size: 0.875rem;
         }
-        .explanation-box p { font-size: 0.9rem; color: #1e3a8a; line-height: 1.5; }
+        .explanation-box p { font-size: 0.9rem; color: var(--text-main); line-height: 1.5; }
 
         .error-state {
           padding: 5rem;
@@ -386,11 +386,11 @@ const ReviewAttempt: React.FC = () => {
         .redo-btn.primary {
           background: var(--primary);
           color: white;
-          box-shadow: 0 4px 10px rgba(37, 99, 235, 0.2);
+          box-shadow: 0 4px 10px var(--primary-glow);
         }
         .redo-btn.secondary {
           background: #ecfdf5;
-          color: #059669;
+          color: var(--success);
           border: 1px solid #bbf7d0;
         }
         .redo-btn:hover {

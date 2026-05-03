@@ -231,7 +231,7 @@ const CurriculumOverview: React.FC = () => {
         }
 
         .text-gradient {
-          background: linear-gradient(to right, #6366F1, #EC4899);
+          background: linear-gradient(to right, #0B3D91, #00B2A9);
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
         }
@@ -267,7 +267,7 @@ const CurriculumOverview: React.FC = () => {
         }
 
         .search-btn {
-          background: #0F172A;
+          background: var(--primary);
           color: white;
           padding: 1rem 2.5rem;
           border-radius: 1.25rem;

@@ -100,7 +100,7 @@ const AIGuide: React.FC<Props> = ({ userName, embedded = false }) => {
           
           <div className="ai-bot-icon-container">
              <div className="ai-bot-icon-wrapper">
-                <Bot size={36} />
+                <img src="/brand/medexam-icon.png" alt="AI" style={{ width: '36px', height: '36px', borderRadius: '8px' }} />
                 <div className="ai-ping-dot"></div>
              </div>
           </div>
@@ -202,7 +202,7 @@ const AIGuide: React.FC<Props> = ({ userName, embedded = false }) => {
         }
 
         .ai-header {
-          background: #0F172A;
+          background: #0B3D91;
           padding: 1.5rem 2rem;
           color: white;
         }
@@ -312,10 +312,10 @@ const AIGuide: React.FC<Props> = ({ userName, embedded = false }) => {
         }
 
         .user .ai-message-bubble {
-          background: #6366F1;
+          background: #0B3D91;
           color: white;
           border-bottom-right-radius: 4px;
-          box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+          box-shadow: 0 4px 12px rgba(11, 61, 145, 0.2);
         }
 
         .assistant .ai-message-bubble {
@@ -339,7 +339,7 @@ const AIGuide: React.FC<Props> = ({ userName, embedded = false }) => {
         .ai-action-btn {
           padding: 6px 14px;
           background: white;
-          color: #6366F1;
+          color: #00B2A9;
           border: 1px solid #E2E8F0;
           border-radius: 99px;
           font-size: 12px;
@@ -349,9 +349,9 @@ const AIGuide: React.FC<Props> = ({ userName, embedded = false }) => {
         }
 
         .ai-action-btn:hover {
-          background: #6366F1;
+          background: #00B2A9;
           color: white;
-          border-color: #6366F1;
+          border-color: #00B2A9;
         }
 
         .ai-input-area {
@@ -382,7 +382,7 @@ const AIGuide: React.FC<Props> = ({ userName, embedded = false }) => {
         .ai-send-btn {
           width: 42px;
           height: 42px;
-          background: #6366F1;
+          background: #0B3D91;
           border: none;
           border-radius: 10px;
           color: white;
@@ -393,7 +393,7 @@ const AIGuide: React.FC<Props> = ({ userName, embedded = false }) => {
           transition: all 0.2s;
         }
 
-        .ai-send-btn:hover:not(:disabled) { transform: scale(1.05); background: #4F46E5; }
+        .ai-send-btn:hover:not(:disabled) { transform: scale(1.05); background: #082d6b; }
         .ai-send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
         .ai-toggle-btn {
@@ -403,11 +403,11 @@ const AIGuide: React.FC<Props> = ({ userName, embedded = false }) => {
           width: 64px;
           height: 64px;
           border-radius: 1.5rem;
-          background: #0F172A;
+          background: #0B3D91;
           color: white;
           border: none;
           cursor: pointer;
-          box-shadow: 0 10px 25px rgba(15,23,42,0.3);
+          box-shadow: 0 10px 25px rgba(11, 61, 145, 0.3);
           z-index: 100000;
           display: flex;
           align-items: center;
@@ -449,7 +449,7 @@ const AIGuide: React.FC<Props> = ({ userName, embedded = false }) => {
         .ai-dot {
           width: 6px;
           height: 6px;
-          background: #6366F1;
+          background: #00B2A9;
           border-radius: 50%;
           animation: bounce 1s infinite;
         }
@@ -462,7 +462,7 @@ const AIGuide: React.FC<Props> = ({ userName, embedded = false }) => {
         .delay-1 { animation-delay: 0.2s; }
         .delay-2 { animation-delay: 0.4s; }
 
-        .markdown-content strong { font-weight: 700; color: #4F46E5; }
+        .markdown-content strong { font-weight: 700; color: #0B3D91; }
         .markdown-content p { margin: 0 0 0.5rem 0; }
         .markdown-content p:last-child { margin-bottom: 0; }
       `}</style>

@@ -49,7 +49,7 @@ const Dashboard: React.FC = () => {
           <button onClick={() => setIsSidebarOpen(true)} className="icon-btn">
             <Menu size={24} />
           </button>
-          <span className="mobile-logo">MEDEXAM</span>
+          <img src="/brand/medexam-logo-primary.png" alt="MEDEXAM AI Medical Learning Assistant" className="mobile-logo-img" />
           <div className="avatar-small">
             {profileName.charAt(0)}
           </div>
@@ -59,8 +59,7 @@ const Dashboard: React.FC = () => {
         <aside className={`sidebar ${isSidebarOpen ? 'is-open' : ''}`}>
           <div className="sidebar-header">
             <div className="logo-box">
-              <BookOpen size={24} />
-              <span>MEDEXAM</span>
+              <img src="/brand/medexam-logo-primary.png" alt="MEDEXAM AI Medical Learning Assistant" className="sidebar-logo" />
             </div>
             <button onClick={() => setIsSidebarOpen(false)} className="close-btn md-hidden">
               <X size={24} />
@@ -178,11 +177,16 @@ const Dashboard: React.FC = () => {
             display: flex;
             align-items: center;
             gap: 0.75rem;
-            font-weight: 900;
-            font-size: 1.5rem;
-            color: var(--text-main);
-            letter-spacing: -0.04em;
-            text-transform: uppercase;
+          }
+
+          .sidebar-logo {
+            height: 40px;
+            object-fit: contain;
+          }
+
+          .mobile-logo-img {
+            height: 32px;
+            object-fit: contain;
           }
 
           .logo-box svg {
@@ -334,10 +338,9 @@ const Dashboard: React.FC = () => {
             z-index: 40;
           }
 
-          .mobile-logo {
-            font-weight: 900;
-            letter-spacing: -0.05em;
-            color: var(--primary);
+          .mobile-logo-img {
+            height: 32px;
+            object-fit: contain;
           }
 
           .avatar-small {

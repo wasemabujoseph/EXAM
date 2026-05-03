@@ -367,7 +367,7 @@ const ExamRunner: React.FC = () => {
           z-index: 1000;
           display: flex;
           flex-direction: column;
-          font-family: 'Inter', sans-serif;
+          font-family: 'Space Grotesk', 'Inter', sans-serif;
         }
 
         .runner-header {

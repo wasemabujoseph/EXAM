@@ -51,7 +51,7 @@ const AdminLayout: React.FC = () => {
       <aside className="admin-sidebar">
         <div className="admin-sidebar-header">
           <div className="admin-logo">
-            <ShieldAlert size={28} />
+            <img src="/brand/medexam-icon.png" alt="MEDEXAM" style={{ height: '32px', marginRight: '0.5rem' }} />
             <span>ADMIN PANEL</span>
           </div>
         </div>
