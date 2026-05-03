@@ -108,6 +108,18 @@ const ExamRunner: React.FC = () => {
     if (timeRemaining === 0) handleSubmit(true);
   }, [timeRemaining]);
 
+  // Force single question mode on mobile
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth <= 640 && displayMode === 'full') {
+        setDisplayMode('single');
+      }
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [displayMode]);
+
   const handleAnswerChange = (qIndex: number, optionId: string, checked: boolean) => {
     const q = questions[qIndex];
     const correctCount = (q.answers || q.correct_answers || [q.correctAnswer]).length;
@@ -182,7 +194,7 @@ const ExamRunner: React.FC = () => {
           </button>
           <div className="exam-title-group">
             <h1 className="text-ellipsis">{exam.title}</h1>
-            <span className="q-counter">Question {currentIndex + 1} of {questions.length}</span>
+            <span className="q-counter">Q {currentIndex + 1} / {questions.length}</span>
           </div>
         </div>
 
@@ -208,20 +220,24 @@ const ExamRunner: React.FC = () => {
                <div className="question-card">
                   <div className="question-header">
                     <span className="question-label">Question {currentIndex + 1}</span>
-                    <p className="question-text text-wrap-safe">{currentQ.text || currentQ.question}</p>
+                    <div className="question-text" dir="auto">
+                      {currentQ.text || currentQ.question}
+                    </div>
                   </div>
 
-                  <div className="options-container">
+                  <div className="options-container" dir="ltr">
                     {currentQ.options.map((opt: any) => (
                       <label key={opt.id} className={`option-item ${(answers[currentIndex] || []).includes(opt.id) ? 'selected' : ''}`}>
-                        <input 
-                          type={(currentQ.answers || currentQ.correct_answers || [currentQ.correctAnswer]).length > 1 ? 'checkbox' : 'radio'}
-                          name={`q-${currentIndex}`}
-                          checked={(answers[currentIndex] || []).includes(opt.id)}
-                          onChange={(e) => handleAnswerChange(currentIndex, opt.id, e.target.checked)}
-                        />
                         <span className="option-letter">{opt.id}</span>
-                        <span className="option-text text-wrap-safe">{opt.text}</span>
+                        <span className="option-text">{opt.text}</span>
+                        <div className="option-control">
+                          <input 
+                            type={(currentQ.answers || currentQ.correct_answers || [currentQ.correctAnswer]).length > 1 ? 'checkbox' : 'radio'}
+                            name={`q-${currentIndex}`}
+                            checked={(answers[currentIndex] || []).includes(opt.id)}
+                            onChange={(e) => handleAnswerChange(currentIndex, opt.id, e.target.checked)}
+                          />
+                        </div>
                       </label>
                     ))}
                   </div>
@@ -259,19 +275,21 @@ const ExamRunner: React.FC = () => {
           ) : (
             <div className="full-exam-view scroll-container">
               {questions.map((q, idx) => (
-                <div key={idx} className="full-mode-question">
+                <div key={idx} className="full-mode-question" dir="ltr">
                   <h3>{idx + 1}. {q.text || q.question}</h3>
                   <div className="full-options-grid">
                     {q.options.map((opt: any) => (
                       <label key={opt.id} className={`option-item ${(answers[idx] || []).includes(opt.id) ? 'selected' : ''}`}>
-                        <input 
-                          type={(q.answers || q.correct_answers || [q.correctAnswer]).length > 1 ? 'checkbox' : 'radio'}
-                          name={`q-full-${idx}`}
-                          checked={(answers[idx] || []).includes(opt.id)}
-                          onChange={(e) => handleAnswerChange(idx, opt.id, e.target.checked)}
-                        />
                         <span className="option-letter">{opt.id}</span>
                         <span className="option-text">{opt.text}</span>
+                        <div className="option-control">
+                          <input 
+                            type={(q.answers || q.correct_answers || [q.correctAnswer]).length > 1 ? 'checkbox' : 'radio'}
+                            name={`q-full-${idx}`}
+                            checked={(answers[idx] || []).includes(opt.id)}
+                            onChange={(e) => handleAnswerChange(idx, opt.id, e.target.checked)}
+                          />
+                        </div>
                       </label>
                     ))}
                   </div>
@@ -308,13 +326,14 @@ const ExamRunner: React.FC = () => {
                className={`mode-toggle-btn ${displayMode === 'single' ? 'active' : ''}`}
                onClick={() => setDisplayMode('single')}
              >
-               <Layout size={18} /> Single
+               <Layout size={18} /> <span>Single</span>
              </button>
              <button 
                className={`mode-toggle-btn ${displayMode === 'full' ? 'active' : ''}`}
                onClick={() => setDisplayMode('full')}
+               style={{ display: window.innerWidth <= 640 ? 'none' : 'flex' }}
              >
-               <Layers size={18} /> Full Page
+               <Layers size={18} /> <span>Full Page</span>
              </button>
           </div>
         </aside>
@@ -347,6 +366,10 @@ const ExamRunner: React.FC = () => {
       </footer>
 
       <style>{`
+        :root {
+          --safe-bottom: env(safe-area-inset-bottom, 0px);
+        }
+
         .exam-session {
           position: fixed;
           inset: 0;
@@ -354,145 +377,253 @@ const ExamRunner: React.FC = () => {
           z-index: 2000;
           display: flex;
           flex-direction: column;
-          color: var(--text);
+          color: var(--text-main);
+          overflow: hidden;
         }
 
         .exam-header {
-          height: var(--header-height);
+          height: 64px;
           background: var(--surface);
           border-bottom: 1px solid var(--border);
-          padding: 0 1.5rem;
+          padding: 0 1rem;
           display: flex;
           align-items: center;
           justify-content: space-between;
           z-index: 100;
+          position: sticky;
+          top: 0;
         }
 
-        .header-left, .header-right { display: flex; align-items: center; gap: 1rem; }
+        .header-left { display: flex; align-items: center; gap: 0.75rem; min-width: 0; flex: 1; }
+        .header-right { display: flex; align-items: center; gap: 0.75rem; }
         
         .icon-btn-exit {
-          width: 40px; height: 40px;
+          width: 40px; height: 40px; flex-shrink: 0;
           border-radius: var(--radius-lg);
           background: var(--bg-soft);
           color: var(--text-muted);
+          display: flex; align-items: center; justify-content: center;
         }
         .icon-btn-exit:hover { background: var(--danger-soft); color: var(--danger); }
 
-        .exam-title-group h1 { font-size: 1.1rem; max-width: 200px; margin: 0; }
-        .q-counter { font-size: 0.75rem; font-weight: 700; color: var(--primary); text-transform: uppercase; }
+        .exam-title-group { min-width: 0; display: flex; flex-direction: column; }
+        .exam-title-group h1 { 
+          font-size: 0.95rem; 
+          font-weight: 800;
+          margin: 0; 
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          color: var(--text-strong);
+        }
+        .q-counter { font-size: 0.65rem; font-weight: 800; color: var(--primary); text-transform: uppercase; }
 
         .exam-timer {
-          display: flex; align-items: center; gap: 0.5rem;
+          display: flex; align-items: center; gap: 0.4rem;
           background: var(--danger-soft); color: var(--danger);
-          padding: 0.5rem 0.75rem; border-radius: var(--radius-lg);
-          font-family: monospace; font-weight: 800; font-size: 1.1rem;
+          padding: 0.4rem 0.6rem; border-radius: var(--radius-lg);
+          font-family: 'JetBrains Mono', monospace; font-weight: 800; font-size: 1rem;
+          min-width: 90px; justify-content: center;
         }
         .exam-timer.is-paused { background: var(--bg-soft); color: var(--text-muted); }
-        .pause-toggle { background: var(--surface); color: inherit; padding: 4px; border-radius: 4px; margin-left: 4px; }
+        .pause-toggle { background: var(--surface); color: inherit; padding: 2px; border-radius: 4px; display: flex; }
 
         .exam-submit-btn {
-          background: var(--primary); color: white;
-          padding: 0 1.25rem; height: 40px; border-radius: var(--radius-lg);
-          font-weight: 800; box-shadow: var(--shadow-md);
+          background: var(--primary-brand); color: white;
+          padding: 0 1rem; height: 40px; border-radius: var(--radius-lg);
+          font-weight: 800; font-size: 0.9rem; box-shadow: var(--shadow-md);
         }
 
-        .exam-viewport { flex: 1; display: flex; overflow: hidden; position: relative; }
+        .exam-viewport { flex: 1; display: flex; overflow: hidden; position: relative; background: var(--bg-soft-fade); }
 
         .exam-main {
           flex: 1; overflow-y: auto; padding: 2rem;
           display: flex; flex-direction: column; align-items: center;
+          scrollbar-gutter: stable;
         }
 
-        .question-wrapper { width: 100%; max-width: 900px; display: flex; flex-direction: column; gap: 2rem; }
+        .question-wrapper { width: 100%; max-width: 900px; display: flex; flex-direction: column; gap: 1.5rem; }
 
         .question-card {
           background: var(--surface);
-          padding: clamp(1.25rem, 5vw, 3rem);
+          padding: 2.5rem;
           border-radius: var(--radius-2xl);
           border: 1px solid var(--border);
-          box-shadow: var(--shadow-lg);
+          box-shadow: var(--shadow-premium);
         }
 
         .question-header { margin-bottom: 2rem; }
-        .question-label { font-size: 0.8rem; font-weight: 800; color: var(--primary); text-transform: uppercase; display: block; margin-bottom: 0.5rem; }
-        .question-text { font-size: clamp(1.1rem, 3vw, 1.5rem); font-weight: 700; color: var(--text-strong); line-height: 1.4; }
+        .question-label { font-size: 0.75rem; font-weight: 900; color: var(--primary); text-transform: uppercase; display: block; margin-bottom: 0.75rem; letter-spacing: 0.05em; }
+        .question-text { 
+          font-size: 1.35rem; 
+          font-weight: 700; 
+          color: var(--text-strong); 
+          line-height: 1.5;
+          overflow-wrap: break-word;
+          word-break: normal;
+        }
 
-        .options-container { display: flex; flex-direction: column; gap: 1rem; }
+        .options-container { display: flex; flex-direction: column; gap: 0.85rem; }
 
         .option-item {
-          display: flex; align-items: center; gap: 1rem;
-          padding: 1.25rem 1.5rem; border-radius: var(--radius-xl);
-          background: var(--bg-soft); border: 2px solid transparent;
-          cursor: pointer; transition: all 0.2s;
+          display: grid;
+          grid-template-columns: 42px minmax(0, 1fr) 28px;
+          align-items: center;
+          gap: 1rem;
+          padding: 1.15rem 1.5rem;
+          border-radius: 1.25rem;
+          background: var(--surface);
+          border: 1px solid var(--border);
+          cursor: pointer;
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+          position: relative;
+          text-align: left;
+          direction: ltr;
         }
-        .option-item:hover { border-color: var(--primary-soft); background: var(--surface); }
-        .option-item.selected { border-color: var(--primary); background: var(--surface); box-shadow: var(--shadow-md); }
+        
+        @media (hover: hover) {
+          .option-item:hover { border-color: var(--primary); background: var(--bg-soft-fade); transform: translateX(4px); }
+        }
+        
+        .option-item.selected { border-color: var(--primary); background: var(--primary-soft-fade); box-shadow: var(--shadow-md); }
+
+        .option-control {
+          display: flex;
+          align-items: center;
+          justify-content: flex-end;
+          width: 28px;
+        }
+
+        .option-item input {
+          width: 20px; height: 20px; cursor: pointer; accent-color: var(--primary);
+          margin: 0;
+        }
 
         .option-letter {
-          width: 32px; height: 32px; flex-shrink: 0;
-          background: var(--surface); border: 2px solid var(--border);
-          border-radius: 8px; display: flex; align-items: center; justify-content: center;
-          font-weight: 900; font-size: 0.9rem;
+          width: 38px; height: 38px; flex-shrink: 0;
+          background: var(--bg-soft); border: 1px solid var(--border);
+          border-radius: 10px; display: flex; align-items: center; justify-content: center;
+          font-weight: 900; font-size: 0.95rem; color: var(--text-muted);
+          transition: all 0.2s;
         }
         .option-item.selected .option-letter { background: var(--primary); color: white; border-color: var(--primary); }
-        .option-text { font-weight: 600; font-size: 1.05rem; }
+        
+        .option-text { 
+          min-width: 0;
+          flex: 1;
+          width: 100%;
+          max-width: 100%;
+          font-weight: 600; 
+          font-size: 1.05rem; 
+          line-height: 1.45;
+          color: var(--text-main);
+          white-space: normal;
+          overflow-wrap: break-word;
+          word-break: normal;
+          hyphens: none;
+          text-align: left;
+        }
+
+        .full-exam-view {
+          width: 100%;
+          max-width: 900px;
+          display: flex;
+          flex-direction: column;
+          gap: 3rem;
+          padding-bottom: 5rem;
+        }
+
+        .full-mode-question {
+          background: var(--surface);
+          padding: 2.5rem;
+          border-radius: var(--radius-2xl);
+          border: 1px solid var(--border);
+          box-shadow: var(--shadow-sm);
+        }
+
+        .full-mode-question h3 {
+          font-size: 1.25rem;
+          font-weight: 700;
+          margin-bottom: 1.5rem;
+          line-height: 1.4;
+          color: var(--text-strong);
+        }
+
+        .full-options-grid {
+          display: flex;
+          flex-direction: column;
+          gap: 0.85rem;
+        }
 
         .question-tools {
-          margin-top: 2rem; padding-top: 2rem; border-top: 1px solid var(--border);
+          margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--border);
           display: flex; flex-wrap: wrap; gap: 1rem; align-items: center;
         }
 
         .tool-btn {
           display: flex; align-items: center; gap: 0.5rem;
-          padding: 0.5rem 1rem; border-radius: var(--radius-md);
+          padding: 0.6rem 1.2rem; border-radius: var(--radius-lg);
           background: var(--bg-soft); color: var(--text-muted); font-weight: 700;
+          font-size: 0.85rem; transition: all 0.2s;
         }
+        .tool-btn:hover { background: var(--border); color: var(--text-strong); }
         .tool-btn.flag.active { background: var(--warning-soft); color: var(--warning); border: 1px solid var(--warning); }
 
         .note-input-wrapper {
           flex: 1; min-width: 200px;
           display: flex; align-items: center; gap: 0.75rem;
-          background: var(--bg-soft); padding: 0.5rem 1rem; border-radius: var(--radius-md);
+          background: var(--bg-soft); padding: 0.6rem 1.2rem; border-radius: var(--radius-lg);
+          border: 1px solid var(--border);
         }
-        .note-input-wrapper input { background: transparent; border: none; padding: 0; }
+        .note-input-wrapper input { background: transparent; border: none; padding: 0; flex: 1; font-weight: 600; color: var(--text-main); font-size: 0.9rem; }
+        .note-input-wrapper input::placeholder { color: var(--text-muted); opacity: 0.6; }
 
-        .desktop-navigation { display: flex; align-items: center; gap: 2rem; width: 100%; margin-top: auto; }
+        .desktop-navigation { display: flex; align-items: center; gap: 2rem; width: 100%; margin-top: 2rem; }
         .nav-step-btn {
           padding: 0 1.5rem; height: 48px; border-radius: var(--radius-lg);
           background: var(--surface); border: 1px solid var(--border);
-          font-weight: 800; color: var(--text-strong);
+          font-weight: 800; color: var(--text-strong); display: flex; align-items: center; gap: 0.5rem;
+          transition: all 0.2s;
         }
-        .exam-progress { flex: 1; height: 10px; background: var(--border); border-radius: 5px; overflow: hidden; }
-        .progress-fill { height: 100%; background: var(--primary); transition: width 0.3s ease; }
+        .nav-step-btn:hover:not(:disabled) { border-color: var(--primary); color: var(--primary); background: var(--primary-soft-fade); }
+        .nav-step-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        .exam-progress { flex: 1; height: 8px; background: var(--border-soft); border-radius: 99px; overflow: hidden; }
+        .progress-fill { height: 100%; background: var(--primary); transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
 
         .exam-navigator {
-          width: 300px; background: var(--surface); border-left: 1px solid var(--border);
-          padding: 1.5rem; display: flex; flex-direction: column; gap: 1.5rem;
+          width: 320px; background: var(--surface); border-left: 1px solid var(--border);
+          padding: 2rem; display: flex; flex-direction: column; gap: 2rem;
+          overflow-y: auto;
         }
 
-        .nav-header { font-weight: 800; text-transform: uppercase; font-size: 0.8rem; color: var(--text-soft); display: flex; align-items: center; gap: 0.5rem; }
-        .nav-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.5rem; }
+        .nav-header { font-weight: 900; text-transform: uppercase; font-size: 0.75rem; color: var(--text-muted); display: flex; align-items: center; gap: 0.75rem; letter-spacing: 0.05em; }
+        .nav-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.6rem; }
         .nav-grid-item {
-          aspect-ratio: 1; border-radius: 8px; border: 1px solid var(--border);
-          background: var(--bg-soft); font-weight: 800; font-size: 0.85rem;
+          aspect-ratio: 1; border-radius: 10px; border: 1px solid var(--border);
+          background: var(--bg-soft); font-weight: 900; font-size: 0.9rem;
+          color: var(--text-muted); transition: all 0.2s;
         }
-        .nav-grid-item.active { background: var(--primary); color: white; border-color: var(--primary); transform: scale(1.1); z-index: 1; }
-        .nav-grid-item.completed { background: var(--primary-soft); color: var(--primary); border-color: var(--primary); }
-        .nav-grid-item.flagged { border-color: var(--warning); color: var(--warning); background: var(--warning-soft); }
+        .nav-grid-item:hover { border-color: var(--primary); color: var(--primary); }
+        .nav-grid-item.active { background: var(--primary); color: white; border-color: var(--primary); transform: scale(1.1); z-index: 1; box-shadow: var(--shadow-lg); }
+        .nav-grid-item.completed { background: var(--primary-soft-fade); color: var(--primary); border-color: var(--primary); }
+        .nav-grid-item.flagged { border-color: var(--warning); color: var(--warning); background: var(--warning-soft-fade); }
 
-        .nav-legend { display: flex; flex-direction: column; gap: 0.5rem; padding-top: 1rem; border-top: 1px solid var(--border); }
-        .legend-item { display: flex; align-items: center; gap: 0.5rem; font-size: 0.75rem; font-weight: 700; color: var(--text-soft); }
-        .dot { width: 10px; height: 10px; border-radius: 3px; }
+        .nav-legend { display: flex; flex-direction: column; gap: 0.75rem; padding-top: 1.5rem; border-top: 1px solid var(--border); }
+        .legend-item { display: flex; align-items: center; gap: 0.75rem; font-size: 0.75rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; }
+        .dot { width: 12px; height: 12px; border-radius: 4px; }
         .dot.active { background: var(--primary); }
-        .dot.completed { background: var(--primary-soft); border: 1px solid var(--primary); }
+        .dot.completed { background: var(--primary-soft-fade); border: 1.5px solid var(--primary); }
         .dot.flagged { background: var(--warning); }
 
         .view-mode-toggle { margin-top: auto; display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
         .mode-toggle-btn {
-          height: 36px; border-radius: 8px; border: 1px solid var(--border);
+          height: 40px; border-radius: 10px; border: 1px solid var(--border);
           font-size: 0.75rem; font-weight: 800; color: var(--text-muted);
+          display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+          transition: all 0.2s;
         }
-        .mode-toggle-btn.active { background: var(--bg-soft); color: var(--primary); border-color: var(--primary); }
+        .mode-toggle-btn.active { background: var(--primary-soft-fade); color: var(--primary); border-color: var(--primary); }
 
         .mobile-footer-nav { display: none; }
 
@@ -501,38 +632,68 @@ const ExamRunner: React.FC = () => {
           display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.5rem;
         }
 
-        /* Responsive */
+        /* Responsive Fixes */
         @media (max-width: 1024px) {
           .exam-navigator {
-            position: fixed; top: var(--header-height); bottom: 0; right: 0;
-            transform: translateX(100%); transition: transform 0.3s ease;
-            box-shadow: var(--shadow-xl); z-index: 500;
+            position: fixed; top: 64px; bottom: 0; right: 0;
+            transform: translateX(100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: -10px 0 30px rgba(0,0,0,0.1); z-index: 500;
+            width: 280px;
           }
           .exam-navigator.mob-show { transform: translateX(0); }
           .desktop-navigation { display: none; }
           .mobile-footer-nav {
             display: flex; position: fixed; bottom: 0; left: 0; right: 0;
-            height: 72px; background: var(--surface); border-top: 1px solid var(--border);
-            padding: 0 1rem; padding-bottom: var(--safe-bottom);
+            height: calc(72px + var(--safe-bottom)); background: var(--surface); 
+            border-top: 1px solid var(--border);
+            padding: 0 1rem var(--safe-bottom) 1rem;
             align-items: center; justify-content: space-between; z-index: 100;
           }
-          .mob-nav-btn { width: 48px; height: 48px; border-radius: 12px; background: var(--bg-soft); color: var(--text-strong); }
-          .mob-questions-btn { flex: 1; margin: 0 1rem; height: 48px; border-radius: 12px; background: var(--primary); color: white; font-weight: 800; }
-          .exam-main { padding: 1.25rem; padding-bottom: 100px; }
-          .question-card { padding: 1.5rem; }
-          .exam-title-group h1 { max-width: 150px; font-size: 1rem; }
+          .mob-nav-btn { width: 52px; height: 52px; border-radius: 14px; background: var(--bg-soft); color: var(--text-strong); display: flex; align-items: center; justify-content: center; }
+          .mob-questions-btn { flex: 1; margin: 0 0.75rem; height: 52px; border-radius: 14px; background: var(--primary-brand); color: white; font-weight: 800; font-size: 0.95rem; }
+          .exam-main { padding: 1rem; padding-bottom: calc(96px + var(--safe-bottom)); }
+          .question-wrapper { gap: 1rem; }
+          .question-card { padding: 1.5rem; border-radius: 1.5rem; }
+          .exam-title-group h1 { max-width: 150px; }
+        }
+
+        @media (max-width: 640px) {
+          .exam-main { padding: 0.75rem; padding-bottom: calc(96px + var(--safe-bottom)); }
+          .question-card { padding: 1.25rem; border-radius: 1rem; }
+          .question-text { font-size: clamp(1.1rem, 4.5vw, 1.3rem); line-height: 1.4; }
+          
+          .option-item {
+            grid-template-columns: 36px minmax(0, 1fr) 24px;
+            padding: 0.875rem 0.75rem;
+            gap: 0.65rem;
+            border-radius: 1rem;
+          }
+          .option-control { width: 24px; }
+          .option-item input { width: 18px; height: 18px; }
+          .option-letter { width: 34px; height: 34px; border-radius: 8px; font-size: 0.85rem; }
+          .option-text { font-size: 1rem; line-height: 1.35; }
+        }
+
+        @media (max-width: 380px) {
+          .option-item {
+            grid-template-columns: 34px minmax(0, 1fr) 22px;
+            gap: 0.55rem;
+            padding: 0.8rem 0.65rem;
+          }
+          .option-control { width: 22px; }
+          .option-letter { width: 32px; height: 32px; }
         }
 
         @media (max-width: 480px) {
-          .exam-header { padding: 0 0.5rem; gap: 0.25rem; height: 64px; }
-          .exam-timer { font-size: 0.85rem; padding: 0.35rem 0.5rem; gap: 0.25rem; min-width: 80px; }
-          .exam-submit-btn { padding: 0 0.6rem; font-size: 0.85rem; height: 36px; }
-          .header-left { gap: 0.25rem; min-width: 0; }
-          .exam-title-group h1 { font-size: 0.85rem; max-width: 100px; }
-          .q-counter { font-size: 0.65rem; }
-          .question-text { font-size: 1.15rem; line-height: 1.3; }
-          .option-text { font-size: 0.95rem; }
-          .option-item { padding: 1rem; gap: 0.75rem; }
+          .exam-header { padding: 0 0.75rem; height: 60px; }
+          .header-left { gap: 0.5rem; }
+          .icon-btn-exit { width: 36px; height: 36px; }
+          .exam-title-group h1 { font-size: 0.85rem; max-width: 110px; }
+          .exam-timer { font-size: 0.9rem; padding: 0.35rem 0.5rem; min-width: 80px; }
+          .exam-submit-btn { padding: 0 0.75rem; height: 36px; font-size: 0.8rem; }
+          
+          .question-tools { flex-direction: column; align-items: stretch; gap: 0.75rem; }
+          .note-input-wrapper { min-width: 0; }
         }
       `}</style>
     </div>
@@ -540,3 +701,4 @@ const ExamRunner: React.FC = () => {
 };
 
 export default ExamRunner;
+
