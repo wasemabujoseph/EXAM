@@ -44,17 +44,26 @@ const ReviewAttempt: React.FC = () => {
   const handleAIExplain = async (q: any, index: number, userAns: string[]) => {
     setExplainLoading(prev => ({ ...prev, [index]: true }));
     try {
+      // Robustly get correct answers
+      const qAnswers = q.answers || q.correct_answers || (q.correctAnswer ? [q.correctAnswer] : []) || (typeof q.answer !== 'undefined' ? [q.options[q.answer]?.id || q.answer] : []);
+      
       const questionContext = {
-        questionText: q.text,
-        options: q.options,
-        correctOption: q.answers.join(','),
+        questionText: q.text || q.question || '',
+        options: q.options || [],
+        correctOption: Array.isArray(qAnswers) ? qAnswers.join(',') : String(qAnswers),
         studentOption: userAns.join(','),
-        isCorrect: userAns.sort().join(',') === q.answers.sort().join(',')
+        isCorrect: userAns.length > 0 && userAns.sort().join(',') === [...qAnswers].sort().join(',')
       };
+
       const result = await api.aiExplain(questionContext);
-      setAiExplanations(prev => ({ ...prev, [index]: result.content }));
+      if (result && result.content) {
+        setAiExplanations(prev => ({ ...prev, [index]: result.content }));
+      } else {
+        throw new Error('AI returned an empty explanation. Please try again.');
+      }
     } catch (err: any) {
-      alert(err.message || 'Failed to get AI explanation');
+      console.error('AI Insight Error:', err);
+      alert(err.message || 'AI Insight could not load. Please try again.');
     } finally {
       setExplainLoading(prev => ({ ...prev, [index]: false }));
     }
@@ -74,7 +83,7 @@ const ReviewAttempt: React.FC = () => {
     const qs = attempt.questionsSnapshot || attempt.questions || [];
     const wrongQs = qs.filter((q: any, i: number) => {
       const uAns = (attempt.answers[i] || attempt.answers[q.id] || []).sort().join(',');
-      const qAnswers = q.answers || q.correct_answers || [q.correctAnswer] || [];
+      const qAnswers = q.answers || q.correct_answers || [q.correctAnswer] || (typeof q.answer !== 'undefined' ? [q.options[q.answer]?.id || q.answer] : []) || [];
       const cAns = qAnswers.sort().join(',');
       return uAns !== cAns;
     });
@@ -88,7 +97,7 @@ const ReviewAttempt: React.FC = () => {
   };
 
   if (isLoading) return <div className="page-loading"><Loader2 className="animate-spin" /> <span>Loading performance report...</span></div>;
-  if (!attempt) return <div className="page-error"><AlertCircle size={48} /> <h2>Review data not found</h2><Link to="/dashboard/history">Return to History</Link></div>;
+  if (!attempt) return <div className="page-error"><AlertCircle size={48} /> <h2>Review data not found</h2><Link to="/dashboard/history">Return to Completed Exams</Link></div>;
 
   const scorePercent = attempt.percent || Math.round((attempt.score / (attempt.totalQuestions || attempt.total)) * 100);
   const timeSpentMin = attempt.durationSeconds ? Math.round(attempt.durationSeconds / 60) : Math.round(attempt.timeMs / 1000 / 60);
@@ -97,7 +106,7 @@ const ReviewAttempt: React.FC = () => {
     <div className="review-page animate-fade-in">
       <header className="review-header">
         <Link to="/dashboard/history" className="back-link-nav">
-          <ChevronLeft size={20} /> Back to History
+          <ChevronLeft size={20} /> Back to Completed Exams
         </Link>
         <div className="review-title-section">
           <h1>{attempt.examTitle}</h1>
@@ -139,7 +148,8 @@ const ReviewAttempt: React.FC = () => {
       <div className="review-list-stack">
         {(attempt.questionsSnapshot || attempt.questions || []).map((q: any, i: number) => {
           const userAns = attempt.answers[i] || attempt.answers[q.id] || [];
-          const isCorrect = userAns.length > 0 && userAns.sort().join(',') === q.answers.sort().join(',');
+          const qAnswers = q.answers || q.correct_answers || [q.correctAnswer] || (typeof q.answer !== 'undefined' ? [q.options[q.answer]?.id || q.answer] : []) || [];
+          const isCorrect = userAns.length > 0 && userAns.sort().join(',') === [...qAnswers].sort().join(',');
 
           return (
             <div key={i} className={`review-q-card ${isCorrect ? 'is-correct' : 'is-wrong'}`}>
@@ -149,12 +159,12 @@ const ReviewAttempt: React.FC = () => {
                   <span>Question {i + 1}</span>
                 </div>
                 <button 
-                  className={`ai-btn ${aiExplanations[i] ? 'has-data' : ''}`}
+                  className={`ai-btn ${aiExplanations[i] ? 'has-data' : ''} ${explainLoading[i] ? 'is-loading' : ''}`}
                   onClick={() => handleAIExplain(q, i, userAns)}
                   disabled={explainLoading[i]}
                 >
                   {explainLoading[i] ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
-                  <span>AI Insight</span>
+                  <span>{explainLoading[i] ? 'Generating...' : (aiExplanations[i] ? 'AI Insight Ready' : 'AI Insight')}</span>
                 </button>
               </div>
 
@@ -253,10 +263,15 @@ const ReviewAttempt: React.FC = () => {
 
         .ai-btn {
           background: var(--primary-soft); color: var(--primary);
-          padding: 0 1rem; height: 36px; border-radius: 99px;
-          display: flex; align-items: center; gap: 0.5rem; font-weight: 800; font-size: 0.8rem;
+          padding: 0 1.25rem; height: 38px; border-radius: 99px;
+          display: flex; align-items: center; gap: 0.6rem; font-weight: 800; font-size: 0.85rem;
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+          cursor: pointer; border: 1px solid transparent;
         }
-        .ai-btn.has-data { background: var(--primary); color: white; }
+        .ai-btn:hover:not(:disabled) { background: var(--primary); color: white; transform: translateY(-1px); box-shadow: var(--shadow-md); }
+        .ai-btn.has-data { background: var(--success-soft); color: var(--success); border-color: var(--success); }
+        .ai-btn.has-data:hover:not(:disabled) { background: var(--success); color: white; }
+        .ai-btn.is-loading { opacity: 0.8; cursor: wait; }
 
         .review-q-body { padding: 2rem; display: flex; flex-direction: column; gap: 2rem; }
         .q-text-large { font-size: 1.25rem; font-weight: 700; color: var(--text-strong); line-height: 1.5; }

@@ -4,6 +4,7 @@ import AIGuide from './AIGuide';
 import ThemeToggle from './ThemeToggle';
 import { useVault } from '../context/VaultContext';
 import { 
+  ClipboardCheck,
   LayoutDashboard, 
   PlusCircle,
   FileText,
@@ -50,7 +51,7 @@ const Dashboard: React.FC = () => {
     { icon: <LayoutDashboard size={20} />, label: 'Dashboard', path: '/dashboard/curriculum' },
     { icon: <PlusCircle size={20} />, label: 'Generate Exam', path: '/dashboard/generate' },
     { icon: <FileText size={20} />, label: 'My Exams', path: '/dashboard/my-exams' },
-    { icon: <History size={20} />, label: 'Results History', path: '/dashboard/history' },
+    { icon: <ClipboardCheck size={20} />, label: 'Completed Exams', path: '/dashboard/history' },
     { icon: <Trophy size={20} />, label: 'Leaderboard', path: '/dashboard/leaderboard' },
     { icon: <SettingsIcon size={20} />, label: 'Settings', path: '/dashboard/settings' },
   ];

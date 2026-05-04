@@ -39,7 +39,7 @@ const ResultsHistory: React.FC = () => {
     <div className="history-page animate-fade-in">
       <header className="page-header-alt">
         <div className="header-info">
-          <h1>Exam History</h1>
+          <h1>Completed Exams</h1>
           <p>Analyze your progress and review past attempts.</p>
         </div>
         <div className="header-stat-badges">
@@ -104,10 +104,10 @@ const ResultsHistory: React.FC = () => {
           <div className="empty-history-icon">
             <History size={48} />
           </div>
-          <h2>No attempts yet</h2>
-          <p>Your examination history will appear here once you complete your first assessment.</p>
+          <h2>No completed exams yet</h2>
+          <p>Complete an exam to review your answers, study your mistakes, and track your progress.</p>
           <button className="primary-button" onClick={() => navigate('/dashboard/curriculum')}>
-            Explore Curriculum
+            Go to My Exams
           </button>
         </div>
       )}

@@ -576,8 +576,8 @@ function handleAIExplain(user, payload) {
   if (!user) throw new Error('Unauthorized');
   const { questionContext } = payload;
   
-  const prompt = `You are the MEDEXAM Specialist. Explain the following question to a medical student.
-  
+  const prompt = `Explain this medical MCQ clearly for a student. Include why the correct answer is correct and why each incorrect option is wrong. Keep the explanation concise, accurate, and study-focused.
+
 Context:
 - Question: ${questionContext.questionText}
 - Options: ${JSON.stringify(questionContext.options)}
@@ -592,7 +592,7 @@ Requirements:
 4. Provide a "Clinical Pearl" or a key takeaway.
 
 Guidelines:
-- Language: English (Crucial: Always respond in English).
+- Language: English (Always respond in English).
 - Tone: Professional, academic, and clear.
 - Brand: Refer to yourself as MEDEXAM AI Specialist.`;
 
