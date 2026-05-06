@@ -20,6 +20,7 @@ const AIGuide: React.FC<Props> = ({ userName, embedded = false }) => {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     if (embedded) setIsOpen(true);
@@ -50,31 +51,88 @@ const AIGuide: React.FC<Props> = ({ userName, embedded = false }) => {
     if (!textToSend.trim() || loading) return;
 
     const userMsg: Message = { role: 'user', content: textToSend };
-    const newMessages = [...messages, userMsg];
-    
-    setMessages(newMessages);
+    setMessages(prev => [...prev, userMsg]);
     setInput('');
     setLoading(true);
 
-    try {
-      const context = {
-        pageTitle: document.title,
-        pageUrl: window.location.href
-      };
+    // Create a temporary message for the AI response
+    setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
 
-      const result = await api.aiChat(newMessages, context);
-      if (result && result.content) {
-        setMessages(prev => [...prev, { role: 'assistant', content: result.content }]);
-      } else {
-        throw new Error('Empty response from AI');
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+    
+    try {
+      const response = await fetch('/api/ai-chat-stream', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: [...messages, userMsg],
+          context: {
+            pageTitle: document.title,
+            pageUrl: window.location.href
+          }
+        }),
+        signal: abortController.signal
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        if (response.status === 500 && errorData.error?.includes('OPENROUTER_API_KEY')) {
+          throw new Error('AI backend is not configured. Please check OPENROUTER_API_KEY in Cloudflare.');
+        }
+        if (response.status === 401) {
+          throw new Error('AI provider rejected the API key. Please check the OpenRouter key.');
+        }
+        throw new Error(errorData.error || `AI Guide could not connect (Status: ${response.status}).`);
+      }
+
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let fullContent = '';
+
+      if (!reader) throw new Error('Failed to initialize AI stream reader.');
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        fullContent += chunk;
+        
+        // Update the last message (the AI's response)
+        setMessages(prev => {
+          const newMsgs = [...prev];
+          newMsgs[newMsgs.length - 1] = { role: 'assistant', content: fullContent };
+          return newMsgs;
+        });
       }
     } catch (err: any) {
       console.error('AI Chat Error:', err);
-      setMessages(prev => [...prev, { 
-        role: 'assistant', 
-        content: '⚠️ I encountered an error connecting to the medical brain. Please ensure your cloud connection is active.' 
-      }]);
+      let errorMsg = '⚠️ AI Guide could not connect. Please check your connection and try again.';
+      
+      if (err.name === 'AbortError') {
+        errorMsg = '⚠️ AI request was stopped or timed out. Please try again.';
+      } else if (err.message) {
+        errorMsg = `⚠️ ${err.message}`;
+      }
+
+      setMessages(prev => {
+        const newMsgs = [...prev];
+        newMsgs[newMsgs.length - 1] = { 
+          role: 'assistant', 
+          content: errorMsg 
+        };
+        return newMsgs;
+      });
     } finally {
+      setLoading(false);
+      abortControllerRef.current = null;
+    }
+  };
+
+  const handleStop = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
       setLoading(false);
     }
   };
@@ -127,6 +185,7 @@ const AIGuide: React.FC<Props> = ({ userName, embedded = false }) => {
           <div className="ai-typing-loader">
             <MoreHorizontal className="animate-pulse" />
             <span>AI is thinking...</span>
+            <button onClick={handleStop} className="ai-btn-stop">Stop</button>
           </div>
         )}
       </div>
@@ -203,6 +262,8 @@ const AIGuide: React.FC<Props> = ({ userName, embedded = false }) => {
         .is-ai .ai-msg-bubble { background: var(--surface); color: var(--text-main); border: 1px solid var(--border); border-bottom-left-radius: 4px; }
 
         .ai-typing-loader { display: flex; align-items: center; gap: 0.5rem; color: var(--primary); font-weight: 700; font-size: 0.8rem; }
+        .ai-btn-stop { margin-left: 0.5rem; background: var(--danger-soft); color: var(--danger); border: 1px solid var(--danger); padding: 2px 8px; border-radius: 6px; font-size: 0.7rem; cursor: pointer; }
+        .ai-btn-stop:hover { background: var(--danger); color: white; }
 
         .ai-footer-controls { padding: 1.25rem; background: var(--surface); border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 1rem; }
         .ai-suggestions { display: flex; gap: 0.5rem; overflow-x: auto; padding-bottom: 4px; }
