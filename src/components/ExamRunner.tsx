@@ -377,7 +377,7 @@ const ExamRunner: React.FC = () => {
           z-index: 2000;
           display: flex;
           flex-direction: column;
-          color: var(--text-main);
+          color: var(--text);
           overflow: hidden;
         }
 
@@ -434,12 +434,19 @@ const ExamRunner: React.FC = () => {
           font-weight: 800; font-size: 0.9rem; box-shadow: var(--shadow-md);
         }
 
-        .exam-viewport { flex: 1; display: flex; overflow: hidden; position: relative; background: var(--bg-soft-fade); }
+        .exam-viewport { 
+          flex: 1; 
+          display: flex; 
+          overflow: hidden; 
+          position: relative; 
+          background: var(--bg); 
+        }
 
         .exam-main {
           flex: 1; overflow-y: auto; padding: 2rem;
           display: flex; flex-direction: column; align-items: center;
           scrollbar-gutter: stable;
+          background: var(--bg);
         }
 
         .question-wrapper { width: 100%; max-width: 900px; display: flex; flex-direction: column; gap: 1.5rem; }
@@ -449,7 +456,7 @@ const ExamRunner: React.FC = () => {
           padding: 2.5rem;
           border-radius: var(--radius-2xl);
           border: 1px solid var(--border);
-          box-shadow: var(--shadow-premium);
+          box-shadow: var(--shadow-xl);
         }
 
         .question-header { margin-bottom: 2rem; }
@@ -516,7 +523,7 @@ const ExamRunner: React.FC = () => {
           font-weight: 600; 
           font-size: 1.05rem; 
           line-height: 1.45;
-          color: var(--text-main);
+          color: var(--text);
           white-space: normal;
           overflow-wrap: break-word;
           word-break: normal;
@@ -575,7 +582,7 @@ const ExamRunner: React.FC = () => {
           background: var(--bg-soft); padding: 0.6rem 1.2rem; border-radius: var(--radius-lg);
           border: 1px solid var(--border);
         }
-        .note-input-wrapper input { background: transparent; border: none; padding: 0; flex: 1; font-weight: 600; color: var(--text-main); font-size: 0.9rem; }
+        .note-input-wrapper input { background: transparent; border: none; padding: 0; flex: 1; font-weight: 600; color: var(--text); font-size: 0.9rem; }
         .note-input-wrapper input::placeholder { color: var(--text-muted); opacity: 0.6; }
 
         .desktop-navigation { display: flex; align-items: center; gap: 2rem; width: 100%; margin-top: 2rem; }

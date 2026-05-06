@@ -12,6 +12,7 @@ import {
   Activity,
   Zap
 } from 'lucide-react';
+import { formatSafeDate, formatPercent } from '../utils/robustHelpers';
 
 const AdminDashboard: React.FC = () => {
   const [stats, setStats] = useState<any>(null);
@@ -60,7 +61,7 @@ const AdminDashboard: React.FC = () => {
         <StatCard Icon={Users} label="Total Users" value={stats.users.total} variant="blue" />
         <StatCard Icon={FileText} label="Cloud Exams" value={stats.exams.total} variant="indigo" />
         <StatCard Icon={History} label="Attempt Logs" value={stats.attempts.total} variant="green" />
-        <StatCard Icon={TrendingUp} label="Global Accuracy" value={`${stats.attempts.avgScore}%`} variant="orange" />
+        <StatCard Icon={TrendingUp} label="Global Accuracy" value={formatPercent(stats.attempts.avgScore)} variant="orange" />
       </div>
 
       <div className="admin-dashboard-grid">
@@ -77,7 +78,7 @@ const AdminDashboard: React.FC = () => {
                 </div>
                 <div className="activity-info-stack">
                   <span className="info-title">Exam Attempt</span>
-                  <span className="info-time">{new Date(attempt.created_at).toLocaleString()}</span>
+                  <span className="info-time">{formatSafeDate(attempt.created_at)}</span>
                 </div>
                 <CheckCircle size={16} className="activity-check" />
               </div>

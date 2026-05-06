@@ -10,6 +10,7 @@ import {
   Users,
   Calendar
 } from 'lucide-react';
+import { getAverageAccuracy, getHighestAccuracy, formatSafeDate, formatPercent, calculateAccuracy } from '../utils/robustHelpers';
 
 const Leaderboard: React.FC = () => {
   const [leaderboardData, setLeaderboardData] = useState<any[]>([]);
@@ -23,8 +24,8 @@ const Leaderboard: React.FC = () => {
         const data = await api.getLeaderboard();
         setLeaderboardData(data);
         const total = data.length;
-        const avg = data.length > 0 ? Math.round(data.reduce((acc: number, cur: any) => acc + (cur.score/cur.totalQuestions)*100, 0) / data.length) : 0;
-        const top = data.length > 0 ? Math.round((data[0].score / data[0].totalQuestions) * 100) : 0;
+        const avg = getAverageAccuracy(data);
+        const top = getHighestAccuracy(data);
         setStats({ total, avg, top });
       } catch (err) {
         console.error('Failed to load leaderboard', err);
@@ -61,14 +62,14 @@ const Leaderboard: React.FC = () => {
           <div className="stat-icon-circle green"><Target size={20} /></div>
           <div className="stat-data">
             <span className="stat-label">Avg. Accuracy</span>
-            <span className="stat-value">{stats.avg}%</span>
+            <span className="stat-value">{formatPercent(stats.avg)}</span>
           </div>
         </div>
         <div className="leader-stat-card">
           <div className="stat-icon-circle gold"><Award size={20} /></div>
           <div className="stat-data">
             <span className="stat-label">Highest Score</span>
-            <span className="stat-value">{stats.top}%</span>
+            <span className="stat-value">{formatPercent(stats.top)}</span>
           </div>
         </div>
       </div>
@@ -82,7 +83,7 @@ const Leaderboard: React.FC = () => {
         <div className="leaderboard-responsive-list">
           {leaderboardData.length > 0 ? (
             leaderboardData.map((item, index) => {
-              const percent = item.percent || Math.round((item.score / item.totalQuestions) * 100);
+              const percent = item.percent || calculateAccuracy(item.score, item.totalQuestions);
               const scoreDisplay = item.scoreDisplay || (item.totalQuestions ? `${item.score}/${item.totalQuestions}` : item.score);
               const isTopThree = index < 3;
 
@@ -101,17 +102,17 @@ const Leaderboard: React.FC = () => {
                     </div>
                     <div className="user-name-info">
                        <span className="username text-ellipsis">{item.username}</span>
-                       <span className="mobile-meta"><Calendar size={12} /> {new Date(item.createdAt || item.date).toLocaleDateString()}</span>
+                       <span className="mobile-meta"><Calendar size={12} /> {formatSafeDate(item.createdAt || item.date)}</span>
                     </div>
                   </div>
 
                   <div className="score-col">
-                    <div className="percent-pill">{percent}%</div>
+                    <div className="percent-pill">{formatPercent(percent)}</div>
                     <span className="raw-score-txt">{scoreDisplay}</span>
                   </div>
 
                   <div className="date-col">
-                    <span>{new Date(item.createdAt || item.date).toLocaleDateString()}</span>
+                    <span>{formatSafeDate(item.createdAt || item.date)}</span>
                   </div>
                 </div>
               );

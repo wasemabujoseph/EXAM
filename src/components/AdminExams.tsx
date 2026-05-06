@@ -15,6 +15,7 @@ import {
   FileJson,
   Edit2
 } from 'lucide-react';
+import { formatSafeDate } from '../utils/robustHelpers';
 
 const AdminExams: React.FC = () => {
   const [exams, setExams] = useState<any[]>([]);
@@ -135,7 +136,7 @@ const AdminExams: React.FC = () => {
             </div>
 
             <div className="exam-card-footer">
-              <span className="date-txt">{new Date(exam.created_at).toLocaleDateString()}</span>
+              <span className="date-txt">{formatSafeDate(exam.created_at || exam.createdAt)}</span>
               <span className={`diff-txt ${exam.difficulty}`}>{exam.difficulty}</span>
             </div>
           </div>

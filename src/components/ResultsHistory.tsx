@@ -10,6 +10,7 @@ import {
   Trophy,
   Activity
 } from 'lucide-react';
+import { formatSafeDate, formatPercent, calculateAccuracy } from '../utils/robustHelpers';
 
 const ResultsHistory: React.FC = () => {
   const navigate = useNavigate();
@@ -53,15 +54,11 @@ const ResultsHistory: React.FC = () => {
         <div className="history-list-wrapper">
           {sortedAttempts.map((attempt) => {
             const totalQs = attempt.totalQuestions || attempt.total || 0;
-            const percentage = !isNaN(attempt.percent) && attempt.percent !== null ? attempt.percent : (totalQs > 0 ? Math.round((attempt.score / totalQs) * 100) : 0);
+            const percentage = attempt.percent !== undefined && attempt.percent !== null && !isNaN(attempt.percent) ? attempt.percent : calculateAccuracy(attempt.score, totalQs);
             const isPass = percentage >= 60;
             const durationMin = attempt.durationSeconds ? Math.round(attempt.durationSeconds / 60) : (attempt.timeMs ? Math.round(attempt.timeMs / 1000 / 60) : null);
 
-            const formatDate = (dateVal: any) => {
-              if (!dateVal) return "Date unavailable";
-              const d = new Date(dateVal);
-              return isNaN(d.getTime()) ? "Date unavailable" : d.toLocaleDateString();
-            };
+            // Removed local formatDate as we use the imported one
 
             return (
               <div key={attempt.id} className="history-item-card">
@@ -73,7 +70,7 @@ const ResultsHistory: React.FC = () => {
                     <div className="item-meta-row">
                       <div className="meta-unit">
                         <Calendar size={14} />
-                        <span>{formatDate(attempt.createdAt || attempt.date)}</span>
+                        <span>{formatSafeDate(attempt.createdAt || attempt.date)}</span>
                       </div>
                       <div className="meta-unit">
                         <Clock size={14} />
@@ -89,7 +86,7 @@ const ResultsHistory: React.FC = () => {
                     </div>
                     <div className="compact-stat">
                       <span className="compact-label">Result</span>
-                      <span className="compact-value percentage" style={{ color: isPass ? 'var(--success)' : 'var(--danger)' }}>{percentage}%</span>
+                      <span className="compact-value percentage" style={{ color: isPass ? 'var(--success)' : 'var(--danger)' }}>{formatPercent(percentage)}</span>
                     </div>
                   </div>
 

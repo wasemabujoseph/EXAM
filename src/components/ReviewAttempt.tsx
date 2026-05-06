@@ -22,6 +22,7 @@ import {
   ListX,
   Repeat
 } from 'lucide-react';
+import { formatSafeDate, formatPercent } from '../utils/robustHelpers';
 
 interface AIChatMessage {
   role: 'user' | 'assistant' | 'system';
@@ -349,18 +350,7 @@ const ReviewAttempt: React.FC = () => {
 
   const filteredQuestions = reviewFilter === 'wrong' ? questions.filter((q: any, i: number) => !isQuestionCorrect(q, i, attempt)) : questions;
 
-  const formatDate = (dateVal: any) => {
-    if (!dateVal) return "Attempt date unavailable";
-    const d = new Date(dateVal);
-    if (isNaN(d.getTime())) return "Attempt date unavailable";
-    return d.toLocaleDateString(undefined, { 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
+  // Using imported formatSafeDate
 
   return (
     <div className="review-page animate-fade-in">
@@ -370,14 +360,14 @@ const ReviewAttempt: React.FC = () => {
         </Link>
         <div className="review-title-section">
           <h1>{attempt.examTitle}</h1>
-          <p>Attempted on {formatDate(attempt.createdAt || attempt.date)}</p>
+          <p>Attempted on {formatSafeDate(attempt.createdAt || attempt.date)}</p>
         </div>
 
         <div className="review-stats-summary">
           <div className="summary-card">
             <div className="summary-icon score"><TrendingUp size={20} /></div>
             <div className="summary-val">
-              <span className="val-main">{scorePercent}%</span>
+              <span className="val-main">{formatPercent(scorePercent)}</span>
               <span className="val-label">Accuracy</span>
             </div>
           </div>

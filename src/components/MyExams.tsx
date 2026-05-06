@@ -13,6 +13,7 @@ import {
   Cloud,
   FileQuestion
 } from 'lucide-react';
+import { getQuestionCount, formatSafeDate } from '../utils/robustHelpers';
 
 const MyExams: React.FC = () => {
   const navigate = useNavigate();
@@ -79,14 +80,14 @@ const MyExams: React.FC = () => {
                 </div>
                 <div className="exam-main-info">
                   <h3 className="text-ellipsis">{exam.title}</h3>
-                  <span className="q-count">{(exam.examData?.questions || exam.questions || []).length} Questions</span>
+                  <span className="q-count">{getQuestionCount(exam)} Questions</span>
                 </div>
               </div>
               
               <div className="card-mid">
                 <div className="meta-row">
                   <Clock size={14} />
-                  <span>{new Date(exam.createdAt || exam.date).toLocaleDateString()}</span>
+                  <span>{formatSafeDate(exam.createdAt || exam.date)}</span>
                 </div>
               </div>
 

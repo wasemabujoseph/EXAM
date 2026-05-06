@@ -12,6 +12,7 @@ import {
   AlertTriangle
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { formatSafeDate } from '../utils/robustHelpers';
 
 const AdminAttempts: React.FC = () => {
   const [attempts, setAttempts] = useState<any[]>([]);
@@ -98,7 +99,7 @@ const AdminAttempts: React.FC = () => {
                   </td>
                   <td>
                     <div className="time-stack">
-                       <span>{a.created_at ? new Date(a.created_at).toLocaleDateString() : 'N/A'}</span>
+                       <span>{formatSafeDate(a.created_at || a.createdAt)}</span>
                        <small>{a.created_at ? new Date(a.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A'}</small>
                     </div>
                   </td>
@@ -136,7 +137,7 @@ const AdminAttempts: React.FC = () => {
                    </div>
                 </div>
                 <div className="card-footer-row">
-                   <div className="time-info"><Calendar size={12} /> {new Date(a.created_at).toLocaleDateString()}</div>
+                   <div className="time-info"><Calendar size={12} /> {formatSafeDate(a.created_at || a.createdAt)}</div>
                    <Link to={`/dashboard/review/${a.id}`} className="btn-mob-review">View Session</Link>
                 </div>
              </div>
