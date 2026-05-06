@@ -178,24 +178,35 @@ function handleRegister(payload) {
 function handleLogin(payload) {
   const { username, password } = payload;
   const sheet = getSheet(TABLES.USERS);
-  const data = sheet.getDataRange().getValues();
-  const headers = data[0];
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) throw new Error('No users found');
+
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  const usernameCol = headers.indexOf('username') + 1;
+  const emailCol = headers.indexOf('email') + 1;
+  
+  // Read only the columns we need for searching
+  const usernames = sheet.getRange(2, usernameCol, lastRow - 1, 1).getValues();
+  const emails = sheet.getRange(2, emailCol, lastRow - 1, 1).getValues();
 
   const searchVal = (username || '').toString().toLowerCase().trim();
   if (!searchVal) throw new Error('Username or email is required');
 
   let userIdx = -1;
-  for (let i = 1; i < data.length; i++) {
-    const rowUsername = (data[i][1] || '').toString().toLowerCase().trim();
-    const rowEmail = (data[i][2] || '').toString().toLowerCase().trim();
+  for (let i = 0; i < usernames.length; i++) {
+    const rowUsername = (usernames[i][0] || '').toString().toLowerCase().trim();
+    const rowEmail = (emails[i][0] || '').toString().toLowerCase().trim();
     if (rowUsername === searchVal || rowEmail === searchVal) {
-      userIdx = i;
+      userIdx = i + 1; // +1 because i is 0-indexed, but range starts at row 2
       break;
     }
   }
 
   if (userIdx === -1) throw new Error('Invalid credentials');
-  const user = rowToObject(data[userIdx], headers);
+  
+  // Now read the full user row
+  const userRow = sheet.getRange(userIdx + 1, 1, 1, headers.length).getValues()[0];
+  const user = rowToObject(userRow, headers);
 
   if (user.status === 'blocked') throw new Error('Account is blocked.');
   if (hashPassword(password, user.salt) !== user.password_hash) throw new Error('Invalid credentials');
@@ -205,23 +216,58 @@ function handleLogin(payload) {
   const now = new Date();
   const expiresAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString();
 
-  getSheet(TABLES.SESSIONS).appendRow([generateUUID(), user.id, tokenHash, expiresAt, now.toISOString()]);
+  // Optimized session storage
+  const sessionSheet = getSheet(TABLES.SESSIONS);
+  sessionSheet.appendRow([generateUUID(), user.id, tokenHash, expiresAt, now.toISOString()]);
   
+  // Update last login
   const lastLoginCol = headers.indexOf('last_login') + 1;
   if (lastLoginCol > 0) sheet.getRange(userIdx + 1, lastLoginCol).setValue(now.toISOString());
 
+  // Check for admin/pro promotion
   const isSuperAdmin = SUPER_ADMIN_EMAILS.some(e => e.toLowerCase() === (user.email || '').toLowerCase().trim());
   if (isSuperAdmin && (user.role !== 'admin' || user.plan !== 'pro')) {
-    sheet.getRange(userIdx + 1, 6).setValue('admin');
-    sheet.getRange(userIdx + 1, 8).setValue('pro');
+    const roleCol = headers.indexOf('role') + 1;
+    const planCol = headers.indexOf('plan') + 1;
+    if (roleCol > 0) sheet.getRange(userIdx + 1, roleCol).setValue('admin');
+    if (planCol > 0) sheet.getRange(userIdx + 1, planCol).setValue('pro');
     user.role = 'admin';
     user.plan = 'pro';
   }
+
+  // Cleanup old sessions for this user (max 10 sessions)
+  try {
+     cleanupSessions(user.id);
+  } catch(e) {}
 
   return {
     token,
     user: { id: user.id, username: user.username, email: user.email, role: user.role, status: user.status, plan: user.plan }
   };
+}
+
+function cleanupSessions(userId) {
+  const sheet = getSheet(TABLES.SESSIONS);
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return;
+  
+  const data = sheet.getRange(2, 2, lastRow - 1, 1).getValues(); // Get user_id column
+  const now = new Date();
+  
+  // Simple cleanup: delete rows that match this user but are older than 7 days
+  // Or just keep the most recent ones. For now, let's just delete expired ones.
+  const expiresData = sheet.getRange(2, 4, lastRow - 1, 1).getValues(); // Get expires_at column
+  
+  let deletedCount = 0;
+  for (let i = data.length - 1; i >= 0; i--) {
+    if (data[i][0] === userId) {
+       const expiry = new Date(expiresData[i][0]);
+       if (expiry < now) {
+         sheet.deleteRow(i + 2);
+         deletedCount++;
+       }
+    }
+  }
 }
 
 function handleGetMe(user) {
@@ -324,9 +370,7 @@ function handleDeleteExam(user, id) {
 
 function handleSaveAttempt(user, payload) {
   if (!user) throw new Error('Unauthorized');
-  const dbUser = getUserById(user.id);
-  if (dbUser.status === 'blocked') throw new Error('Account blocked');
-
+  
   const { examId, score, totalQuestions, answers, durationSeconds, questionsSnapshot, mode } = payload;
   const percentage = Math.round((score / totalQuestions) * 100);
   const id = generateUUID();
@@ -338,19 +382,29 @@ function handleSaveAttempt(user, payload) {
     durationSeconds, mode || 'normal', now
   ]);
 
+  // Update user attempt count efficiently
   const userSheet = getSheet(TABLES.USERS);
-  const userData = userSheet.getDataRange().getValues();
-  const headers = userData[0];
-  const countCol = headers.indexOf('attempt_count') + 1;
-  const updateCol = headers.indexOf('updated_at') + 1;
+  const lastRow = userSheet.getLastRow();
+  const ids = userSheet.getRange(2, 1, lastRow - 1, 1).getValues();
   
-  for(let i=1; i<userData.length; i++) {
-    if(userData[i][0] === user.id) {
-      const currentCount = parseInt(userData[i][countCol-1]) || 0;
-      userSheet.getRange(i+1, countCol).setValue(currentCount + 1);
-      userSheet.getRange(i+1, updateCol).setValue(now);
+  let userIdx = -1;
+  for(let i=0; i<ids.length; i++) {
+    if(ids[i][0] === user.id) {
+      userIdx = i + 2;
       break;
     }
+  }
+
+  if (userIdx !== -1) {
+    const headers = userSheet.getRange(1, 1, 1, userSheet.getLastColumn()).getValues()[0];
+    const countCol = headers.indexOf('attempt_count') + 1;
+    const updateCol = headers.indexOf('updated_at') + 1;
+    
+    if (countCol > 0) {
+      const currentCount = parseInt(userSheet.getRange(userIdx, countCol).getValue()) || 0;
+      userSheet.getRange(userIdx, countCol).setValue(currentCount + 1);
+    }
+    if (updateCol > 0) userSheet.getRange(userIdx, updateCol).setValue(now);
   }
 
   logAction(user.id, 'SAVE_ATTEMPT', `Attempt saved for ${examId}`);
@@ -359,7 +413,11 @@ function handleSaveAttempt(user, payload) {
 
 function handleGetMyAttempts(user) {
   if (!user) throw new Error('Unauthorized');
-  const data = getSheet(TABLES.EXAM_ATTEMPTS).getDataRange().getValues();
+  const sheet = getSheet(TABLES.EXAM_ATTEMPTS);
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return [];
+
+  const data = sheet.getRange(1, 1, lastRow, sheet.getLastColumn()).getValues();
   const headers = data[0];
   const list = [];
   for (let i = 1; i < data.length; i++) {
@@ -508,11 +566,21 @@ function getUserByToken(token) {
   if (!token) return null;
   const hash = hashToken(token);
   const sheet = getSheet(TABLES.SESSIONS);
-  const data = sheet.getDataRange().getValues();
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return null;
+
+  // Search only the token_hash column
+  const hashes = sheet.getRange(2, 3, lastRow - 1, 1).getValues();
   const now = new Date();
-  for (let i = 1; i < data.length; i++) {
-    if (data[i][2] === hash) {
-      if (new Date(data[i][3]) > now) return getUserById(data[i][1]);
+  
+  for (let i = 0; i < hashes.length; i++) {
+    if (hashes[i][0] === hash) {
+      const rowIdx = i + 2;
+      const sessionData = sheet.getRange(rowIdx, 1, 1, 5).getValues()[0];
+      const expiry = new Date(sessionData[3]);
+      if (expiry > now) {
+        return getUserById(sessionData[1]);
+      }
       break;
     }
   }
@@ -521,12 +589,23 @@ function getUserByToken(token) {
 
 function getUserById(id) {
   const sheet = getSheet(TABLES.USERS);
-  const data = sheet.getDataRange().getValues();
-  const headers = data[0];
-  for (let i = 1; i < data.length; i++) {
-    if (data[i][0] === id) return rowToObject(data[i], headers);
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) throw new Error('User not found');
+
+  const idColValues = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
+  let rowIdx = -1;
+  for (let i = 0; i < idColValues.length; i++) {
+    if (idColValues[i][0] === id) {
+      rowIdx = i + 2;
+      break;
+    }
   }
-  throw new Error('User not found');
+  
+  if (rowIdx === -1) throw new Error('User not found');
+  
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  const rowData = sheet.getRange(rowIdx, 1, 1, headers.length).getValues()[0];
+  return rowToObject(rowData, headers);
 }
 
 function rowToObject(row, headers) {

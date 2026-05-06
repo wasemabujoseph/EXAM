@@ -20,12 +20,12 @@ import { safeStorage } from '../utils/safeStorage';
 
 async function request<T>(action: string, payload: any = {}): Promise<T> {
   if (!API_URL) {
-    throw new Error('Backend URL not configured. Please check your .env file.');
+    throw new Error('Apps Script API URL is not configured.');
   }
 
   const token = safeStorage.getItem('exam_cloud_token');
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 45000); // 45 second timeout
+  const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
   
   try {
 
