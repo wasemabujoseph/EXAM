@@ -52,9 +52,16 @@ const ResultsHistory: React.FC = () => {
       {attempts.length > 0 ? (
         <div className="history-list-wrapper">
           {sortedAttempts.map((attempt) => {
-            const percentage = attempt.percent || Math.round((attempt.score / (attempt.totalQuestions || attempt.total)) * 100);
+            const totalQs = attempt.totalQuestions || attempt.total || 0;
+            const percentage = !isNaN(attempt.percent) && attempt.percent !== null ? attempt.percent : (totalQs > 0 ? Math.round((attempt.score / totalQs) * 100) : 0);
             const isPass = percentage >= 60;
-            const durationMin = attempt.durationSeconds ? Math.round(attempt.durationSeconds / 60) : Math.round(attempt.timeMs / 1000 / 60);
+            const durationMin = attempt.durationSeconds ? Math.round(attempt.durationSeconds / 60) : (attempt.timeMs ? Math.round(attempt.timeMs / 1000 / 60) : null);
+
+            const formatDate = (dateVal: any) => {
+              if (!dateVal) return "Date unavailable";
+              const d = new Date(dateVal);
+              return isNaN(d.getTime()) ? "Date unavailable" : d.toLocaleDateString();
+            };
 
             return (
               <div key={attempt.id} className="history-item-card">
@@ -66,11 +73,11 @@ const ResultsHistory: React.FC = () => {
                     <div className="item-meta-row">
                       <div className="meta-unit">
                         <Calendar size={14} />
-                        <span>{new Date(attempt.createdAt || attempt.date).toLocaleDateString()}</span>
+                        <span>{formatDate(attempt.createdAt || attempt.date)}</span>
                       </div>
                       <div className="meta-unit">
                         <Clock size={14} />
-                        <span>{durationMin || 1} min spent</span>
+                        <span>{durationMin !== null ? `${durationMin} min spent` : 'Not recorded'}</span>
                       </div>
                     </div>
                   </div>
@@ -78,7 +85,7 @@ const ResultsHistory: React.FC = () => {
                   <div className="item-stats-row">
                     <div className="compact-stat">
                       <span className="compact-label">Score</span>
-                      <span className="compact-value">{attempt.score}/{attempt.totalQuestions || attempt.total}</span>
+                      <span className="compact-value">{attempt.score}/{totalQs}</span>
                     </div>
                     <div className="compact-stat">
                       <span className="compact-label">Result</span>

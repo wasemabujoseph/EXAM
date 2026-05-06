@@ -18,7 +18,9 @@ import {
   StopCircle,
   Trash2,
   MessageSquare,
-  X
+  X,
+  ListX,
+  Repeat
 } from 'lucide-react';
 
 interface AIChatMessage {
@@ -39,6 +41,7 @@ const ReviewAttempt: React.FC = () => {
   const navigate = useNavigate();
   const [attempt, setAttempt] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [reviewFilter, setReviewFilter] = useState<'all' | 'wrong'>('all');
   
   // Per-question AI chat state
   const [aiChats, setAiChats] = useState<Record<number, AIChatState>>({});
@@ -179,6 +182,68 @@ const ReviewAttempt: React.FC = () => {
     handleAIStream(q, index, userAns, chat.inputValue.trim());
   };
 
+  // Robust answer detection helpers
+  const getCorrectAnswer = (q: any): string[] => {
+    if (!q) return [];
+    const possibleFields = [
+      q.answers, 
+      q.correct_answers, 
+      q.correctAnswer, 
+      q.correct_answer, 
+      q.correct, 
+      q.answer
+    ];
+    
+    for (const field of possibleFields) {
+      if (field !== undefined && field !== null) {
+        if (Array.isArray(field)) return field.map(String);
+        if (typeof field === 'string') return field.split(',').map(s => s.trim());
+        if (typeof field === 'number') {
+          // If it's a number, it might be an index in q.options
+          if (q.options && q.options[field]) return [String(q.options[field].id)];
+          return [String(field)];
+        }
+      }
+    }
+    return [];
+  };
+
+  const getSelectedAnswer = (q: any, index: number, att: any): string[] => {
+    if (!att || !att.answers) return [];
+    
+    // Try by index first
+    let ans = att.answers[index];
+    
+    // Try by question ID if index didn't work
+    if ((ans === undefined || ans === null) && q?.id) {
+      ans = att.answers[q.id];
+    }
+
+    if (ans === undefined || ans === null) return [];
+    if (Array.isArray(ans)) return ans.map(String);
+    if (typeof ans === 'string') return ans.split(',').map(s => s.trim());
+    return [String(ans)];
+  };
+
+  const isQuestionCorrect = (q: any, index: number, att: any): boolean => {
+    const selected = getSelectedAnswer(q, index, att);
+    const correct = getCorrectAnswer(q);
+    
+    if (selected.length === 0) return false; // No answer selected is wrong
+    if (selected.length !== correct.length) return false;
+    
+    const sortedSelected = [...selected].sort();
+    const sortedCorrect = [...correct].sort();
+    
+    return sortedSelected.every((val, i) => val === sortedCorrect[i]);
+  };
+
+  const getWrongQuestions = (att: any) => {
+    if (!att) return [];
+    const qs = att.questionsSnapshot || att.questions || [];
+    return qs.filter((q: any, i: number) => !isQuestionCorrect(q, i, att));
+  };
+
   const renderChatBox = (q: any, index: number, userAns: string[]) => {
     const chat = aiChats[index];
     if (!chat || !chat.isOpen) return null;
@@ -256,18 +321,14 @@ const ReviewAttempt: React.FC = () => {
   };
 
   const handleRedoWrong = () => {
-    const qs = attempt.questionsSnapshot || attempt.questions || [];
-    const wrongQs = qs.filter((q: any, i: number) => {
-      const uAns = (attempt.answers[i] || attempt.answers[q.id] || []).sort().join(',');
-      const qAnswers = q.answers || q.correct_answers || [q.correctAnswer] || (typeof q.answer !== 'undefined' ? [q.options[q.answer]?.id || q.answer] : []) || [];
-      const cAns = qAnswers.sort().join(',');
-      return uAns !== cAns;
-    });
+    const wrongQs = getWrongQuestions(attempt);
+    if (wrongQs.length === 0) return;
+    
     navigate(`/dashboard/exam/cloud/${attempt.examId}`, { 
       state: { 
         redoMode: 'wrong-only',
         wrongQuestions: wrongQs,
-        exam: { id: attempt.examId, title: attempt.examTitle, questions: qs } 
+        exam: { id: attempt.examId, title: attempt.examTitle } 
       } 
     });
   };
@@ -275,8 +336,31 @@ const ReviewAttempt: React.FC = () => {
   if (isLoading) return <div className="page-loading"><Loader2 className="animate-spin" /> <span>Loading performance report...</span></div>;
   if (!attempt) return <div className="page-error"><AlertCircle size={48} /> <h2>Review data not found</h2><Link to="/dashboard/history">Return to Completed Exams</Link></div>;
 
-  const scorePercent = attempt.percent || Math.round((attempt.score / (attempt.totalQuestions || attempt.total)) * 100);
-  const timeSpentMin = attempt.durationSeconds ? Math.round(attempt.durationSeconds / 60) : Math.round(attempt.timeMs / 1000 / 60);
+  const questions = attempt.questionsSnapshot || attempt.questions || [];
+  const wrongQuestions = getWrongQuestions(attempt);
+  
+  // Calculate stats robustly
+  const totalQs = questions.length || attempt.totalQuestions || attempt.total || 0;
+  const correctCount = questions.reduce((acc: number, q: any, i: number) => acc + (isQuestionCorrect(q, i, attempt) ? 1 : 0), 0);
+  const calculatedPercent = totalQs > 0 ? Math.round((correctCount / totalQs) * 100) : 0;
+  
+  const scorePercent = !isNaN(attempt.percent) ? attempt.percent : calculatedPercent;
+  const timeSpentMin = attempt.durationSeconds ? Math.round(attempt.durationSeconds / 60) : (attempt.timeMs ? Math.round(attempt.timeMs / 1000 / 60) : null);
+
+  const filteredQuestions = reviewFilter === 'wrong' ? questions.filter((q: any, i: number) => !isQuestionCorrect(q, i, attempt)) : questions;
+
+  const formatDate = (dateVal: any) => {
+    if (!dateVal) return "Attempt date unavailable";
+    const d = new Date(dateVal);
+    if (isNaN(d.getTime())) return "Attempt date unavailable";
+    return d.toLocaleDateString(undefined, { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
 
   return (
     <div className="review-page animate-fade-in">
@@ -286,7 +370,7 @@ const ReviewAttempt: React.FC = () => {
         </Link>
         <div className="review-title-section">
           <h1>{attempt.examTitle}</h1>
-          <p>Attempted on {new Date(attempt.createdAt || attempt.date).toLocaleDateString()}</p>
+          <p>Attempted on {formatDate(attempt.createdAt || attempt.date)}</p>
         </div>
 
         <div className="review-stats-summary">
@@ -300,44 +384,85 @@ const ReviewAttempt: React.FC = () => {
           <div className="summary-card">
             <div className="summary-icon qcount"><CheckCircle size={20} /></div>
             <div className="summary-val">
-              <span className="val-main">{attempt.score}/{attempt.totalQuestions || attempt.total}</span>
+              <span className="val-main">{correctCount}/{totalQs}</span>
               <span className="val-label">Correct</span>
             </div>
           </div>
           <div className="summary-card">
             <div className="summary-icon time"><Clock size={20} /></div>
             <div className="summary-val">
-              <span className="val-main">{timeSpentMin || 1}m</span>
+              <span className="val-main">{timeSpentMin !== null ? `${timeSpentMin}m` : 'Not recorded'}</span>
               <span className="val-label">Duration</span>
             </div>
           </div>
         </div>
 
-        <div className="review-header-actions">
-           <button className="btn-redo-alt" onClick={handleRedoFull}><RotateCcw size={18} /> Redo Full</button>
-           {scorePercent < 100 && (
-             <button className="btn-redo-main" onClick={handleRedoWrong}><Sparkles size={18} /> Redo Mistakes</button>
-           )}
+        <div className="review-actions-container">
+           <div className="review-actions">
+              <button className="btn-action-redo-full" onClick={handleRedoFull} title="Redo the entire exam from scratch">
+                <RotateCcw size={18} /> 
+                <span>Redo Full</span>
+              </button>
+              
+              <button 
+                className={`btn-action-review-wrong ${reviewFilter === 'wrong' ? 'active' : ''}`} 
+                onClick={() => setReviewFilter(reviewFilter === 'wrong' ? 'all' : 'wrong')}
+                disabled={wrongQuestions.length === 0}
+                title={wrongQuestions.length === 0 ? "No wrong answers to review" : "Filter to see only incorrect answers"}
+              >
+                {reviewFilter === 'wrong' ? <ListX size={18} /> : <AlertCircle size={18} />}
+                <span>{reviewFilter === 'wrong' ? 'Show All Questions' : `Review Wrong Answers (${wrongQuestions.length})`}</span>
+              </button>
+              
+              <button 
+                className="btn-action-redo-wrong" 
+                onClick={handleRedoWrong}
+                disabled={wrongQuestions.length === 0}
+                title={wrongQuestions.length === 0 ? "No wrong answers to redo" : "Start a new exam with only these mistakes"}
+              >
+                <Repeat size={18} /> 
+                <span>Redo Wrongs Only ({wrongQuestions.length})</span>
+              </button>
+           </div>
         </div>
       </header>
 
+      {reviewFilter === 'wrong' && (
+        <div className="filter-badge-row">
+          <div className="filter-badge">
+            <AlertCircle size={14} />
+            Showing Wrong Answers Only
+            <button onClick={() => setReviewFilter('all')} className="clear-filter-x"><X size={14} /></button>
+          </div>
+        </div>
+      )}
+
       <div className="review-list-stack">
-        {(attempt.questionsSnapshot || attempt.questions || []).map((q: any, i: number) => {
-          const userAns = attempt.answers[i] || attempt.answers[q.id] || [];
-          const qAnswers = q.answers || q.correct_answers || [q.correctAnswer] || (typeof q.answer !== 'undefined' ? [q.options[q.answer]?.id || q.answer] : []) || [];
-          const isCorrect = userAns.length > 0 && userAns.sort().join(',') === [...qAnswers].sort().join(',');
-          const chat = aiChats[i];
+        {filteredQuestions.length === 0 && reviewFilter === 'wrong' ? (
+          <div className="empty-wrong-state">
+            <CheckCircle size={48} className="text-success" />
+            <h3>Great job!</h3>
+            <p>You did not miss any questions in this attempt.</p>
+            <button className="btn-action-outline" onClick={() => setReviewFilter('all')}>Show All Questions</button>
+          </div>
+        ) : filteredQuestions.map((q: any, index: number) => {
+          // Find original index for question numbering if filtered
+          const originalIndex = questions.indexOf(q);
+          const userAns = getSelectedAnswer(q, originalIndex, attempt);
+          const qAnswers = getCorrectAnswer(q);
+          const isCorrect = isQuestionCorrect(q, originalIndex, attempt);
+          const chat = aiChats[originalIndex];
 
           return (
-            <div key={i} className={`review-q-card ${isCorrect ? 'is-correct' : 'is-wrong'}`}>
+            <div key={index} className={`review-q-card ${isCorrect ? 'is-correct' : 'is-wrong'}`}>
               <div className="review-q-header">
                 <div className="q-status-badge">
                   {isCorrect ? <CheckCircle size={24} /> : <XCircle size={24} />}
-                  <span>Question {i + 1}</span>
+                  <span>Question {originalIndex + 1}</span>
                 </div>
                 <button 
                   className={`ai-btn ${chat?.messages.length > 0 ? 'has-data' : ''} ${chat?.isStreaming ? 'is-loading' : ''}`}
-                  onClick={() => chat?.isOpen ? setAiChats(prev => ({ ...prev, [i]: { ...prev[i], isOpen: false } })) : handleAIStream(q, i, userAns)}
+                  onClick={() => chat?.isOpen ? setAiChats(prev => ({ ...prev, [originalIndex]: { ...prev[originalIndex], isOpen: false } })) : handleAIStream(q, originalIndex, userAns)}
                   disabled={chat?.isStreaming}
                 >
                   {chat?.isStreaming ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
@@ -370,7 +495,7 @@ const ReviewAttempt: React.FC = () => {
                   })}
                 </div>
 
-                {renderChatBox(q, i, userAns)}
+                {renderChatBox(q, originalIndex, userAns)}
 
                 {(!chat?.isOpen && (chat?.messages.length > 0 || q.explanation)) && (
                   <div className="explanation-area">
@@ -419,9 +544,54 @@ const ReviewAttempt: React.FC = () => {
         .val-main { font-size: 1.25rem; font-weight: 900; color: var(--text-strong); }
         .val-label { font-size: 0.7rem; font-weight: 800; color: var(--text-soft); text-transform: uppercase; }
 
-        .review-header-actions { display: flex; gap: 1rem; }
-        .btn-redo-main { flex: 1; background: var(--primary); color: white; height: 48px; border-radius: var(--radius-lg); font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 0.75rem; box-shadow: var(--shadow-md); }
-        .btn-redo-alt { background: var(--surface); border: 2px solid var(--border); color: var(--text-strong); padding: 0 1.5rem; height: 48px; border-radius: var(--radius-lg); font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 0.75rem; }
+        .review-actions-container { display: flex; width: 100%; }
+        .review-actions { display: flex; flex-wrap: wrap; gap: 0.75rem; width: 100%; }
+        
+        .btn-action-redo-full { 
+          flex: 1; min-width: 140px; background: var(--surface); color: var(--text-strong); 
+          border: 2px solid var(--border); height: 48px; border-radius: var(--radius-lg); 
+          font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 0.75rem;
+          transition: all 0.2s;
+        }
+        .btn-action-redo-full:hover { border-color: var(--primary); color: var(--primary); }
+
+        .btn-action-review-wrong { 
+          flex: 1; min-width: 220px; background: var(--warning-soft); color: var(--warning-text); 
+          border: 1px solid var(--warning); height: 48px; border-radius: var(--radius-lg); 
+          font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 0.75rem;
+          transition: all 0.2s;
+        }
+        .btn-action-review-wrong:hover:not(:disabled) { background: var(--warning); color: white; }
+        .btn-action-review-wrong.active { background: var(--primary); color: white; border-color: var(--primary); }
+        .btn-action-review-wrong:disabled { opacity: 0.5; cursor: not-allowed; background: var(--bg-soft); color: var(--text-muted); border-color: var(--border); }
+
+        .btn-action-redo-wrong { 
+          flex: 1; min-width: 220px; background: var(--primary-soft); color: var(--primary); 
+          border: 1px solid var(--primary); height: 48px; border-radius: var(--radius-lg); 
+          font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 0.75rem;
+          transition: all 0.2s;
+        }
+        .btn-action-redo-wrong:hover:not(:disabled) { background: var(--primary); color: white; }
+        .btn-action-redo-wrong:disabled { opacity: 0.5; cursor: not-allowed; background: var(--bg-soft); color: var(--text-muted); border-color: var(--border); }
+
+        .filter-badge-row { margin-bottom: -1rem; display: flex; }
+        .filter-badge {
+          background: var(--primary-soft); color: var(--primary); padding: 0.5rem 1rem;
+          border-radius: 99px; font-weight: 800; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem;
+          border: 1px solid var(--primary);
+        }
+        .clear-filter-x { background: transparent; color: var(--primary); padding: 2px; border-radius: 50%; display: flex; }
+        .clear-filter-x:hover { background: var(--primary); color: white; }
+
+        .empty-wrong-state {
+          background: var(--surface); border-radius: var(--radius-2xl); border: 1px solid var(--border);
+          padding: 4rem 2rem; display: flex; flex-direction: column; align-items: center; gap: 1rem; text-align: center;
+        }
+        .empty-wrong-state h3 { font-size: 1.5rem; font-weight: 800; }
+        .empty-wrong-state p { color: var(--text-soft); font-weight: 600; }
+        .btn-action-outline { margin-top: 1rem; padding: 0.75rem 2rem; border-radius: var(--radius-lg); border: 2px solid var(--primary); color: var(--primary); font-weight: 800; background: transparent; }
+
+        .text-success { color: var(--success); }
 
         .review-list-stack { display: flex; flex-direction: column; gap: 2rem; }
         .review-q-card {
@@ -535,8 +705,8 @@ const ReviewAttempt: React.FC = () => {
         @media (max-width: 768px) {
           .review-header { padding: 1.25rem; gap: 1.25rem; }
           .review-stats-summary { grid-template-columns: 1fr; gap: 0.75rem; }
-          .review-header-actions { flex-direction: column; gap: 0.75rem; }
-          .btn-redo-main, .btn-redo-alt { width: 100%; height: 44px; font-size: 0.9rem; }
+          .review-actions { flex-direction: column; }
+          .review-actions button { width: 100%; height: 44px; font-size: 0.9rem; }
           .review-q-header { flex-direction: column; align-items: flex-start; gap: 1rem; }
           .ai-btn { width: 100%; justify-content: center; }
           .review-q-body { padding: 1.25rem; }

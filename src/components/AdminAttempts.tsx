@@ -87,8 +87,8 @@ const AdminAttempts: React.FC = () => {
                   </td>
                   <td>
                     <div className="score-stack">
-                      <span className={`score-pct ${parseInt(a.percentage) >= 60 ? 'pass' : 'fail'}`}>{a.percentage}%</span>
-                      <span className="score-raw">{a.score}/{a.total_questions} Qs</span>
+                      <span className={`score-pct ${parseInt(a.percentage || 0) >= 60 ? 'pass' : 'fail'}`}>{a.percentage || 0}%</span>
+                      <span className="score-raw">{a.score || 0}/{a.total_questions || 0} Qs</span>
                     </div>
                   </td>
                   <td>
@@ -98,8 +98,8 @@ const AdminAttempts: React.FC = () => {
                   </td>
                   <td>
                     <div className="time-stack">
-                       <span>{new Date(a.created_at).toLocaleDateString()}</span>
-                       <small>{new Date(a.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</small>
+                       <span>{a.created_at ? new Date(a.created_at).toLocaleDateString() : 'N/A'}</span>
+                       <small>{a.created_at ? new Date(a.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A'}</small>
                     </div>
                   </td>
                   <td className="text-right">
@@ -123,7 +123,7 @@ const AdminAttempts: React.FC = () => {
                       <User size={14} />
                       <strong>{a.username}</strong>
                    </div>
-                   <span className={`score-pct-small ${parseInt(a.percentage) >= 60 ? 'pass' : 'fail'}`}>{a.percentage}%</span>
+                   <span className={`score-pct-small ${parseInt(a.percentage || 0) >= 60 ? 'pass' : 'fail'}`}>{a.percentage || 0}%</span>
                 </div>
                 <div className="card-body-row">
                    <div className="exam-detail">

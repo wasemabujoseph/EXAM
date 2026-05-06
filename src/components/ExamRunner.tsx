@@ -58,7 +58,7 @@ const ExamRunner: React.FC = () => {
           if (location.state.redoMode === 'wrong-only' && location.state.wrongQuestions) {
             foundExam = {
               ...foundExam,
-              title: `Retry: ${foundExam.title}`,
+              title: `Redo Wrongs: ${foundExam.title}`,
               questions: location.state.wrongQuestions
             };
           }
