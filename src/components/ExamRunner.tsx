@@ -809,6 +809,7 @@ const ExamRunner: React.FC = () => {
           .v-divider { display: none; }
           .exam-header-logo { transform: scale(0.85) translateX(-5px); }
           .exam-main-title { display: none; }
+          .q-progress-pill { display: none; }
           .exam-meta-row { gap: 0.5rem; }
           
           .smart-timer { padding: 4px 8px; border-radius: 10px; }
@@ -820,15 +821,21 @@ const ExamRunner: React.FC = () => {
             display: flex; align-items: center; justify-content: center;
           }
 
-          .exam-main { padding: 1.5rem 1rem 7rem; }
-          .question-card { padding: 2rem; border-radius: 2rem; box-shadow: var(--shadow-md); }
-          .question-text { font-size: 1.3rem; margin-bottom: 2rem; }
-          .smart-option-card { padding: 1rem; border-radius: 1.25rem; }
-          .option-body-text { font-size: 1rem; }
+          .exam-main { padding: 1rem 1rem 7rem; }
+          .question-card { padding: 1.5rem; border-radius: 1.5rem; box-shadow: var(--shadow-md); width: 100%; overflow: hidden; }
+          .question-text { font-size: 1.2rem; margin-bottom: 1.5rem; }
+          .smart-option-card { padding: 0.85rem 1rem; border-radius: 1rem; }
+          .option-body-text { font-size: 0.95rem; padding: 0 0.5rem; }
+          .option-id-box { width: 30px; height: 30px; font-size: 0.8rem; }
 
-          .question-tools { flex-wrap: wrap; gap: 0.75rem; }
-          .tool-btn { flex: 1; min-width: 120px; }
-          .note-input-wrapper { width: 100%; }
+          .question-tools { 
+            flex-direction: column;
+            gap: 1rem; 
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+          }
+          .tool-btn { width: 100%; justify-content: center; height: 44px; }
+          .note-input-wrapper { width: 100%; height: 44px; margin: 0; box-sizing: border-box; }
 
           .desktop-navigation { display: none; }
 
