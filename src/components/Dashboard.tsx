@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Outlet, NavLink } from 'react-router-dom';
+import { useNavigate, Outlet, NavLink, useLocation } from 'react-router-dom';
 import AIGuide from './AIGuide';
 import ThemeToggle from './ThemeToggle';
 import { useVault } from '../context/VaultContext';
@@ -22,6 +22,7 @@ import BrandLogo from './BrandLogo';
 const Dashboard: React.FC = () => {
   const { logout, user } = useVault();
   const navigate = useNavigate();
+  const location = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth > 1024);
 
   useEffect(() => {
@@ -154,7 +155,10 @@ const Dashboard: React.FC = () => {
         </div>
       </main>
 
-      <AIGuide userName={profileName} />
+      {/* Only show global floating AI Guide if NOT in exam or material viewer */}
+      {!location.pathname.includes('/exam/') && !location.pathname.includes('/materials/view/') && (
+        <AIGuide userName={profileName} />
+      )}
 
       <style>{`
         .dashboard-container {
