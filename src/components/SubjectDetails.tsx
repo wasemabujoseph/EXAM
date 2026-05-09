@@ -198,9 +198,9 @@ const SubjectDetails: React.FC = () => {
                          <h4>{m.title}</h4>
                          <span>{m.type.toUpperCase()}</span>
                        </div>
-                       <a href={m.previewUrl} target="_blank" rel="noopener noreferrer" className="mini-action">
+                       <Link to={`/dashboard/materials/view/${m.id}`} className="mini-action">
                          <ExternalLink size={16} />
-                       </a>
+                       </Link>
                     </div>
                   ))}
                 </div>

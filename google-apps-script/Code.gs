@@ -28,7 +28,8 @@ const HEADERS = {
   [TABLES.EXAMS]: ['id', 'user_id', 'title', 'description', 'grade', 'subject', 'tags_json', 'difficulty', 'time_limit_minutes', 'exam_data_json', 'is_public', 'status', 'featured', 'created_at', 'updated_at'],
   [TABLES.EXAM_ATTEMPTS]: ['id', 'user_id', 'exam_id', 'score', 'total_questions', 'percentage', 'answers_json', 'questions_snapshot_json', 'duration_seconds', 'mode', 'created_at'],
   [TABLES.AUDIT_LOG]: ['id', 'user_id', 'action', 'details', 'ip_address', 'created_at'],
-  [TABLES.MATERIALS]: ['id', 'fileId', 'title', 'description', 'year', 'subject', 'type', 'originalFilename', 'mimeType', 'sizeBytes', 'driveUrl', 'previewUrl', 'downloadUrl', 'thumbnailUrl', 'tags', 'uploadedBy', 'uploadedAt', 'updatedAt', 'isVisibleToStudents', 'examQuestionCount']
+  [TABLES.MATERIALS]: ['id', 'fileId', 'title', 'description', 'year', 'subject', 'type', 'originalFilename', 'mimeType', 'sizeBytes', 'driveUrl', 'previewUrl', 'downloadUrl', 'thumbnailUrl', 'tags', 'uploadedBy', 'uploadedAt', 'updatedAt', 'isVisibleToStudents', 'examQuestionCount', 'isProtected'],
+  'SECURITY_EVENTS': ['id', 'user_id', 'eventType', 'page', 'materialId', 'examId', 'attemptId', 'timestamp', 'userAgent']
 };
 
 /**
@@ -144,6 +145,12 @@ function doPost(e) {
         break;
       case 'materialsHealth':
         result = handleMaterialsHealth(user);
+        break;
+      case 'logSecurityEvent':
+        result = handleLogSecurityEvent(user, payload);
+        break;
+      case 'validateExamAccess':
+        result = handleValidateExamAccess(user, payload);
         break;
 
       default:
@@ -586,7 +593,7 @@ function handleAdminGetAllAttempts(user) {
 
 function handleUploadMaterial(user, payload) {
   checkAdmin(user);
-  const { title, description, year, subject, type, tags, fileName, mimeType, fileBase64, isVisibleToStudents } = payload;
+  const { title, description, year, subject, type, tags, fileName, mimeType, fileBase64, isVisibleToStudents, isProtected } = payload;
   
   if (!fileBase64) throw new Error('No file data received');
   
@@ -661,7 +668,8 @@ function handleUploadMaterial(user, payload) {
     uploadedAt: now,
     updatedAt: now,
     isVisibleToStudents: isVisibleToStudents === true || isVisibleToStudents === 'true' ? 'TRUE' : 'FALSE',
-    examQuestionCount
+    examQuestionCount,
+    isProtected: isProtected === true || isProtected === 'true' || type === 'exam' ? 'TRUE' : 'FALSE'
   };
 
   const sheet = getSheet(TABLES.MATERIALS);
@@ -733,7 +741,8 @@ function handleSyncMaterialsFromDrive(user) {
           now,
           now,
           'TRUE', // isVisibleToStudents
-          0 // examQuestionCount
+          0, // examQuestionCount
+          type === 'exam' ? 'TRUE' : 'FALSE' // isProtected
         ];
 
         sheet.appendRow(material);
@@ -781,12 +790,52 @@ function handleMaterialsHealth(user) {
 /**
  * Manual sync function to be run from Apps Script editor
  */
-function SYNC_MATERIALS_FROM_DRIVE() {
-  const adminEmail = SUPER_ADMIN_EMAILS[0];
-  const user = { username: 'System Admin', email: adminEmail, role: 'admin' };
-  const result = handleSyncMaterialsFromDrive(user);
-  Logger.log('Sync Results: ' + JSON.stringify(result, null, 2));
-  return result;
+function handleLogSecurityEvent(user, payload) {
+  if (!user) return { success: false };
+  const sheet = getSheet('SecurityEvents');
+  if (!sheet) {
+    // Auto-create sheet if missing
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const newSheet = ss.insertSheet('SecurityEvents');
+    newSheet.appendRow(HEADERS['SECURITY_EVENTS']);
+  }
+  
+  const id = generateUUID();
+  const now = new Date().toISOString();
+  const row = [
+    id,
+    user.id,
+    payload.eventType,
+    payload.page || '',
+    payload.materialId || '',
+    payload.examId || '',
+    payload.attemptId || '',
+    now,
+    payload.userAgent || ''
+  ];
+  
+  getSheet('SecurityEvents').appendRow(row);
+  return { success: true };
+}
+
+function handleValidateExamAccess(user, payload) {
+  if (!user) throw new Error('Authentication required');
+  
+  // Check user status
+  const userRow = getSheet(TABLES.USERS).getDataRange().getValues().find(r => r[0] === user.id);
+  if (!userRow) throw new Error('User record not found');
+  
+  const statusIdx = HEADERS[TABLES.USERS].indexOf('status');
+  if (userRow[statusIdx] === 'blocked') {
+    return { allowed: false, reason: 'Your account is currently locked.' };
+  }
+  
+  // Basic validation passed
+  return { 
+    allowed: true, 
+    userStatus: userRow[statusIdx],
+    username: user.username
+  };
 }
 
 function handleListMaterials(user, payload) {

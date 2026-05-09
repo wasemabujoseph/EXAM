@@ -135,6 +135,10 @@ export const api = {
   deleteMaterial: (id: string) => request<any>('deleteMaterial', { id }),
   syncMaterialsFromDrive: () => request<any>('syncMaterialsFromDrive'),
   materialsHealth: () => request<any>('materialsHealth'),
+  logSecurityEvent: (data: { eventType: string; page?: string; materialId?: string; examId?: string; attemptId?: string; userAgent?: string }) => 
+    request<any>('logSecurityEvent', data),
+  validateExamAccess: (data: { examId?: string; materialId?: string }) => 
+    request<{ allowed: boolean; reason?: string; userStatus?: string; username?: string }>('validateExamAccess', data),
 };
 
 export const isApiConfigured = !!API_URL;

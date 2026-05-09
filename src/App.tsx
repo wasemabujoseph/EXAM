@@ -16,6 +16,7 @@ import CurriculumOverview from './components/CurriculumOverview';
 import YearView from './components/YearView';
 import SubjectDetails from './components/SubjectDetails';
 import LearningMaterials from './components/LearningMaterials';
+import MaterialViewer from './components/MaterialViewer';
 import AdminLayout from './components/AdminLayout';
 import AdminDashboard from './components/AdminDashboard';
 import AdminUsers from './components/AdminUsers';
@@ -50,6 +51,7 @@ const AppContent = () => {
         <Route path="review/:attemptId" element={<ReviewAttempt />} />
         <Route path="leaderboard" element={<Leaderboard />} />
         <Route path="materials" element={<LearningMaterials />} />
+        <Route path="materials/view/:materialId" element={<MaterialViewer />} />
         <Route path="settings" element={<Settings />} />
       </Route>
 

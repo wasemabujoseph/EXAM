@@ -9,16 +9,17 @@ import {
   Flag, 
   StickyNote, 
   Timer, 
-  CheckCircle,
   X,
   Hash,
   Loader2,
   Layout,
   Layers,
   Pause,
-  Play,
-  AlertCircle
+  Play, 
+  AlertCircle,
+  ShieldCheck
 } from 'lucide-react';
+import ProtectedContentShell from './security/ProtectedContentShell';
 
 const ExamRunner: React.FC = () => {
   const { type, id } = useParams<{ type: string; id: string }>();
@@ -38,6 +39,7 @@ const ExamRunner: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [startedAt] = useState(Date.now());
+  const [isProtected, setIsProtected] = useState(false);
 
   useEffect(() => {
     if (user && user.role !== 'admin' && user.plan === 'free') {
@@ -90,6 +92,7 @@ const ExamRunner: React.FC = () => {
         setQuestions(qs);
         const limit = foundExam.time_limit_minutes || foundExam.timeLimit || (qs.length * 1.5);
         setTimeRemaining(limit > 0 ? Math.floor(limit * 60) : null);
+        setIsProtected(foundExam.isProtected === 'TRUE' || foundExam.isProtected === true || type === 'material');
       }
       setIsLoading(false);
     };
@@ -185,7 +188,12 @@ const ExamRunner: React.FC = () => {
   };
 
   return (
-    <div className="exam-session">
+    <ProtectedContentShell 
+      isProtected={isProtected} 
+      examId={exam.id} 
+      title={exam.title}
+    >
+      <div className="exam-session">
       {/* Header Section */}
       <header className="exam-header">
         <div className="header-left">
@@ -194,7 +202,15 @@ const ExamRunner: React.FC = () => {
           </button>
           <div className="exam-title-group">
             <h1 className="text-ellipsis">{exam.title}</h1>
-            <span className="q-counter">Q {currentIndex + 1} / {questions.length}</span>
+            <div className="badge-row">
+              <span className="q-counter">Q {currentIndex + 1} / {questions.length}</span>
+              {isProtected && (
+                <span className="protected-mode-badge">
+                  <ShieldCheck size={10} />
+                  PROTECTED MODE
+                </span>
+              )}
+            </div>
           </div>
         </div>
 
@@ -416,7 +432,13 @@ const ExamRunner: React.FC = () => {
           text-overflow: ellipsis;
           color: var(--text-strong);
         }
+        .badge-row { display: flex; align-items: center; gap: 0.5rem; }
         .q-counter { font-size: 0.65rem; font-weight: 800; color: var(--primary); text-transform: uppercase; }
+        .protected-mode-badge { 
+          display: flex; align-items: center; gap: 3px; 
+          font-size: 0.55rem; font-weight: 900; background: #fff1f2; color: #e11d48; 
+          padding: 1px 5px; border-radius: 4px; border: 1px solid #fda4af; 
+        }
 
         .exam-timer {
           display: flex; align-items: center; gap: 0.4rem;
@@ -704,6 +726,7 @@ const ExamRunner: React.FC = () => {
         }
       `}</style>
     </div>
+    </ProtectedContentShell>
   );
 };
 

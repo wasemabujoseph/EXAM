@@ -22,9 +22,12 @@ import {
   FolderOpen,
   X,
   Loader2,
-  Plus
+  Plus,
+  ShieldCheck,
+  ShieldAlert
 } from 'lucide-react';
 import { formatSafeDate } from '../utils/robustHelpers';
+import { getAcademicYears, getSubjectsByYear } from '../utils/curriculumHelpers';
 
 const AdminMaterials: React.FC = () => {
   const [materials, setMaterials] = useState<any[]>([]);
@@ -45,11 +48,12 @@ const AdminMaterials: React.FC = () => {
   const [uploadForm, setUploadForm] = useState({
     title: '',
     description: '',
-    year: '1',
+    year: '',
     subject: '',
     type: 'pdf',
     tags: '',
-    isVisibleToStudents: true
+    isVisibleToStudents: true,
+    isProtected: false
   });
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [filePreview, setFilePreview] = useState<string | null>(null);
@@ -86,9 +90,10 @@ const AdminMaterials: React.FC = () => {
 
       const ext = file.name.split('.').pop()?.toLowerCase();
       if (['pdf'].includes(ext!)) setUploadForm(f => ({ ...f, type: 'pdf' }));
-      else if (['ppt', 'pptx'].includes(ext!)) setUploadForm(f => ({ ...f, type: 'presentation' }));
-      else if (['png', 'jpg', 'jpeg', 'webp'].includes(ext!)) setUploadForm(f => ({ ...f, type: 'image' }));
-      else if (['json'].includes(ext!)) setUploadForm(f => ({ ...f, type: 'exam' }));
+      else if (['ppt', 'pptx'].includes(ext!)) setUploadForm(f => ({ ...f, type: 'presentation', isProtected: false }));
+      else if (['png', 'jpg', 'jpeg', 'webp'].includes(ext!)) setUploadForm(f => ({ ...f, type: 'image', isProtected: false }));
+      else if (['json'].includes(ext!)) setUploadForm(f => ({ ...f, type: 'exam', isProtected: true }));
+      else setUploadForm(f => ({ ...f, type: 'pdf', isProtected: false }));
 
       if (file.type.startsWith('image/')) {
         const reader = new FileReader();
@@ -188,11 +193,12 @@ const AdminMaterials: React.FC = () => {
     setUploadForm({
       title: '',
       description: '',
-      year: '1',
+      year: '',
       subject: '',
       type: 'pdf',
       tags: '',
-      isVisibleToStudents: true
+      isVisibleToStudents: true,
+      isProtected: false
     });
     setSelectedFile(null);
     setFilePreview(null);
@@ -325,6 +331,9 @@ const AdminMaterials: React.FC = () => {
                     <span className="status-badge hidden"><EyeOff size={12} /> Hidden</span>
                   )
                   }
+                  {(m.isProtected === 'TRUE' || m.isProtected === true) && (
+                    <span className="status-badge protected"><ShieldCheck size={12} /> Protected</span>
+                  )}
                 </div>
               </div>
               
@@ -377,11 +386,106 @@ const AdminMaterials: React.FC = () => {
                   <label>Title *</label>
                   <input type="text" required value={uploadForm.title} onChange={e => setUploadForm({...uploadForm, title: e.target.value})} placeholder="e.g. Anatomy Lower Limb PDF" />
                 </div>
+                
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>Academic Year *</label>
+                    <select 
+                      required
+                      value={uploadForm.year} 
+                      onChange={e => setUploadForm({...uploadForm, year: e.target.value, subject: ''})}
+                    >
+                      <option value="">Select Year...</option>
+                      {getAcademicYears().map(y => (
+                        <option key={y} value={y}>{y}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label>Subject *</label>
+                    <select 
+                      required
+                      disabled={!uploadForm.year}
+                      value={uploadForm.subject} 
+                      onChange={e => setUploadForm({...uploadForm, subject: e.target.value})}
+                    >
+                      <option value="">{uploadForm.year ? 'Select Subject...' : 'Choose Year First'}</option>
+                      {getSubjectsByYear(uploadForm.year).map(s => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
+                      <option value="Other / Custom">Other / Custom</option>
+                    </select>
+                  </div>
+                </div>
+
+                {uploadForm.subject === 'Other / Custom' && (
+                  <div className="form-group">
+                    <label>Custom Subject Name *</label>
+                    <input 
+                      type="text" 
+                      required 
+                      onChange={e => setUploadForm({...uploadForm, subject: e.target.value})} 
+                      placeholder="Enter custom subject name..."
+                    />
+                  </div>
+                )}
+
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>Material Type</label>
+                    <select value={uploadForm.type} onChange={e => setUploadForm({...uploadForm, type: e.target.value})}>
+                      <option value="pdf">PDF Document</option>
+                      <option value="presentation">PowerPoint / Slides</option>
+                      <option value="image">Image / Diagram</option>
+                      <option value="exam">Exam JSON</option>
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label>Tags (comma separated)</label>
+                    <input 
+                      type="text" 
+                      value={uploadForm.tags} 
+                      onChange={e => setUploadForm({...uploadForm, tags: e.target.value})} 
+                      placeholder="anatomy, bone, exam"
+                    />
+                  </div>
+                </div>
+
                 <div className="form-group">
-                  <label>Subject *</label>
-                  <input type="text" required value={uploadForm.subject} onChange={e => setUploadForm({...uploadForm, subject: e.target.value})} placeholder="e.g. Anatomy" />
+                  <label>Description</label>
+                  <textarea 
+                    value={uploadForm.description} 
+                    onChange={e => setUploadForm({...uploadForm, description: e.target.value})}
+                    placeholder="Brief details about this material..."
+                    rows={2}
+                  />
                 </div>
                 
+                <div className="toggles-grid">
+                  <label className="toggle-item">
+                    <input 
+                      type="checkbox" 
+                      checked={uploadForm.isVisibleToStudents} 
+                      onChange={e => setUploadForm({...uploadForm, isVisibleToStudents: e.target.checked})} 
+                    />
+                    <div className="toggle-txt">
+                      <strong>Visible to Students</strong>
+                      <span>Allow students to see this material.</span>
+                    </div>
+                  </label>
+                  <label className="toggle-item">
+                    <input 
+                      type="checkbox" 
+                      checked={uploadForm.isProtected} 
+                      onChange={e => setUploadForm({...uploadForm, isProtected: e.target.checked})} 
+                    />
+                    <div className="toggle-txt">
+                      <strong>Protected Content</strong>
+                      <span>Enable watermark and disable copy/print.</span>
+                    </div>
+                  </label>
+                </div>
+
                 <div className="file-upload-zone" onClick={() => fileInputRef.current?.click()} onDragOver={e => e.preventDefault()}>
                   <input type="file" hidden ref={fileInputRef} onChange={handleFileChange} accept=".pdf,.ppt,.pptx,.png,.jpg,.jpeg,.webp,.json" />
                   {selectedFile ? (
@@ -420,10 +524,16 @@ const AdminMaterials: React.FC = () => {
               )}
 
               <div className="modal-footer">
-                <button type="button" className="secondary-button" onClick={() => setShowUploadModal(false)}>Cancel</button>
-                <button type="submit" className="primary-button" disabled={isUploading || !selectedFile}>
-                  {isUploading ? <><Loader2 className="animate-spin" size={18} /> {uploadProgress}%</> : 'Start Upload'}
-                </button>
+                <div className="admin-info-note">
+                  <ShieldAlert size={18} className="shrink-0" />
+                  <p><strong>Note:</strong> Protected mode discourages copying and leaking by adding personalized watermarks and browser-level restrictions. It cannot fully prevent photos taken with another device.</p>
+                </div>
+                <div className="footer-btns">
+                  <button type="button" className="secondary-button" onClick={() => setShowUploadModal(false)}>Cancel</button>
+                  <button type="submit" className="primary-button" disabled={isUploading || !selectedFile || !uploadForm.year || !uploadForm.subject}>
+                    {isUploading ? <><Loader2 className="animate-spin" size={18} /> {uploadProgress}%</> : 'Start Upload'}
+                  </button>
+                </div>
               </div>
             </form>
           </div>
@@ -507,6 +617,7 @@ const AdminMaterials: React.FC = () => {
         .status-badge { font-size: 0.65rem; font-weight: 800; padding: 4px 8px; border-radius: 6px; display: flex; align-items: center; gap: 4px; }
         .status-badge.visible { background: var(--success-soft); color: var(--success); }
         .status-badge.hidden { background: var(--bg-soft-fade); color: var(--text-muted); }
+        .status-badge.protected { background: #fff1f2; color: #e11d48; border: 1px solid #fda4af; }
 
         .card-body { padding: 1.25rem; flex: 1; }
         .material-title { font-size: 1.1rem; font-weight: 800; margin-bottom: 0.5rem; color: var(--text-strong); }
@@ -529,33 +640,43 @@ const AdminMaterials: React.FC = () => {
 
         .upload-form { padding: 2rem; overflow-y: auto; }
         .form-grid { display: flex; flex-direction: column; gap: 1.5rem; }
-        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
         .form-group { display: flex; flex-direction: column; gap: 0.5rem; }
         .form-group label { font-size: 0.85rem; font-weight: 800; color: var(--text-soft); }
-        .form-group input, .form-group select, .form-group textarea { background: var(--bg-soft-fade); border: 1px solid var(--border); padding: 0.75rem 1rem; border-radius: 12px; color: var(--text-strong); font-weight: 600; outline: none; }
+        .form-group input, .form-group textarea { background: var(--bg-soft-fade); border: 1px solid var(--border); padding: 0.75rem 1rem; border-radius: 12px; color: var(--text-strong); font-weight: 600; outline: none; }
+        .form-group select { 
+          width: 100%; height: 48px; background: var(--bg-soft-fade); 
+          border: 1px solid var(--border-soft); border-radius: 10px; 
+          padding: 0 1rem; color: var(--text-strong); font-weight: 600; 
+        }
+        .form-group select:disabled { opacity: 0.5; }
         .form-group input:focus { border-color: var(--primary); }
         .form-group textarea { min-height: 80px; resize: vertical; }
 
-        .file-upload-zone { border: 2px dashed var(--border); border-radius: 16px; padding: 2.5rem; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; background: var(--bg-soft-fade); }
+        .file-upload-zone { border: 2px dashed var(--border); border-radius: 16px; padding: 2.5rem; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; background: var(--bg-soft-fade); margin-top: 1rem; }
         .file-upload-zone:hover { border-color: var(--primary); background: var(--primary-soft); }
         
+        .toggles-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem; }
+        .toggle-item { 
+          display: flex; gap: 1rem; padding: 1rem; 
+          background: var(--bg-soft-fade); border: 1px solid var(--border-soft); 
+          border-radius: 12px; cursor: pointer; transition: all 0.2s; 
+        }
+        .toggle-item:hover { background: var(--bg-soft); border-color: var(--primary); }
+        .toggle-txt { display: flex; flex-direction: column; }
+        .toggle-txt strong { font-size: 0.85rem; color: var(--text-strong); }
+        .toggle-txt span { font-size: 0.7rem; color: var(--text-muted); }
+        .toggle-item input { width: 18px; height: 18px; margin-top: 2px; cursor: pointer; }
+
         .upload-prompt { text-align: center; color: var(--text-soft); }
         .upload-prompt p { font-weight: 800; margin: 1rem 0 0.25rem; color: var(--text-strong); }
         .upload-prompt span { font-size: 0.75rem; }
 
         .file-selected { width: 100%; display: flex; align-items: center; gap: 1.5rem; }
-        .upload-preview-img { width: 64px; height: 64px; object-fit: cover; border-radius: 8px; border: 1px solid var(--border); }
         .file-icon-large { width: 64px; height: 64px; background: var(--surface); border-radius: 8px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--border); }
         .file-info-text { flex: 1; display: flex; flex-direction: column; }
         .file-info-text strong { color: var(--text-strong); font-size: 0.95rem; }
         .file-info-text span { color: var(--text-muted); font-size: 0.8rem; }
-        .change-file-btn { background: var(--surface); border: 1px solid var(--border); padding: 6px 12px; border-radius: 8px; font-size: 0.75rem; font-weight: 800; cursor: pointer; }
-
-        .checkbox-label { display: flex; align-items: center; gap: 0.75rem; cursor: pointer; font-weight: 700; color: var(--text-strong); }
-        .checkbox-label input { width: 18px; height: 18px; cursor: pointer; }
-
-        .upload-error { background: var(--danger-soft); color: var(--danger); padding: 0.75rem 1rem; border-radius: 12px; display: flex; align-items: center; gap: 0.75rem; font-size: 0.85rem; font-weight: 700; }
-
         .modal-footer { margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 1rem; }
 
         .empty-state { grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 5rem 2rem; color: var(--text-muted); text-align: center; }

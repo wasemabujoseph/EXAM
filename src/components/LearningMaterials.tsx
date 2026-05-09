@@ -16,7 +16,8 @@ import {
   Calendar,
   Layers,
   Star,
-  Clock
+  Clock,
+  ShieldCheck
 } from 'lucide-react';
 import { formatSafeDate } from '../utils/robustHelpers';
 
@@ -53,6 +54,10 @@ const LearningMaterials: React.FC = () => {
       case 'exam': return <FileCode size={24} className="text-purple-500" />;
       default: return <FileText size={24} />;
     }
+  };
+
+  const handleView = (material: any) => {
+    navigate(`/dashboard/materials/view/${material.id}`);
   };
 
   const handleStartExam = async (material: any) => {
@@ -113,7 +118,7 @@ const LearningMaterials: React.FC = () => {
               </div>
               <div className="smart-list">
                 {recentlyAdded.map(m => (
-                  <div key={m.id} className="smart-item" onClick={() => window.open(m.previewUrl, '_blank')}>
+                  <div key={m.id} className="smart-item" onClick={() => handleView(m)}>
                     <div className="smart-item-icon">{getIcon(m.type)}</div>
                     <div className="smart-item-info">
                       <h4>{m.title}</h4>
@@ -212,6 +217,12 @@ const LearningMaterials: React.FC = () => {
                      </div>
                    )}
                    <div className="card-type-overlay">{m.type}</div>
+                   {(m.isProtected === 'TRUE' || m.isProtected === true) && (
+                     <div className="protected-overlay">
+                       <ShieldCheck size={14} />
+                       <span>PROTECTED</span>
+                     </div>
+                   )}
                 </div>
                 
                 <div className="card-content">
@@ -237,10 +248,10 @@ const LearningMaterials: React.FC = () => {
                         <span>Start Exam</span>
                       </button>
                     ) : (
-                      <a href={m.previewUrl} target="_blank" rel="noopener noreferrer" className="action-btn primary">
+                      <button className="action-btn primary" onClick={() => handleView(m)}>
                         <Eye size={16} />
                         <span>View</span>
-                      </a>
+                      </button>
                     )}
                     <a href={m.downloadUrl} className="action-btn secondary" title="Download">
                       <Download size={16} />
@@ -294,6 +305,14 @@ const LearningMaterials: React.FC = () => {
         .material-icon-bg.image { background: var(--primary-soft-fade); }
         .material-icon-bg.exam { background: var(--accent-soft-fade); }
         .card-type-overlay { position: absolute; bottom: 12px; left: 12px; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); color: white; padding: 4px 10px; border-radius: 6px; font-size: 0.65rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.05em; }
+        .protected-overlay { 
+          position: absolute; top: 12px; right: 12px; 
+          background: rgba(225, 29, 72, 0.9); backdrop-filter: blur(4px); 
+          color: white; padding: 4px 10px; border-radius: 6px; 
+          font-size: 0.65rem; font-weight: 900; 
+          display: flex; align-items: center; gap: 4px;
+          border: 1px solid rgba(255,255,255,0.2);
+        }
 
         .card-content { padding: 1.5rem; flex: 1; display: flex; flex-direction: column; }
         .card-header-row { display: flex; gap: 0.5rem; margin-bottom: 0.75rem; }
