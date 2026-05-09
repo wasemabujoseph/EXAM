@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import * as pdfjs from 'pdfjs-dist';
-import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -12,12 +11,14 @@ import {
   Loader2,
   AlertCircle,
   Info,
-  ShieldAlert
+  ShieldAlert,
+  RefreshCw
 } from 'lucide-react';
 import { useVault } from '../../context/VaultContext';
 
-// Set up worker correctly for Vite
-pdfjs.GlobalWorkerOptions.workerSrc = pdfWorker;
+// Failsafe Worker: Use CDN that matches the package version
+const PDFJS_VERSION = '5.6.205'; 
+pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDFJS_VERSION}/pdf.worker.min.mjs`;
 
 interface InternalPdfViewerProps {
   fileData: {
@@ -53,18 +54,19 @@ const InternalPdfViewer: React.FC<InternalPdfViewerProps> = ({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Helper to convert base64 to Uint8Array safely
+  // Robust Base64 to Uint8Array
   const base64ToUint8Array = (base64: string) => {
     try {
-      const binaryString = window.atob(base64);
-      const length = binaryString.length;
-      const bytes = new Uint8Array(length);
-      for (let i = 0; i < length; i++) {
+      // Remove any data URI prefix if present
+      const pureBase64 = base64.includes(',') ? base64.split(',')[1] : base64;
+      const binaryString = window.atob(pureBase64);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
         bytes[i] = binaryString.charCodeAt(i);
       }
       return bytes;
     } catch (e) {
-      console.error('Base64 decoding failed', e);
+      console.error('Base64 decoding failed:', e);
       return null;
     }
   };
@@ -74,32 +76,38 @@ const InternalPdfViewer: React.FC<InternalPdfViewerProps> = ({
       setIsLoading(true);
       setError(null);
       
-      const { base64, fileName, mimeType, sizeBytes, byteLength, pdfHeaderValid } = fileData;
-
-      console.group(`📄 Loading PDF: ${fileName}`);
-      console.log('MIME Type:', mimeType);
-      console.log('Size (Bytes):', sizeBytes);
-      console.log('Byte Length:', byteLength);
-      console.log('PDF Header Valid:', pdfHeaderValid);
+      const { base64, fileName } = fileData;
+      console.group(`📄 PDF Load Attempt: ${fileName}`);
       
       try {
         const data = base64ToUint8Array(base64);
-        if (!data) throw new Error('Could not decode PDF data.');
+        if (!data || data.length === 0) {
+          throw new Error('Decoded data is empty or invalid.');
+        }
 
-        // Log first 20 bytes for debugging
-        const header = Array.from(data.slice(0, 20)).map(b => String.fromCharCode(b)).join('');
-        console.log('First 20 bytes:', JSON.stringify(header));
+        // Verify PDF Header locally
+        const header = String.fromCharCode(...data.slice(0, 5));
+        console.log('PDF Header Check:', header);
+        if (!header.startsWith('%PDF')) {
+          console.warn('Invalid PDF header detected in stream.');
+          // We still try to load, but this is a red flag
+        }
 
-        const loadingTask = pdfjs.getDocument({ data });
-        const pdfDoc = await loadingTask.promise;
+        const loadingTask = pdfjs.getDocument({ 
+          data,
+          isEvalSupported: false, // Security hardening
+          useSystemFonts: true
+        });
         
-        console.log('✅ PDF successfully parsed');
+        const pdfDoc = await loadingTask.promise;
+        console.log('✅ PDF.js successfully parsed the document');
+        
         setPdf(pdfDoc);
         setNumPages(pdfDoc.numPages);
         setIsLoading(false);
       } catch (err: any) {
-        console.error('❌ PDF.js Loading Error:', err);
-        setError('Failed to load PDF document.');
+        console.error('❌ PDF.js Critical Error:', err);
+        setError(err.message || 'The PDF structure is corrupted or invalid.');
         setIsLoading(false);
       } finally {
         console.groupEnd();
@@ -117,7 +125,7 @@ const InternalPdfViewer: React.FC<InternalPdfViewerProps> = ({
 
       try {
         const page = await pdf.getPage(currentPage);
-        const viewport = page.getViewport({ scale });
+        const viewport = page.getViewport({ scale: scale * window.devicePixelRatio });
         const canvas = canvasRef.current;
         const context = canvas.getContext('2d');
 
@@ -125,6 +133,8 @@ const InternalPdfViewer: React.FC<InternalPdfViewerProps> = ({
 
         canvas.height = viewport.height;
         canvas.width = viewport.width;
+        canvas.style.width = `${viewport.width / window.devicePixelRatio}px`;
+        canvas.style.height = `${viewport.height / window.devicePixelRatio}px`;
 
         const renderContext: any = {
           canvasContext: context,
@@ -150,7 +160,6 @@ const InternalPdfViewer: React.FC<InternalPdfViewerProps> = ({
 
   return (
     <div className="internal-pdf-viewer">
-      {/* Toolbar */}
       <div className="viewer-toolbar">
         <div className="toolbar-section">
           <button onClick={prevPage} disabled={currentPage <= 1 || isLoading} className="toolbar-btn">
@@ -186,17 +195,17 @@ const InternalPdfViewer: React.FC<InternalPdfViewerProps> = ({
               <button 
                 onClick={() => setShowDebug(!showDebug)} 
                 className={`toolbar-btn admin ${showDebug ? 'active' : ''}`}
-                title="View Diagnostic Details"
+                title="Diagnostic Inspector"
               >
                 <Info size={18} />
               </button>
               {adminActions?.onDownload && (
-                <button onClick={adminActions.onDownload} className="toolbar-btn admin" title="Download Original">
+                <button onClick={adminActions.onDownload} className="toolbar-btn admin" title="Download">
                   <Download size={18} />
                 </button>
               )}
               {adminActions?.onOpenDrive && (
-                <button onClick={adminActions.onOpenDrive} className="toolbar-btn admin" title="Open in Drive">
+                <button onClick={adminActions.onOpenDrive} className="toolbar-btn admin" title="Drive">
                   <ExternalLink size={18} />
                 </button>
               )}
@@ -205,7 +214,6 @@ const InternalPdfViewer: React.FC<InternalPdfViewerProps> = ({
         )}
       </div>
 
-      {/* PDF Area */}
       <div className="pdf-canvas-container" ref={containerRef}>
         {isLoading ? (
           <div className="viewer-state">
@@ -221,10 +229,10 @@ const InternalPdfViewer: React.FC<InternalPdfViewerProps> = ({
             {isAdmin && (
               <div className="admin-fallback-actions">
                 <button onClick={() => window.location.reload()} className="btn-retry">
-                  Retry Handshake
+                  <RefreshCw size={16} /> Retry Handshake
                 </button>
                 <button onClick={adminActions?.onOpenDrive} className="btn-outline">
-                  Open Original in Drive
+                   Open in Drive
                 </button>
               </div>
             )}
@@ -239,7 +247,7 @@ const InternalPdfViewer: React.FC<InternalPdfViewerProps> = ({
           </div>
         )}
 
-        {/* Admin Debug Overlay */}
+        {/* Diagnostic Inspector */}
         {isAdmin && showDebug && (
           <div className="admin-debug-overlay animate-pop-in">
             <div className="debug-header">
@@ -249,9 +257,13 @@ const InternalPdfViewer: React.FC<InternalPdfViewerProps> = ({
             <div className="debug-content">
               <div className="debug-row"><span>File:</span> <span>{fileData.fileName}</span></div>
               <div className="debug-row"><span>MIME:</span> <span>{fileData.mimeType}</span></div>
-              <div className="debug-row"><span>Size:</span> <span>{fileData.sizeBytes} bytes</span></div>
-              <div className="debug-row"><span>Header:</span> <span className={fileData.pdfHeaderValid ? 'text-success' : 'text-danger'}>{fileData.pdfHeaderValid ? 'VALID PDF' : 'INVALID HEADER'}</span></div>
+              <div className="debug-row"><span>Backend Size:</span> <span>{fileData.sizeBytes} B</span></div>
+              <div className="debug-row"><span>Received Size:</span> <span>{fileData.byteLength || 'N/A'} B</span></div>
+              <div className="debug-row"><span>Header (Backend):</span> <span className={fileData.pdfHeaderValid ? 'text-success' : 'text-danger'}>{fileData.pdfHeaderValid ? 'VALID' : 'INVALID'}</span></div>
               <div className="debug-row"><span>Protected:</span> <span>{isProtected ? 'YES' : 'NO'}</span></div>
+              <div className="debug-row" style={{ marginTop: '0.5rem', borderTop: '1px solid #334155', paddingTop: '0.5rem' }}>
+                <span>Worker:</span> <span style={{ fontSize: '0.6rem' }}>CDN/v{PDFJS_VERSION}</span>
+              </div>
             </div>
           </div>
         )}
@@ -324,34 +336,21 @@ const InternalPdfViewer: React.FC<InternalPdfViewerProps> = ({
           justify-content: center;
           gap: 1.5rem;
           color: white;
-          font-weight: 700;
           text-align: center;
+          padding: 2rem;
         }
         
-        .error-text { color: rgba(255,255,255,0.6); max-width: 300px; }
+        .error-text { color: rgba(255,255,255,0.6); max-width: 300px; font-size: 0.9rem; }
 
-        .admin-fallback-actions {
-          display: flex;
-          gap: 1rem;
-          margin-top: 1rem;
-        }
-
-        .btn-retry { background: var(--primary); color: white; padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.85rem; font-weight: 800; }
+        .admin-fallback-actions { display: flex; gap: 1rem; margin-top: 1rem; }
+        .btn-retry { background: var(--primary); color: white; padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.85rem; font-weight: 800; display: flex; align-items: center; gap: 0.5rem; }
         .btn-outline { border: 1px solid rgba(255,255,255,0.2); color: white; padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.85rem; font-weight: 800; }
 
         .admin-debug-overlay {
-          position: absolute;
-          top: 1rem;
-          right: 1rem;
-          width: 280px;
-          background: rgba(15, 23, 42, 0.95);
-          backdrop-filter: blur(8px);
-          border: 1px solid rgba(255,255,255,0.1);
-          border-radius: 12px;
-          padding: 1rem;
-          color: white;
-          box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-          z-index: 50;
+          position: absolute; top: 1rem; right: 1rem; width: 280px;
+          background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(8px);
+          border: 1px solid rgba(255,255,255,0.1); border-radius: 12px;
+          padding: 1rem; color: white; box-shadow: 0 10px 25px rgba(0,0,0,0.3); z-index: 50;
         }
         
         .debug-header { display: flex; align-items: center; gap: 0.5rem; font-size: 0.75rem; font-weight: 900; color: #38bdf8; margin-bottom: 0.75rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.5rem; }
@@ -361,10 +360,7 @@ const InternalPdfViewer: React.FC<InternalPdfViewerProps> = ({
         .text-success { color: #22c55e; }
         .text-danger { color: #ef4444; }
 
-        .no-select {
-          user-select: none;
-          -webkit-user-select: none;
-        }
+        .no-select { user-select: none; -webkit-user-select: none; }
 
         @media (max-width: 640px) {
           .viewer-toolbar { height: auto; padding: 0.75rem; flex-wrap: wrap; }
