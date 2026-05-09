@@ -1,321 +1,352 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
-  FileJson, 
   Play, 
-  ShieldAlert,
-  Info,
-  Settings,
-  Download,
-  ExternalLink,
-  RefreshCw
+  FileJson, 
+  Save, 
+  RotateCcw, 
+  CheckCircle2, 
+  AlertCircle,
+  Loader2,
+  Trash2,
+  PlusCircle,
+  ShieldCheck,
+  Code,
+  Calendar,
+  Layers,
+  Activity
 } from 'lucide-react';
 import { useVault } from '../../context/VaultContext';
+import { api } from '../../lib/api';
 
 interface InternalExamMaterialViewerProps {
-  fileData: {
-    base64: string;
-    fileName: string;
-    mimeType: string;
-    sizeBytes: number;
-  };
   material: any;
-  adminActions?: {
-    onDownload?: () => void;
-    onOpenDrive?: () => void;
-  };
+  onStartExam: () => void;
+  onUpdateMetadata: (updates: any) => void;
 }
 
 const InternalExamMaterialViewer: React.FC<InternalExamMaterialViewerProps> = ({ 
-  fileData,
-  material,
-  adminActions
+  material, 
+  onStartExam,
+  onUpdateMetadata
 }) => {
   const { user } = useVault();
   const isAdmin = user?.role === 'admin';
-  const [showDebug, setShowDebug] = useState(false);
-  const [showAdminMenu, setShowAdminMenu] = useState(false);
+  
+  const [jsonContent, setJsonContent] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [questionCount, setQuestionCount] = useState(0);
 
-  // Parse exam data safely
-  let examData = null;
-  try {
-    const jsonString = window.atob(fileData.base64);
-    examData = JSON.parse(jsonString);
-  } catch (e) {
-    console.error('Failed to parse exam JSON');
+  useEffect(() => {
+    const fetchContent = async () => {
+      try {
+        const response = await api.getMaterialContent(material.id);
+        setJsonContent(response.content);
+        try {
+          const data = JSON.parse(response.content);
+          setQuestionCount(Array.isArray(data.questions) ? data.questions.length : 0);
+        } catch (e) {}
+        setIsLoading(false);
+      } catch (err: any) {
+        setError('Failed to load exam content: ' + err.message);
+        setIsLoading(false);
+      }
+    };
+    fetchContent();
+  }, [material.id]);
+
+  const handleSave = async () => {
+    if (!isAdmin) return;
+    setIsSaving(true);
+    setError(null);
+    try {
+      // Validate JSON
+      let parsed;
+      try {
+        parsed = JSON.parse(jsonContent);
+      } catch (e: any) {
+        throw new Error('Invalid JSON format: ' + e.message);
+      }
+
+      await api.updateMaterialContent(material.id, jsonContent);
+      const newCount = Array.isArray(parsed.questions) ? parsed.questions.length : 0;
+      setQuestionCount(newCount);
+      setIsEditing(false);
+      onUpdateMetadata({ examQuestionCount: newCount });
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const formatJson = () => {
+    try {
+      const parsed = JSON.parse(jsonContent);
+      setJsonContent(JSON.stringify(parsed, null, 2));
+    } catch (e: any) {
+      setError('Cannot format invalid JSON: ' + e.message);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="exam-material-state-shell">
+        <Loader2 className="animate-spin text-primary" size={48} />
+        <p>Analyzing practice exam structure...</p>
+      </div>
+    );
   }
 
   return (
-    <div className="internal-exam-viewer themed-viewer">
-      <div className="viewer-toolbar-premium glass">
-        <div className="toolbar-left">
-          <div className="exam-status-badge">
-            <FileJson size={18} className="text-primary" />
-            <span>Interactive Exam Material</span>
+    <div className="internal-exam-material-viewer-pro theme-aware">
+      <div className="exam-preview-hero-card">
+        <div className="hero-branding">
+          <div className="branding-icon-shell">
+            <Activity size={32} className="text-primary" />
+            <div className="q-badge-pro">{questionCount} Q</div>
+          </div>
+          <div className="branding-text">
+            <h3>Practice Material</h3>
+            <p>Validated Medical Resource</p>
           </div>
         </div>
 
-        <div className="toolbar-right">
-          {isAdmin && (
-            <div className="admin-tools-wrapper">
-              <button 
-                onClick={() => setShowAdminMenu(!showAdminMenu)} 
-                className={`toolbar-action-btn admin-trigger ${showAdminMenu ? 'active' : ''}`}
-                title="Admin Tools"
-              >
-                <Settings size={18} />
-              </button>
-              
-              {showAdminMenu && (
-                <div className="admin-dropdown-menu animate-pop-in">
-                  <div className="menu-header">Admin Control Panel</div>
-                  {adminActions?.onDownload && (
-                    <button onClick={adminActions.onDownload} className="menu-item">
-                      <Download size={16} /> <span>Download JSON</span>
-                    </button>
-                  )}
-                  {adminActions?.onOpenDrive && (
-                    <button onClick={adminActions.onOpenDrive} className="menu-item">
-                      <ExternalLink size={16} /> <span>Open in Drive</span>
-                    </button>
-                  )}
-                  <button onClick={() => setShowDebug(!showDebug)} className="menu-item">
-                    <Info size={16} /> <span>Diagnostic Inspector</span>
-                  </button>
-                </div>
-              )}
+        <div className="exam-title-section">
+          <h2>{material.title}</h2>
+          <p className="exam-desc-pro">{material.description || 'Interactive medical practice examination designed for targeted learning and knowledge reinforcement.'}</p>
+        </div>
+        
+        <div className="exam-info-grid-pro">
+          <div className="info-item-pro">
+            <div className="item-icon-pro"><Layers size={16} /></div>
+            <div className="item-content-pro">
+              <span>Subject Area</span>
+              <strong>{material.subject || 'General Medicine'}</strong>
             </div>
-          )}
-          <button className="toolbar-action-btn" title="Reload Material"><RefreshCw size={18} /></button>
-        </div>
-      </div>
-
-      <div className="exam-workspace">
-        <div className="exam-card-premium glass">
-          <div className="exam-icon-large">
-            <FileJson size={64} className="text-primary" />
           </div>
+          <div className="info-item-pro">
+            <div className="item-icon-pro"><Calendar size={16} /></div>
+            <div className="item-content-pro">
+              <span>Academic Year</span>
+              <strong>{material.year || 'V Year'}</strong>
+            </div>
+          </div>
+          <div className="info-item-pro">
+            <div className="item-icon-pro"><ShieldCheck size={16} /></div>
+            <div className="item-content-pro">
+              <span>Verification</span>
+              <div className="v-status">
+                <CheckCircle2 size={12} className="text-success" />
+                <strong>System Certified</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="exam-actions-pro">
+          <button onClick={onStartExam} className="btn-launch-exam">
+            <Play size={22} fill="currentColor" />
+            <span>Launch Practice Session</span>
+          </button>
           
-          <div className="exam-details-main">
-            <h2>{material.title}</h2>
-            <p className="exam-desc">{material.description || 'Practice exam material for medical students.'}</p>
-            
-            <div className="exam-stats-grid">
-              <div className="stat-card">
-                <span className="stat-label">Questions</span>
-                <span className="stat-value">{examData?.questions?.length || material.examQuestionCount || '--'}</span>
-              </div>
-              <div className="stat-card">
-                <span className="stat-label">Subject</span>
-                <span className="stat-value">{material.subject}</span>
-              </div>
-              <div className="stat-card">
-                <span className="stat-label">Year</span>
-                <span className="stat-value">{material.year}</span>
-              </div>
-            </div>
-
-            <div className="exam-actions-footer">
-              <button className="btn-run-exam">
-                <Play size={20} fill="currentColor" />
-                <span>Start Practice Session</span>
-              </button>
-              <p className="exam-hint">Your progress will be saved in Attempt Logs.</p>
-            </div>
-          </div>
+          {isAdmin && (
+            <button 
+              onClick={() => setIsEditing(!isEditing)} 
+              className={`btn-edit-schema ${isEditing ? 'active' : ''}`}
+            >
+              <Code size={18} />
+              <span>{isEditing ? 'Close Schema Editor' : 'Edit Exam JSON'}</span>
+            </button>
+          )}
         </div>
 
-        {showDebug && isAdmin && (
-          <div className="admin-diagnostic-inspector glass animate-pop-in">
-            <div className="inspector-header">
-              <ShieldAlert size={16} />
-              <span>Diagnostic Inspector (Admin)</span>
-            </div>
-            <div className="inspector-content">
-              <div className="inspector-row"><span>Material ID</span> <strong>{material.id}</strong></div>
-              <div className="inspector-row"><span>Source</span> <strong>Internal JSON</strong></div>
-              <div className="inspector-row"><span>Parsed</span> <strong>{examData ? 'SUCCESS' : 'FAILED'}</strong></div>
-            </div>
-            <button className="inspector-close" onClick={() => setShowDebug(false)}>Close Inspector</button>
+        {error && (
+          <div className="error-box-pro">
+            <AlertCircle size={18} />
+            <span>{error}</span>
           </div>
         )}
       </div>
 
+      {isEditing && isAdmin && (
+        <div className="json-editor-drawer animate-slide-up">
+          <div className="drawer-header">
+            <div className="header-meta">
+              <Code size={18} />
+              <h4>SCHEMA DEFINITION</h4>
+            </div>
+            <div className="header-controls">
+              <button onClick={formatJson} className="d-btn">Format</button>
+              <button onClick={() => setIsEditing(false)} className="d-btn">Cancel</button>
+              <button onClick={handleSave} disabled={isSaving} className="d-save">
+                {isSaving ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
+                <span>Update Schema</span>
+              </button>
+            </div>
+          </div>
+          <div className="drawer-body">
+            <textarea 
+              value={jsonContent}
+              onChange={(e) => setJsonContent(e.target.value)}
+              className="editor-textarea"
+              spellCheck={false}
+            />
+          </div>
+        </div>
+      )}
+
       <style>{`
-        .themed-viewer {
+        .internal-exam-material-viewer-pro {
+          height: 100%;
           display: flex;
           flex-direction: column;
-          height: 100%;
-          width: 100%;
-          background: var(--bg-soft);
-          position: relative;
-          overflow: hidden;
-        }
-
-        .viewer-toolbar-premium {
-          height: 64px;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 0 1.5rem;
-          margin: 0.75rem;
-          border-radius: var(--radius-xl);
-          border: 1px solid var(--border);
-          z-index: 100;
-          box-shadow: var(--shadow-lg);
-        }
-
-        .exam-status-badge {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-          font-size: 0.85rem;
-          font-weight: 800;
-          color: var(--text-strong);
-        }
-
-        .toolbar-action-btn {
-          width: 36px;
-          height: 36px;
-          border-radius: var(--radius-md);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: var(--text-muted);
-          transition: all 0.2s;
-          background: transparent;
-          min-height: auto;
-        }
-
-        .toolbar-action-btn:hover { background: var(--surface-elevated); color: var(--primary); }
-        .toolbar-action-btn.active { background: var(--primary); color: white; }
-
-        .admin-tools-wrapper { position: relative; }
-        .admin-dropdown-menu {
-          position: absolute;
-          top: calc(100% + 12px);
-          right: 0;
-          width: 240px;
-          background: var(--surface);
-          border: 1px solid var(--border);
-          border-radius: var(--radius-lg);
-          box-shadow: var(--shadow-xl);
-          padding: 8px;
-          z-index: 200;
-        }
-
-        .menu-header { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-soft); padding: 8px 12px; font-weight: 800; }
-        .menu-item {
-          width: 100%;
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-          padding: 10px 12px;
-          border-radius: var(--radius-md);
-          font-size: 0.85rem;
-          color: var(--text);
-          text-align: left;
-          background: transparent;
-          min-height: auto;
-        }
-        .menu-item:hover { background: var(--bg-soft); color: var(--primary); }
-
-        .exam-workspace {
-          flex: 1;
-          display: flex;
           align-items: center;
           justify-content: center;
           padding: 2rem;
+          background: var(--bg-soft);
+          overflow-y: auto;
+        }
+
+        .exam-preview-hero-card {
+          max-width: 700px;
+          width: 100%;
+          background: var(--surface);
+          border: 1px solid var(--border);
+          border-radius: var(--radius-2xl);
+          padding: 3.5rem;
+          box-shadow: var(--shadow-xl);
+          display: flex;
+          flex-direction: column;
+          gap: 2rem;
           position: relative;
         }
 
-        .exam-card-premium {
-          width: 100%;
-          max-width: 500px;
-          padding: 3rem;
-          border-radius: var(--radius-2xl);
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          text-align: center;
-          gap: 2rem;
-        }
-
-        .exam-icon-large {
-          width: 120px;
-          height: 120px;
+        .hero-branding { display: flex; align-items: center; gap: 1.25rem; }
+        .branding-icon-shell {
+          width: 64px;
+          height: 64px;
           background: var(--primary-soft);
-          border-radius: 50%;
+          border-radius: var(--radius-xl);
           display: flex;
           align-items: center;
           justify-content: center;
+          position: relative;
+          border: 1px solid var(--primary-soft);
         }
-
-        .exam-details-main h2 { font-size: 1.75rem; margin-bottom: 0.75rem; }
-        .exam-desc { color: var(--text-muted); font-size: 0.95rem; margin-bottom: 2rem; }
-
-        .exam-stats-grid {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 1rem;
-          width: 100%;
-          margin-bottom: 2.5rem;
-        }
-
-        .stat-card {
-          background: var(--surface-muted);
-          padding: 1rem;
-          border-radius: var(--radius-lg);
-          border: 1px solid var(--border);
-          display: flex;
-          flex-direction: column;
-          gap: 0.25rem;
-        }
-
-        .stat-label { font-size: 0.65rem; text-transform: uppercase; color: var(--text-soft); font-weight: 800; }
-        .stat-value { font-size: 1.1rem; font-weight: 800; color: var(--text-strong); }
-
-        .exam-actions-footer {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 1rem;
-        }
-
-        .btn-run-exam {
+        .q-badge-pro {
+          position: absolute;
+          top: -8px;
+          right: -12px;
           background: var(--primary);
           color: white;
-          padding: 0.85rem 2.5rem;
-          border-radius: var(--radius-xl);
-          font-weight: 800;
-          font-size: 1.1rem;
+          font-size: 0.7rem;
+          font-weight: 900;
+          padding: 4px 10px;
+          border-radius: 99px;
+          border: 3px solid var(--surface);
+          box-shadow: var(--shadow-sm);
+        }
+        .branding-text h3 { font-size: 0.75rem; color: var(--primary); text-transform: uppercase; margin-bottom: 2px; }
+        .branding-text p { font-size: 0.85rem; color: var(--text-soft); font-weight: 700; }
+
+        .exam-title-section { text-align: left; }
+        .exam-title-section h2 { font-size: 1.75rem; font-weight: 900; margin-bottom: 0.75rem; color: var(--text-strong); }
+        .exam-desc-pro { color: var(--text-muted); line-height: 1.6; font-size: 1rem; font-weight: 500; }
+
+        .exam-info-grid-pro {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 1.25rem;
+        }
+        .info-item-pro {
           display: flex;
           align-items: center;
           gap: 0.75rem;
-          box-shadow: 0 10px 20px -5px var(--primary-glow);
+          padding: 1.25rem;
+          background: var(--bg-soft-fade);
+          border-radius: var(--radius-lg);
+          border: 1px solid var(--border);
         }
+        .item-icon-pro { color: var(--primary); opacity: 0.6; }
+        .item-content-pro { display: flex; flex-direction: column; }
+        .item-content-pro span { font-size: 0.6rem; font-weight: 800; color: var(--text-soft); text-transform: uppercase; }
+        .item-content-pro strong { font-size: 0.85rem; color: var(--text-strong); }
+        .v-status { display: flex; align-items: center; gap: 4px; }
 
-        .exam-hint { font-size: 0.75rem; color: var(--text-soft); }
-
-        .admin-diagnostic-inspector {
-          position: absolute;
-          bottom: 1.5rem;
-          right: 1.5rem;
-          width: 300px;
-          padding: 1.5rem;
+        .exam-actions-pro { display: flex; flex-direction: column; gap: 1rem; }
+        .btn-launch-exam {
+          height: 64px;
+          background: var(--primary);
+          color: white;
           border-radius: var(--radius-xl);
-          border: 1px solid var(--primary-soft);
-          z-index: 150;
+          font-weight: 900;
+          font-size: 1.2rem;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 1rem;
+          transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+          box-shadow: var(--shadow-premium);
         }
-        .inspector-header { display: flex; align-items: center; gap: 0.5rem; color: var(--primary); font-weight: 800; font-size: 0.8rem; margin-bottom: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; }
-        .inspector-content { display: flex; flex-direction: column; gap: 0.5rem; }
-        .inspector-row { display: flex; justify-content: space-between; font-size: 0.75rem; }
-        .inspector-row span { color: var(--text-soft); }
-        .inspector-row strong { color: var(--text-strong); }
-        .inspector-close { width: 100%; margin-top: 1rem; background: var(--bg-soft); color: var(--text); font-size: 0.75rem; font-weight: 800; padding: 6px; border-radius: var(--radius-md); }
+        .btn-launch-exam:hover { transform: translateY(-4px); filter: brightness(1.1); }
 
-        @media (max-width: 600px) {
-          .exam-card-premium { padding: 2rem; }
-          .exam-stats-grid { grid-template-columns: 1fr; }
+        .btn-edit-schema {
+          height: 52px;
+          background: var(--surface-muted);
+          color: var(--text-muted);
+          border: 1px solid var(--border);
+          border-radius: var(--radius-lg);
+          font-weight: 700;
+          display: flex; align-items: center; justify-content: center; gap: 0.75rem;
+        }
+        .btn-edit-schema.active { background: var(--bg-soft); color: var(--primary); border-color: var(--primary); }
+
+        .error-box-pro {
+          padding: 1rem;
+          background: var(--danger-soft);
+          color: var(--danger);
+          border-radius: var(--radius-md);
+          font-size: 0.8rem;
+          font-weight: 700;
+          display: flex; align-items: center; gap: 0.5rem;
+        }
+
+        .json-editor-drawer {
+          position: fixed;
+          bottom: 0; left: 0; right: 0;
+          height: 80vh;
+          background: #0f172a;
+          border-top: 2px solid var(--primary);
+          z-index: 3000;
+          display: flex; flex-direction: column;
+          box-shadow: 0 -20px 50px rgba(0,0,0,0.5);
+        }
+        .drawer-header {
+          padding: 1.25rem 2.5rem;
+          display: flex; align-items: center; justify-content: space-between;
+          background: #1e293b;
+          border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .header-meta { display: flex; align-items: center; gap: 0.75rem; color: var(--primary); font-weight: 900; font-size: 0.7rem; }
+        .header-controls { display: flex; gap: 1rem; }
+        .d-btn { height: 36px; padding: 0 1rem; border-radius: 8px; background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.6); font-size: 0.75rem; font-weight: 800; }
+        .d-save { height: 36px; padding: 0 1.25rem; border-radius: 8px; background: var(--primary); color: white; font-size: 0.8rem; font-weight: 900; display: flex; align-items: center; gap: 0.5rem; }
+
+        .drawer-body { flex: 1; padding: 1.5rem; }
+        .editor-textarea {
+          width: 100%; height: 100%; background: transparent; border: none; outline: none;
+          color: #cbd5e1; font-family: 'JetBrains Mono', monospace; font-size: 0.95rem; resize: none;
+        }
+
+        .exam-material-state-shell { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.5rem; color: var(--text-soft); }
+
+        @media (max-width: 768px) {
+          .exam-preview-hero-card { padding: 2rem; border-radius: 0; border: none; height: 100%; max-width: none; }
+          .exam-info-grid-pro { grid-template-columns: 1fr; }
+          .exam-actions-pro { margin-top: auto; }
         }
       `}</style>
     </div>

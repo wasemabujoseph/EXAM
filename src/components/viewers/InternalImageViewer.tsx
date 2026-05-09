@@ -3,23 +3,21 @@ import {
   ZoomIn, 
   ZoomOut, 
   Maximize, 
-  Download, 
+  RotateCw,
+  Download,
   ExternalLink,
-  RefreshCw,
-  Settings,
-  Info,
-  ShieldAlert
+  Loader2,
+  MoreVertical,
+  Maximize2,
+  Minimize2
 } from 'lucide-react';
 import { useVault } from '../../context/VaultContext';
 
 interface InternalImageViewerProps {
-  fileData: {
-    base64: string;
-    fileName: string;
-    mimeType: string;
-    sizeBytes: number;
-    isProtected?: boolean;
-  };
+  base64Data: string;
+  mimeType: string;
+  title: string;
+  isProtected?: boolean;
   adminActions?: {
     onDownload?: () => void;
     onOpenDrive?: () => void;
@@ -27,301 +25,274 @@ interface InternalImageViewerProps {
 }
 
 const InternalImageViewer: React.FC<InternalImageViewerProps> = ({ 
-  fileData,
-  adminActions
+  base64Data, 
+  mimeType, 
+  title,
+  isProtected,
+  adminActions 
 }) => {
   const { user } = useVault();
   const isAdmin = user?.role === 'admin';
   
   const [scale, setScale] = useState(1);
-  const [showDebug, setShowDebug] = useState(false);
+  const [rotation, setRotation] = useState(0);
+  const [isLoaded, setIsLoaded] = useState(false);
   const [showAdminMenu, setShowAdminMenu] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
-  const zoomIn = () => setScale(prev => Math.min(prev + 0.2, 3));
-  const zoomOut = () => setScale(prev => Math.max(prev - 0.2, 0.5));
-  const resetZoom = () => setScale(1);
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  const imageUrl = `data:${mimeType};base64,${base64Data}`;
+
+  const zoomIn = () => setScale(prev => Math.min(prev + 0.2, 5));
+  const zoomOut = () => setScale(prev => Math.max(prev - 0.2, 0.1));
+  const rotate = () => setRotation(prev => (prev + 90) % 360);
+  const reset = () => {
+    setScale(1);
+    setRotation(0);
+  };
+
+  const toggleFullscreen = () => {
+    if (!containerRef.current) return;
+    if (!isFullscreen) {
+      if (containerRef.current.requestFullscreen) {
+        containerRef.current.requestFullscreen();
+      }
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      }
+    }
+    setIsFullscreen(!isFullscreen);
+  };
 
   return (
-    <div className="internal-image-viewer themed-viewer">
-      <div className="viewer-toolbar-premium glass">
-        <div className="toolbar-left">
+    <div className={`internal-image-viewer theme-aware ${isFullscreen ? 'fullscreen' : ''}`} ref={containerRef}>
+      {/* Toolbar */}
+      <div className="image-toolbar-premium">
+        <div className="toolbar-section">
           <div className="zoom-controls">
-            <button onClick={zoomOut} className="toolbar-action-btn" title="Zoom Out">
-              <ZoomOut size={18} />
-            </button>
-            <div className="zoom-value" onClick={resetZoom}>
-              {Math.round(scale * 100)}%
-            </div>
-            <button onClick={zoomIn} className="toolbar-action-btn" title="Zoom In">
-              <ZoomIn size={18} />
-            </button>
-            <div className="toolbar-divider" />
-            <button onClick={resetZoom} className="toolbar-action-btn" title="Reset Zoom">
-              <Maximize size={18} />
-            </button>
+            <button onClick={zoomOut} className="z-btn" title="Zoom Out"><ZoomOut size={16} /></button>
+            <span className="zoom-val">{Math.round(scale * 100)}%</span>
+            <button onClick={zoomIn} className="z-btn" title="Zoom In"><ZoomIn size={16} /></button>
+            <div className="z-divider" />
+            <button onClick={reset} className="z-btn fit" title="Reset View"><Maximize size={16} /></button>
           </div>
         </div>
 
-        <div className="toolbar-right">
+        <div className="toolbar-section">
+          <button onClick={rotate} className="icon-btn" title="Rotate Image">
+            <RotateCw size={18} />
+          </button>
+          
+          <button onClick={toggleFullscreen} className="icon-btn desktop-only" title="Toggle Fullscreen">
+            {isFullscreen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+          </button>
+
           {isAdmin && (
-            <div className="admin-tools-wrapper">
+            <div className="admin-dropdown-wrapper">
               <button 
                 onClick={() => setShowAdminMenu(!showAdminMenu)} 
-                className={`toolbar-action-btn admin-trigger ${showAdminMenu ? 'active' : ''}`}
+                className={`icon-btn admin-trigger ${showAdminMenu ? 'active' : ''}`}
                 title="Admin Tools"
               >
-                <Settings size={18} />
+                <MoreVertical size={18} />
               </button>
               
               {showAdminMenu && (
-                <div className="admin-dropdown-menu animate-pop-in">
-                  <div className="menu-header">Admin Control Panel</div>
-                  {adminActions?.onDownload && (
-                    <button onClick={adminActions.onDownload} className="menu-item">
-                      <Download size={16} /> <span>Download Original</span>
-                    </button>
-                  )}
-                  {adminActions?.onOpenDrive && (
-                    <button onClick={adminActions.onOpenDrive} className="menu-item">
-                      <ExternalLink size={16} /> <span>Open in Google Drive</span>
-                    </button>
-                  )}
-                  <button onClick={() => setShowDebug(!showDebug)} className="menu-item">
-                    <Info size={16} /> <span>Diagnostic Inspector</span>
+                <div className="admin-menu animate-pop-in">
+                  <div className="menu-header">Admin Tools</div>
+                  <button onClick={() => { adminActions?.onDownload?.(); setShowAdminMenu(false); }} className="menu-item">
+                    <Download size={16} />
+                    <span>Download Original</span>
+                  </button>
+                  <button onClick={() => { adminActions?.onOpenDrive?.(); setShowAdminMenu(false); }} className="menu-item">
+                    <ExternalLink size={16} />
+                    <span>Open in Drive</span>
                   </button>
                 </div>
               )}
             </div>
           )}
-          
-          <button 
-            onClick={() => setScale(1)} 
-            className="toolbar-action-btn"
-            title="Refresh View"
-          >
-            <RefreshCw size={18} />
-          </button>
         </div>
       </div>
 
-      <div className="image-workspace">
-        <div className="image-canvas-container" style={{ transform: `scale(${scale})` }}>
+      {/* Image Area */}
+      <div className="image-display-container">
+        {!isLoaded && (
+          <div className="image-loading">
+            <Loader2 className="animate-spin text-primary" size={40} />
+            <p>Processing image...</p>
+          </div>
+        )}
+        <div 
+          className="image-wrapper"
+          style={{ 
+            transform: `scale(${scale}) rotate(${rotation}deg)`,
+            transition: 'transform 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
+          }}
+        >
           <img 
-            src={fileData.base64.startsWith('data:') ? fileData.base64 : `data:${fileData.mimeType};base64,${fileData.base64}`} 
-            alt={fileData.fileName}
-            className="viewer-image"
+            src={imageUrl} 
+            alt={title} 
+            onLoad={() => setIsLoaded(true)}
+            style={{ 
+              display: isLoaded ? 'block' : 'none',
+              maxWidth: '90vw',
+              maxHeight: '80vh',
+              boxShadow: 'var(--shadow-xl)',
+              borderRadius: '2px',
+              border: '1px solid var(--border)'
+            }} 
+            draggable={false}
             onContextMenu={(e) => e.preventDefault()}
           />
         </div>
-
-        {showDebug && isAdmin && (
-          <div className="admin-diagnostic-inspector glass animate-pop-in">
-            <div className="inspector-header">
-              <ShieldAlert size={16} />
-              <span>Diagnostic Inspector (Admin)</span>
-            </div>
-            <div className="inspector-content">
-              <div className="inspector-row"><span>Filename</span> <strong>{fileData.fileName}</strong></div>
-              <div className="inspector-row"><span>Type</span> <strong>{fileData.mimeType}</strong></div>
-              <div className="inspector-row"><span>Size</span> <strong>{(fileData.sizeBytes / 1024 / 1024).toFixed(2)} MB</strong></div>
-            </div>
-            <button className="inspector-close" onClick={() => setShowDebug(false)}>Close Inspector</button>
-          </div>
-        )}
       </div>
 
       <style>{`
-        .themed-viewer {
+        .internal-image-viewer {
           display: flex;
           flex-direction: column;
           height: 100%;
           width: 100%;
           background: var(--bg-soft);
+          color: var(--text);
           position: relative;
           overflow: hidden;
         }
 
-        .viewer-toolbar-premium {
-          height: 64px;
+        .image-toolbar-premium {
+          height: 56px;
+          background: var(--surface);
+          border-bottom: 1px solid var(--border);
           display: flex;
           align-items: center;
           justify-content: space-between;
-          padding: 0 1.5rem;
-          margin: 0.75rem;
-          border-radius: var(--radius-xl);
-          border: 1px solid var(--border);
+          padding: 0 1rem;
           z-index: 100;
-          box-shadow: var(--shadow-lg);
+          box-shadow: var(--shadow-sm);
         }
 
-        .toolbar-left, .toolbar-right {
+        .toolbar-section {
           display: flex;
           align-items: center;
-          gap: 1rem;
+          gap: 0.5rem;
         }
 
         .zoom-controls {
           display: flex;
           align-items: center;
-          background: var(--surface-muted);
-          padding: 4px;
-          border-radius: var(--radius-lg);
+          gap: 0.25rem;
+          background: var(--bg-soft);
+          padding: 2px;
+          border-radius: var(--radius-md);
           border: 1px solid var(--border);
         }
 
-        .toolbar-action-btn {
-          width: 36px;
-          height: 36px;
+        .z-btn {
+          width: 32px;
+          height: 32px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: var(--text-muted);
+          border-radius: var(--radius-sm);
+          transition: all 0.2s;
+        }
+        .z-btn:hover { background: var(--surface); color: var(--primary); }
+        .z-divider { width: 1px; height: 16px; background: var(--border); margin: 0 2px; }
+        .zoom-val { font-size: 0.75rem; font-weight: 800; min-width: 45px; text-align: center; }
+
+        .icon-btn {
+          width: 38px;
+          height: 38px;
           border-radius: var(--radius-md);
           display: flex;
           align-items: center;
           justify-content: center;
           color: var(--text-muted);
           transition: all 0.2s;
-          background: transparent;
-          min-height: auto;
         }
+        .icon-btn:hover { background: var(--bg-soft); color: var(--text); }
 
-        .toolbar-action-btn:hover:not(:disabled) {
-          background: var(--surface-elevated);
-          color: var(--primary);
-          box-shadow: var(--shadow-sm);
-        }
-
-        .toolbar-action-btn.active {
-          background: var(--primary);
-          color: white;
-        }
-
-        .zoom-value {
-          font-size: 0.85rem;
-          font-weight: 700;
-          padding: 0 1rem;
-          color: var(--text-strong);
-          min-width: 60px;
-          justify-content: center;
-          cursor: pointer;
-        }
-
-        .toolbar-divider {
-          width: 1px;
-          height: 20px;
-          background: var(--border);
-          margin: 0 4px;
-        }
-
-        .admin-tools-wrapper { position: relative; }
-
-        .admin-dropdown-menu {
+        .admin-dropdown-wrapper { position: relative; }
+        .admin-menu {
           position: absolute;
-          top: calc(100% + 12px);
+          top: calc(100% + 8px);
           right: 0;
-          width: 240px;
-          background: var(--surface);
+          width: 200px;
+          background: var(--surface-elevated);
           border: 1px solid var(--border);
           border-radius: var(--radius-lg);
-          box-shadow: var(--shadow-xl);
-          padding: 8px;
-          z-index: 200;
+          box-shadow: var(--shadow-lg);
+          padding: 0.5rem;
+          z-index: 1000;
         }
-
         .menu-header {
-          font-size: 0.7rem;
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-          color: var(--text-soft);
-          padding: 8px 12px;
+          font-size: 0.65rem;
           font-weight: 800;
+          color: var(--text-soft);
+          text-transform: uppercase;
+          padding: 0.5rem 0.75rem;
+          border-bottom: 1px solid var(--border);
+          margin-bottom: 0.25rem;
         }
-
         .menu-item {
           width: 100%;
           display: flex;
           align-items: center;
           gap: 0.75rem;
-          padding: 10px 12px;
-          border-radius: var(--radius-md);
+          padding: 0.6rem 0.75rem;
           font-size: 0.85rem;
+          font-weight: 600;
+          border-radius: var(--radius-md);
           color: var(--text);
-          text-align: left;
-          background: transparent;
-          min-height: auto;
+          transition: all 0.2s;
         }
+        .menu-item:hover { background: var(--bg-soft); color: var(--primary); }
 
-        .menu-item:hover {
-          background: var(--bg-soft);
-          color: var(--primary);
-        }
-
-        .image-workspace {
+        .image-display-container {
           flex: 1;
-          overflow: auto;
           display: flex;
           align-items: center;
           justify-content: center;
+          overflow: auto;
+          background: var(--bg);
           padding: 2rem;
           position: relative;
         }
 
-        .image-canvas-container {
-          transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        .image-wrapper {
           display: flex;
+          align-items: center;
           justify-content: center;
-          align-items: center;
-          max-width: 100%;
-          max-height: 100%;
+          transform-origin: center center;
         }
 
-        .viewer-image {
-          max-width: 100%;
-          max-height: calc(100vh - 180px);
-          object-fit: contain;
-          box-shadow: var(--shadow-xl);
-          border: 1px solid var(--border);
-          background: white;
-        }
-
-        .admin-diagnostic-inspector {
+        .image-loading {
           position: absolute;
-          bottom: 1.5rem;
-          right: 1.5rem;
-          width: 300px;
-          padding: 1.5rem;
-          border-radius: var(--radius-xl);
-          border: 1px solid var(--primary-soft);
-          z-index: 150;
-        }
-
-        .inspector-header {
+          inset: 0;
           display: flex;
+          flex-direction: column;
           align-items: center;
-          gap: 0.5rem;
-          color: var(--primary);
-          font-weight: 800;
-          font-size: 0.8rem;
-          margin-bottom: 1rem;
-          border-bottom: 1px solid var(--border);
-          padding-bottom: 0.5rem;
+          justify-content: center;
+          gap: 1rem;
+          z-index: 1;
+          color: var(--text-muted);
         }
 
-        .inspector-content { display: flex; flex-direction: column; gap: 0.5rem; }
-        .inspector-row { display: flex; justify-content: space-between; font-size: 0.75rem; }
-        .inspector-row span { color: var(--text-soft); }
-        .inspector-row strong { color: var(--text-strong); }
-        .inspector-close {
-          width: 100%;
-          margin-top: 1rem;
-          background: var(--bg-soft);
-          color: var(--text);
-          font-size: 0.75rem;
-          font-weight: 800;
-          padding: 6px;
-          border-radius: var(--radius-md);
+        @media (max-width: 768px) {
+          .desktop-only { display: none; }
+          .image-display-container { padding: 1rem; }
+          .zoom-val { font-size: 0.7rem; min-width: 35px; }
         }
 
-        @media (max-width: 600px) {
-          .viewer-toolbar-premium { padding: 0.75rem; height: auto; flex-direction: column; gap: 0.5rem; }
-          .toolbar-left, .toolbar-right { width: 100%; justify-content: center; }
+        .animate-pop-in {
+          animation: popIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        @keyframes popIn {
+          from { opacity: 0; transform: scale(0.95) translateY(10px); }
+          to { opacity: 1; transform: scale(1) translateY(0); }
         }
       `}</style>
     </div>

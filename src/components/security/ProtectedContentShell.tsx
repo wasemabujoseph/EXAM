@@ -10,6 +10,7 @@ interface ProtectedContentShellProps {
   examId?: string;
   attemptId?: string;
   title?: string;
+  enableWatermark?: boolean;
 }
 
 const ProtectedContentShell: React.FC<ProtectedContentShellProps> = ({ 
@@ -18,7 +19,8 @@ const ProtectedContentShell: React.FC<ProtectedContentShellProps> = ({
   materialId, 
   examId, 
   attemptId,
-  title
+  title,
+  enableWatermark = true
 }) => {
   const { user } = useVault();
   const [isBlurred, setIsBlurred] = useState(false);
@@ -78,14 +80,11 @@ const ProtectedContentShell: React.FC<ProtectedContentShellProps> = ({
       const isCmdOrCtrl = e.ctrlKey || e.metaKey;
       const key = e.key.toLowerCase();
       
-      // Allow typing in inputs
       const isInput = ['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement).tagName) || 
                       (e.target as HTMLElement).isContentEditable;
 
       if (isCmdOrCtrl) {
         if (['c', 'v', 'p', 's', 'u', 'a'].includes(key)) {
-          // Block these even in inputs (except maybe Ctrl+V/A if we want to be nice, 
-          // but the prompt says block common copy/print/save/text selection)
           e.preventDefault();
           logEvent(`shortcut_blocked_${key}`);
         }
@@ -126,54 +125,56 @@ const ProtectedContentShell: React.FC<ProtectedContentShellProps> = ({
 
   if (!isProtected) return <>{children}</>;
 
-  const watermarkText = `${user?.username || 'User'} • ${user?.email || 'MEDEXAM'} • MEDEXAM • ${new Date().toLocaleString()}`;
+  const watermarkText = `${user?.username || 'User'} • ${user?.email || 'MEDEXAM'} • MEDEXAM • ${new Date().toLocaleDateString()}`;
 
   return (
-    <div className="protected-viewport-shell">
+    <div className="protected-viewport-shell theme-aware">
       <div className={`protected-content-container ${isBlurred ? 'blurred' : ''}`}>
         {children}
         
         {/* Ghost Watermark Overlay */}
-        <div className="ghost-watermark-overlay">
-          {[...Array(20)].map((_, i) => (
-            <div key={i} className="watermark-row">
-              {[...Array(5)].map((_, j) => (
-                <span key={j}>{watermarkText}</span>
-              ))}
-            </div>
-          ))}
-        </div>
+        {enableWatermark && (
+          <div className="ghost-watermark-overlay">
+            {[...Array(15)].map((_, i) => (
+              <div key={i} className="watermark-row">
+                {[...Array(4)].map((_, j) => (
+                  <span key={j}>{watermarkText}</span>
+                ))}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {showOverlay && (
         <div className="security-pause-overlay animate-fade-in">
-           <Lock size={48} className="lock-icon" />
-           <h2>Protected Session Paused</h2>
-           <p>Content is hidden while you are away. Return to the tab to continue.</p>
-           <div className="security-badge">
+           <Lock size={64} className="lock-icon" />
+           <h2>Protected Session</h2>
+           <p>Content is secured while inactive. Return to the tab to resume your study.</p>
+           <div className="security-badge-pro">
              <ShieldAlert size={16} />
-             <span>MEDEXAM Content Protection Active</span>
+             <span>MEDEXAM Secure Protocol Active</span>
            </div>
         </div>
       )}
 
-      <div className="protection-toast">
+      <div className="protection-toast-pro">
         <Info size={14} />
-        <span>Content Protection Enabled: Copying and printing are disabled.</span>
+        <span>Strict Content Protection Enabled</span>
       </div>
 
       <style>{`
-        .protected-viewport-shell { position: relative; width: 100%; height: 100%; overflow: hidden; user-select: none; }
+        .protected-viewport-shell { position: relative; width: 100%; height: 100%; overflow: hidden; user-select: none; background: var(--bg); }
         
         .protected-content-container { 
           position: relative; 
           width: 100%; 
           height: 100%; 
-          transition: filter 0.4s ease, opacity 0.4s ease; 
+          transition: filter 0.5s cubic-bezier(0.4, 0, 0.2, 1); 
         }
         .protected-content-container.blurred { 
-          filter: blur(15px) grayscale(1); 
-          opacity: 0.5;
+          filter: blur(25px) grayscale(1); 
+          opacity: 0.4;
           pointer-events: none;
         }
 
@@ -185,81 +186,85 @@ const ProtectedContentShell: React.FC<ProtectedContentShellProps> = ({
           overflow: hidden;
           display: flex;
           flex-direction: column;
-          gap: 100px;
-          padding: 50px;
-          opacity: 0.12;
-          transform: rotate(-15deg) scale(1.5);
+          gap: 120px;
+          padding: 80px;
+          opacity: 0.08;
+          transform: rotate(-20deg) scale(1.4);
         }
         
         .watermark-row {
           display: flex;
           justify-content: space-around;
           white-space: nowrap;
-          gap: 150px;
+          gap: 200px;
         }
         
         .watermark-row span {
-          font-size: 0.9rem;
+          font-size: 0.8rem;
           font-weight: 900;
           color: var(--text-strong);
-          letter-spacing: 0.05em;
+          letter-spacing: 0.08em;
+          font-family: 'Space Grotesk', sans-serif;
         }
 
         .security-pause-overlay {
           position: absolute;
           inset: 0;
           z-index: 10000;
-          background: rgba(15, 23, 42, 0.85);
-          backdrop-filter: blur(10px);
+          background: var(--bg-soft-fade);
+          backdrop-filter: blur(20px);
           display: flex;
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          color: white;
+          color: var(--text-strong);
           text-align: center;
-          padding: 2rem;
+          padding: 3rem;
         }
         
-        .lock-icon { margin-bottom: 1.5rem; color: var(--primary); animation: pulse 2s infinite; }
-        .security-pause-overlay h2 { font-size: 1.75rem; font-weight: 900; margin-bottom: 0.5rem; }
-        .security-pause-overlay p { color: rgba(255,255,255,0.7); font-weight: 600; margin-bottom: 2rem; }
+        .lock-icon { margin-bottom: 2rem; color: var(--primary); animation: lockPulse 2s infinite cubic-bezier(0.4, 0, 0.2, 1); }
+        .security-pause-overlay h2 { font-size: 2rem; font-weight: 900; margin-bottom: 0.75rem; letter-spacing: -0.03em; }
+        .security-pause-overlay p { color: var(--text-muted); font-weight: 600; margin-bottom: 2.5rem; max-width: 400px; line-height: 1.6; }
         
-        .security-badge { 
-          display: flex; align-items: center; gap: 0.5rem; 
-          background: rgba(255,255,255,0.1); padding: 0.5rem 1rem; 
-          border-radius: 99px; font-size: 0.75rem; font-weight: 800;
+        .security-badge-pro { 
+          display: flex; align-items: center; gap: 0.6rem; 
+          background: var(--primary-soft); color: var(--primary);
+          padding: 0.6rem 1.25rem; 
+          border-radius: 99px; font-size: 0.7rem; font-weight: 800;
+          text-transform: uppercase;
+          border: 1px solid var(--primary-soft);
         }
 
-        .protection-toast {
+        .protection-toast-pro {
           position: fixed;
-          bottom: 2rem;
+          bottom: 2.5rem;
           left: 50%;
           transform: translateX(-50%);
-          background: var(--surface);
+          background: var(--surface-elevated);
           border: 1px solid var(--border);
-          padding: 0.75rem 1.25rem;
+          padding: 0.75rem 1.5rem;
           border-radius: 99px;
           display: flex;
           align-items: center;
           gap: 0.75rem;
-          font-size: 0.8rem;
-          font-weight: 700;
+          font-size: 0.75rem;
+          font-weight: 800;
           box-shadow: var(--shadow-xl);
           z-index: 10001;
-          color: var(--text-soft);
+          color: var(--text);
           pointer-events: none;
           opacity: 0;
-          animation: slideUpIn 0.5s forwards delay 1s;
+          animation: slideUpInPro 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
 
-        @keyframes pulse {
-          0% { transform: scale(1); opacity: 1; }
-          50% { transform: scale(1.1); opacity: 0.8; }
-          100% { transform: scale(1); opacity: 1; }
+        @keyframes lockPulse {
+          0% { transform: scale(1); opacity: 1; filter: drop-shadow(0 0 0px var(--primary-glow)); }
+          50% { transform: scale(1.1); opacity: 0.8; filter: drop-shadow(0 0 20px var(--primary-glow)); }
+          100% { transform: scale(1); opacity: 1; filter: drop-shadow(0 0 0px var(--primary-glow)); }
         }
         
-        @keyframes slideUpIn {
-          from { transform: translate(-50%, 20px); opacity: 0; }
+        @keyframes slideUpInPro {
+          from { transform: translate(-50%, 40px); opacity: 0; }
           to { transform: translate(-50%, 0); opacity: 1; }
         }
 
