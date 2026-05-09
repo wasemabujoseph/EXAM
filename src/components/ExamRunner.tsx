@@ -205,10 +205,11 @@ const ExamRunner: React.FC = () => {
             <div className="badge-row">
               <span className="q-counter">Q {currentIndex + 1} / {questions.length}</span>
               {isProtected && (
-                <span className="protected-mode-badge">
-                  <ShieldCheck size={10} />
-                  PROTECTED MODE
-                </span>
+                <div className="security-status-pill animate-fade-in">
+                  <div className="security-status-dot" />
+                  <Info size={12} className="text-white/60" />
+                  <span>Strict Content Protection Enabled</span>
+                </div>
               )}
             </div>
           </div>
@@ -598,6 +599,37 @@ const ExamRunner: React.FC = () => {
         .tool-btn:hover { background: var(--border); color: var(--text-strong); }
         .tool-btn.flag.active { background: var(--warning-soft); color: var(--warning); border: 1px solid var(--warning); }
 
+        .security-status-pill {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          background: #1e293b;
+          color: white;
+          padding: 0.35rem 0.8rem;
+          border-radius: 99px;
+          font-size: 0.65rem;
+          font-weight: 800;
+          letter-spacing: 0.02em;
+          border: 1px solid rgba(255,255,255,0.1);
+          box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+
+        .security-status-dot {
+          width: 6px;
+          height: 6px;
+          background: #10b981;
+          border-radius: 50%;
+          box-shadow: 0 0 8px #10b981;
+          animation: pulse-status 2s infinite;
+        }
+
+        @keyframes pulse-status {
+          0% { opacity: 1; }
+          50% { opacity: 0.4; }
+          100% { opacity: 1; }
+        }
+
+
         .note-input-wrapper {
           flex: 1; min-width: 200px;
           display: flex; align-items: center; gap: 0.75rem;
@@ -684,6 +716,8 @@ const ExamRunner: React.FC = () => {
           .question-wrapper { gap: 1rem; }
           .question-card { padding: 1.5rem; border-radius: 1.5rem; }
           .exam-title-group h1 { max-width: 150px; }
+          .security-status-pill span { display: none; }
+          .security-status-pill { padding: 0.4rem; }
         }
 
         @media (max-width: 640px) {

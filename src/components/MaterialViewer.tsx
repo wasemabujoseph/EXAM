@@ -231,7 +231,13 @@ const MaterialViewer: React.FC<MaterialViewerProps> = ({ material: propMaterial,
               <div className="id-text">
                 <div className="title-row">
                   <h2 className="material-title-text">{material?.title || 'Loading Material...'}</h2>
-                  {isProtected && <Lock size={14} className="text-warning" />}
+                  {isProtected && (
+                    <div className="security-status-pill animate-fade-in">
+                      <div className="security-status-dot" />
+                      <Info size={12} className="text-white/60" />
+                      <span>Strict Content Protection Enabled</span>
+                    </div>
+                  )}
                 </div>
                 <div className="meta-row">
                   {material?.year && <span className="meta-badge">{material.year}</span>}
@@ -360,10 +366,42 @@ const MaterialViewer: React.FC<MaterialViewerProps> = ({ material: propMaterial,
         .btn-primary { background: var(--primary); color: white; padding: 0.8rem 2rem; border-radius: 12px; font-weight: 800; }
         .btn-outline { border: 2px solid var(--border); color: var(--text); padding: 0.8rem 2rem; border-radius: 12px; font-weight: 800; }
 
+        .security-status-pill {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          background: #1e293b;
+          color: white;
+          padding: 0.35rem 0.8rem;
+          border-radius: 99px;
+          font-size: 0.65rem;
+          font-weight: 800;
+          letter-spacing: 0.02em;
+          border: 1px solid rgba(255,255,255,0.1);
+          box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+
+        .security-status-dot {
+          width: 6px;
+          height: 6px;
+          background: #10b981;
+          border-radius: 50%;
+          box-shadow: 0 0 8px #10b981;
+          animation: pulse-status 2s infinite;
+        }
+
+        @keyframes pulse-status {
+          0% { opacity: 1; }
+          50% { opacity: 0.4; }
+          100% { opacity: 1; }
+        }
+
         @media (max-width: 768px) {
           .pro-viewer-header { height: 72px; padding: 0 1rem; }
           .desktop-only { display: none; }
-          .material-title-text { font-size: 1rem; max-width: 200px; }
+          .material-title-text { font-size: 1rem; max-width: 120px; }
+          .security-status-pill span { display: none; }
+          .security-status-pill { padding: 0.4rem; }
           .id-icon-box { display: none; }
           .header-left { gap: 0.5rem; }
         }

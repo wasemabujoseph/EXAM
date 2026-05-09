@@ -25,7 +25,7 @@ const TABLES = {
 const HEADERS = {
   [TABLES.USERS]: ['id', 'username', 'email', 'password_hash', 'salt', 'role', 'status', 'plan', 'trial_limit', 'attempt_count', 'created_at', 'updated_at', 'last_login'],
   [TABLES.SESSIONS]: ['id', 'user_id', 'token_hash', 'expires_at', 'created_at'],
-  [TABLES.EXAMS]: ['id', 'user_id', 'title', 'description', 'grade', 'subject', 'tags_json', 'difficulty', 'time_limit_minutes', 'exam_data_json', 'is_public', 'status', 'featured', 'created_at', 'updated_at'],
+  [TABLES.EXAMS]: ['id', 'user_id', 'title', 'description', 'grade', 'subject', 'tags_json', 'difficulty', 'time_limit_minutes', 'exam_data_json', 'is_public', 'is_protected', 'status', 'featured', 'created_at', 'updated_at'],
   [TABLES.EXAM_ATTEMPTS]: ['id', 'user_id', 'exam_id', 'score', 'total_questions', 'percentage', 'answers_json', 'questions_snapshot_json', 'duration_seconds', 'mode', 'created_at'],
   [TABLES.AUDIT_LOG]: ['id', 'user_id', 'action', 'details', 'ip_address', 'created_at'],
   [TABLES.MATERIALS]: ['id', 'fileId', 'previewFileId', 'title', 'description', 'year', 'subject', 'type', 'originalFilename', 'mimeType', 'previewMimeType', 'previewStatus', 'sizeBytes', 'driveUrl', 'previewUrl', 'downloadUrl', 'thumbnailUrl', 'tags', 'uploadedBy', 'uploadedAt', 'updatedAt', 'isVisibleToStudents', 'examQuestionCount', 'isProtected'],
@@ -385,7 +385,7 @@ function handleSaveExam(user, payload) {
   sheet.appendRow([
     id, user.id, title, description, grade, subject, 
     JSON.stringify(tags || []), difficulty || 'medium', timeLimit || 0,
-    JSON.stringify(examData), isPublic ? 'TRUE' : 'FALSE', 
+    JSON.stringify(examData), isPublic ? 'TRUE' : 'FALSE', payload.isProtected ? 'TRUE' : 'FALSE',
     status || 'published', 'FALSE', now, now
   ]);
 

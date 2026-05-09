@@ -220,8 +220,15 @@ const AdminExams: React.FC = () => {
         {filteredExams.map((exam) => (
           <div key={exam.id} className="admin-exam-card">
             <div className="exam-card-top">
-              <div className={`pub-badge ${exam.is_public === 'TRUE' ? 'is-public' : 'is-private'}`}>
-                {exam.is_public === 'TRUE' ? <Globe size={18} /> : <Lock size={18} />}
+              <div className="flex items-center gap-2">
+                <div className={`pub-badge ${exam.is_public === 'TRUE' ? 'is-public' : 'is-private'}`} title={exam.is_public === 'TRUE' ? 'Publicly Visible' : 'Private/Draft'}>
+                  {exam.is_public === 'TRUE' ? <Globe size={18} /> : <Lock size={18} />}
+                </div>
+                {exam.is_protected === 'TRUE' && (
+                  <div className="pub-badge is-protected" style={{ background: 'rgba(59, 130, 246, 0.1)', color: '#3B82F6' }} title="Strict Protection Enabled">
+                    <ShieldCheck size={18} />
+                  </div>
+                )}
               </div>
               <div className="exam-card-actions">
                 <button className="icon-btn-edit" onClick={() => handleEditClick(exam)}><Settings size={18} /></button>
