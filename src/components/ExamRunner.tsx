@@ -95,7 +95,7 @@ const ExamRunner: React.FC = () => {
         setQuestions(qs);
         const limit = foundExam.time_limit_minutes || foundExam.timeLimit || (qs.length * 1.5);
         setTimeRemaining(limit > 0 ? Math.floor(limit * 60) : null);
-        setIsProtected(foundExam.isProtected === 'TRUE' || foundExam.isProtected === true || type === 'material');
+        setIsProtected(foundExam.is_protected === 'TRUE' || foundExam.is_protected === true || foundExam.isProtected === 'TRUE' || foundExam.isProtected === true || type === 'material');
       }
       setIsLoading(false);
     };
@@ -198,37 +198,49 @@ const ExamRunner: React.FC = () => {
     >
       <div className="exam-session">
       {/* Header Section */}
-      <header className="exam-header">
-        <div className="header-left">
-          <button className="icon-btn-exit" onClick={() => navigate(-1)} aria-label="Exit Exam">
-            <X size={20} />
-          </button>
-          <div className="exam-title-group">
-            <h1 className="text-ellipsis">{exam.title}</h1>
-            <div className="badge-row">
-              <span className="q-counter">Q {currentIndex + 1} / {questions.length}</span>
-              {isProtected && (
-                <div className="security-status-pill animate-fade-in">
-                  <div className="security-status-dot" />
-                  <Info size={12} className="text-white/60" />
-                  <span>Strict Content Protection Enabled</span>
-                </div>
-              )}
+      <header className="exam-header-premium">
+        <div className="header-content container">
+          <div className="header-left">
+            <button className="btn-exit-session" onClick={() => navigate(-1)}>
+              <X size={20} />
+            </button>
+            <div className="exam-info-stack">
+              <h1 className="exam-main-title">{exam.title}</h1>
+              <div className="exam-meta-row">
+                <span className="q-progress-pill">Question {currentIndex + 1} of {questions.length}</span>
+                {isProtected && (
+                  <div className="security-pill-premium animate-fade-in">
+                    <div className="security-dot-active" />
+                    <ShieldCheck size={12} />
+                    <span>Strict Protection Active</span>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="header-right">
-           <div className={`exam-timer ${isTimerPaused ? 'is-paused' : ''}`}>
-             <Timer size={18} />
-             <span>{timeRemaining !== null ? formatTime(timeRemaining) : '--:--'}</span>
-             <button className="pause-toggle" onClick={() => setIsTimerPaused(!isTimerPaused)}>
-               {isTimerPaused ? <Play size={14} /> : <Pause size={14} />}
+          <div className="header-center">
+            <div className={`smart-timer ${isTimerPaused ? 'is-paused' : ''} ${timeRemaining !== null && timeRemaining < 300 ? 'timer-urgent' : ''}`}>
+              <div className="timer-icon-wrap">
+                <Timer size={18} />
+              </div>
+              <span className="timer-digits">{timeRemaining !== null ? formatTime(timeRemaining) : '--:--'}</span>
+              <button className="timer-control" onClick={() => setIsTimerPaused(!isTimerPaused)}>
+                {isTimerPaused ? <Play size={12} fill="currentColor" /> : <Pause size={12} fill="currentColor" />}
+              </button>
+            </div>
+          </div>
+
+          <div className="header-right">
+             <button className="btn-submit-premium" onClick={() => handleSubmit()} disabled={isSubmitting}>
+               {isSubmitting ? <Loader2 className="animate-spin" size={18} /> : (
+                 <>
+                   <span>Complete Exam</span>
+                   <ChevronRight size={18} />
+                 </>
+               )}
              </button>
-           </div>
-           <button className="exam-submit-btn" onClick={() => handleSubmit()} disabled={isSubmitting}>
-             {isSubmitting ? <Loader2 className="animate-spin" size={18} /> : <span>Submit</span>}
-           </button>
+          </div>
         </div>
       </header>
 
@@ -245,21 +257,23 @@ const ExamRunner: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="options-container" dir="ltr">
-                    {currentQ.options.map((opt: any) => (
-                      <label key={opt.id} className={`option-item ${(answers[currentIndex] || []).includes(opt.id) ? 'selected' : ''}`}>
-                        <span className="option-letter">{opt.id}</span>
-                        <span className="option-text">{opt.text}</span>
-                        <div className="option-control">
-                          <input 
-                            type={(currentQ.answers || currentQ.correct_answers || [currentQ.correctAnswer]).length > 1 ? 'checkbox' : 'radio'}
-                            name={`q-${currentIndex}`}
-                            checked={(answers[currentIndex] || []).includes(opt.id)}
-                            onChange={(e) => handleAnswerChange(currentIndex, opt.id, e.target.checked)}
-                          />
-                        </div>
-                      </label>
-                    ))}
+                  <div className="options-stack" dir="ltr">
+                    {currentQ.options.map((opt: any) => {
+                      const isSelected = (answers[currentIndex] || []).includes(opt.id);
+                      return (
+                        <button 
+                          key={opt.id} 
+                          className={`smart-option-card ${isSelected ? 'is-selected' : ''}`}
+                          onClick={() => handleAnswerChange(currentIndex, opt.id, !isSelected)}
+                        >
+                          <div className="option-id-box">{opt.id}</div>
+                          <div className="option-body-text">{opt.text}</div>
+                          <div className="option-selection-ring">
+                            <div className="inner-dot" />
+                          </div>
+                        </button>
+                      );
+                    })}
                   </div>
 
                   <div className="question-tools">
@@ -393,373 +407,208 @@ const ExamRunner: React.FC = () => {
         .exam-session {
           position: fixed;
           inset: 0;
-          background: var(--bg);
+          background: #ffffff;
           z-index: 2000;
           display: flex;
           flex-direction: column;
-          color: var(--text);
+          color: var(--text-strong);
           overflow: hidden;
         }
 
-        .exam-header {
-          height: 64px;
-          background: var(--surface);
-          border-bottom: 1px solid var(--border);
-          padding: 0 1rem;
+        .exam-header-premium {
+          height: 80px;
+          background: rgba(255, 255, 255, 0.8);
+          backdrop-filter: blur(20px);
+          border-bottom: 1px solid var(--border-soft);
           display: flex;
           align-items: center;
-          justify-content: space-between;
           z-index: 100;
           position: sticky;
           top: 0;
         }
 
-        .header-left { display: flex; align-items: center; gap: 0.75rem; min-width: 0; flex: 1; }
-        .header-right { display: flex; align-items: center; gap: 0.75rem; }
-        
-        .icon-btn-exit {
-          width: 40px; height: 40px; flex-shrink: 0;
-          border-radius: var(--radius-lg);
+        .header-content {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          width: 100%;
+          padding: 0 2rem;
+        }
+
+        .header-left { display: flex; align-items: center; gap: 1.5rem; flex: 1; min-width: 0; }
+        .header-right { display: flex; align-items: center; gap: 1rem; }
+
+        .btn-exit-session {
+          width: 44px; height: 44px;
+          border-radius: 12px;
           background: var(--bg-soft);
           color: var(--text-muted);
           display: flex; align-items: center; justify-content: center;
+          transition: all 0.2s;
         }
-        .icon-btn-exit:hover { background: var(--danger-soft); color: var(--danger); }
+        .btn-exit-session:hover { background: #fee2e2; color: #ef4444; transform: scale(1.05); }
 
-        .exam-title-group { min-width: 0; display: flex; flex-direction: column; }
-        .exam-title-group h1 { 
-          font-size: 0.95rem; 
-          font-weight: 800;
+        .exam-info-stack { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+        .exam-main-title { 
+          font-size: 1.1rem; 
+          font-weight: 900; 
           margin: 0; 
+          letter-spacing: -0.02em;
+          color: var(--text-strong);
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
-          color: var(--text-strong);
         }
-        .badge-row { display: flex; align-items: center; gap: 0.5rem; }
-        .q-counter { font-size: 0.65rem; font-weight: 800; color: var(--primary); text-transform: uppercase; }
-        .protected-mode-badge { 
-          display: flex; align-items: center; gap: 3px; 
-          font-size: 0.55rem; font-weight: 900; background: #fff1f2; color: #e11d48; 
-          padding: 1px 5px; border-radius: 4px; border: 1px solid #fda4af; 
+        .exam-meta-row { display: flex; align-items: center; gap: 1rem; }
+        .q-progress-pill { font-size: 0.7rem; font-weight: 800; color: var(--primary); text-transform: uppercase; letter-spacing: 0.05em; }
+        
+        .security-pill-premium {
+          display: flex; align-items: center; gap: 6px;
+          background: #0f172a; color: #f8fafc;
+          padding: 4px 12px; border-radius: 99px;
+          font-size: 0.6rem; font-weight: 800; text-transform: uppercase;
         }
-
-        .exam-timer {
-          display: flex; align-items: center; gap: 0.4rem;
-          background: var(--danger-soft); color: var(--danger);
-          padding: 0.4rem 0.6rem; border-radius: var(--radius-lg);
-          font-family: 'JetBrains Mono', monospace; font-weight: 800; font-size: 1rem;
-          min-width: 90px; justify-content: center;
+        .security-dot-active {
+          width: 6px; height: 6px; background: #10b981; border-radius: 50%;
+          box-shadow: 0 0 8px #10b981; animation: security-pulse 2s infinite;
         }
-        .exam-timer.is-paused { background: var(--bg-soft); color: var(--text-muted); }
-        .pause-toggle { background: var(--surface); color: inherit; padding: 2px; border-radius: 4px; display: flex; }
-
-        .exam-submit-btn {
-          background: var(--primary-brand); color: white;
-          padding: 0 1rem; height: 40px; border-radius: var(--radius-lg);
-          font-weight: 800; font-size: 0.9rem; box-shadow: var(--shadow-md);
+        @keyframes security-pulse {
+          0% { transform: scale(1); opacity: 1; }
+          50% { transform: scale(1.3); opacity: 0.5; }
+          100% { transform: scale(1); opacity: 1; }
         }
 
-        .exam-viewport { 
-          flex: 1; 
-          display: flex; 
-          overflow: hidden; 
-          position: relative; 
-          background: var(--bg); 
+        .smart-timer {
+          display: flex; align-items: center; gap: 0.75rem;
+          background: var(--bg-soft); padding: 6px; border-radius: 14px;
+          border: 1px solid var(--border-soft);
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
-
-        .exam-main {
-          flex: 1; overflow-y: auto; padding: 2rem;
-          display: flex; flex-direction: column; align-items: center;
-          scrollbar-gutter: stable;
-          background: var(--bg);
+        .smart-timer.timer-urgent { background: #fef2f2; border-color: #fecaca; color: #dc2626; }
+        .timer-icon-wrap {
+          width: 32px; height: 32px; background: var(--surface); border-radius: 10px;
+          display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow-sm);
         }
+        .timer-digits { font-family: 'JetBrains Mono', monospace; font-weight: 800; font-size: 1.1rem; min-width: 60px; text-align: center; }
+        .timer-control {
+          width: 32px; height: 32px; border-radius: 10px; background: var(--surface);
+          display: flex; align-items: center; justify-content: center; transition: all 0.2s;
+        }
+        .timer-control:hover { background: var(--primary); color: white; }
 
-        .question-wrapper { width: 100%; max-width: 900px; display: flex; flex-direction: column; gap: 1.5rem; }
+        .btn-submit-premium {
+          background: linear-gradient(135deg, var(--primary) 0%, #3b82f6 100%);
+          color: white; height: 48px; padding: 0 1.5rem; border-radius: 14px;
+          font-weight: 800; font-size: 0.95rem; display: flex; align-items: center; gap: 10px;
+          box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2); transition: all 0.2s;
+        }
+        .btn-submit-premium:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(37, 99, 235, 0.3); }
 
+        .exam-viewport { flex: 1; display: flex; overflow: hidden; background: #ffffff; }
+        .exam-main { flex: 1; overflow-y: auto; padding: 3rem 2rem; background: #ffffff; }
+
+        .question-wrapper { width: 100%; max-width: 850px; margin: 0 auto; }
         .question-card {
-          background: var(--surface);
-          padding: 2.5rem;
-          border-radius: var(--radius-2xl);
-          border: 1px solid var(--border);
-          box-shadow: var(--shadow-xl);
+          background: #ffffff; padding: 3.5rem; border-radius: 2.5rem;
+          border: 1px solid #f1f5f9; box-shadow: 0 20px 50px rgba(0,0,0,0.04);
+          margin-bottom: 2rem;
         }
 
-        .question-header { margin-bottom: 2rem; }
-        .question-label { font-size: 0.75rem; font-weight: 900; color: var(--primary); text-transform: uppercase; display: block; margin-bottom: 0.75rem; letter-spacing: 0.05em; }
-        .question-text { 
-          font-size: 1.35rem; 
-          font-weight: 700; 
-          color: var(--text-strong); 
-          line-height: 1.5;
-          overflow-wrap: break-word;
-          word-break: normal;
-        }
+        .question-label { font-size: 0.75rem; font-weight: 900; color: var(--primary); text-transform: uppercase; margin-bottom: 1rem; display: block; letter-spacing: 0.1em; }
+        .question-text { font-size: 1.6rem; font-weight: 800; color: #0f172a; line-height: 1.4; margin-bottom: 3rem; }
 
-        .options-container { display: flex; flex-direction: column; gap: 0.85rem; }
+        .options-stack { display: flex; flex-direction: column; gap: 1rem; }
+        .smart-option-card {
+          width: 100%; display: grid; grid-template-columns: 50px 1fr 40px; align-items: center;
+          padding: 1.25rem 1.5rem; border-radius: 1.5rem; background: #ffffff;
+          border: 1.5px solid #f1f5f9; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+          cursor: pointer; text-align: left;
+        }
+        .smart-option-card:hover { border-color: var(--primary-soft); background: #f8fafc; transform: translateX(6px); }
+        .smart-option-card.is-selected { border-color: var(--primary); background: #eff6ff; box-shadow: 0 4px 15px rgba(37, 99, 235, 0.1); }
 
-        .option-item {
-          display: grid;
-          grid-template-columns: 42px minmax(0, 1fr) 28px;
-          align-items: center;
-          gap: 1rem;
-          padding: 1.15rem 1.5rem;
-          border-radius: 1.25rem;
-          background: var(--surface);
-          border: 1px solid var(--border);
-          cursor: pointer;
-          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-          position: relative;
-          text-align: left;
-          direction: ltr;
+        .option-id-box {
+          width: 36px; height: 36px; background: #f1f5f9; border-radius: 10px;
+          display: flex; align-items: center; justify-content: center;
+          font-weight: 900; font-size: 0.9rem; color: #64748b; transition: all 0.2s;
         }
-        
-        @media (hover: hover) {
-          .option-item:hover { border-color: var(--primary); background: var(--bg-soft-fade); transform: translateX(4px); }
-        }
-        
-        .option-item.selected { border-color: var(--primary); background: var(--primary-soft-fade); box-shadow: var(--shadow-md); }
+        .is-selected .option-id-box { background: var(--primary); color: white; }
 
-        .option-control {
-          display: flex;
-          align-items: center;
-          justify-content: flex-end;
-          width: 28px;
+        .option-body-text { padding: 0 1rem; font-size: 1.1rem; font-weight: 600; color: #1e293b; line-height: 1.4; }
+        .option-selection-ring {
+          width: 24px; height: 24px; border: 2px solid #e2e8f0; border-radius: 50%;
+          display: flex; align-items: center; justify-content: center; transition: all 0.2s;
         }
-
-        .option-item input {
-          width: 20px; height: 20px; cursor: pointer; accent-color: var(--primary);
-          margin: 0;
-        }
-
-        .option-letter {
-          width: 38px; height: 38px; flex-shrink: 0;
-          background: var(--bg-soft); border: 1px solid var(--border);
-          border-radius: 10px; display: flex; align-items: center; justify-content: center;
-          font-weight: 900; font-size: 0.95rem; color: var(--text-muted);
-          transition: all 0.2s;
-        }
-        .option-item.selected .option-letter { background: var(--primary); color: white; border-color: var(--primary); }
-        
-        .option-text { 
-          min-width: 0;
-          flex: 1;
-          width: 100%;
-          max-width: 100%;
-          font-weight: 600; 
-          font-size: 1.05rem; 
-          line-height: 1.45;
-          color: var(--text);
-          white-space: normal;
-          overflow-wrap: break-word;
-          word-break: normal;
-          hyphens: none;
-          text-align: left;
-        }
-
-        .full-exam-view {
-          width: 100%;
-          max-width: 900px;
-          display: flex;
-          flex-direction: column;
-          gap: 3rem;
-          padding-bottom: 5rem;
-        }
-
-        .full-mode-question {
-          background: var(--surface);
-          padding: 2.5rem;
-          border-radius: var(--radius-2xl);
-          border: 1px solid var(--border);
-          box-shadow: var(--shadow-sm);
-        }
-
-        .full-mode-question h3 {
-          font-size: 1.25rem;
-          font-weight: 700;
-          margin-bottom: 1.5rem;
-          line-height: 1.4;
-          color: var(--text-strong);
-        }
-
-        .full-options-grid {
-          display: flex;
-          flex-direction: column;
-          gap: 0.85rem;
-        }
+        .is-selected .option-selection-ring { border-color: var(--primary); }
+        .inner-dot { width: 12px; height: 12px; background: var(--primary); border-radius: 50%; opacity: 0; transform: scale(0.5); transition: all 0.2s; }
+        .is-selected .inner-dot { opacity: 1; transform: scale(1); }
 
         .question-tools {
-          margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--border);
-          display: flex; flex-wrap: wrap; gap: 1rem; align-items: center;
+          margin-top: 3rem; padding-top: 2rem; border-top: 1px solid #f1f5f9;
+          display: flex; align-items: center; gap: 1.5rem;
         }
-
         .tool-btn {
-          display: flex; align-items: center; gap: 0.5rem;
-          padding: 0.6rem 1.2rem; border-radius: var(--radius-lg);
-          background: var(--bg-soft); color: var(--text-muted); font-weight: 700;
+          display: flex; align-items: center; gap: 0.6rem; padding: 0.75rem 1.25rem;
+          border-radius: 14px; background: #f8fafc; color: #64748b; font-weight: 800;
           font-size: 0.85rem; transition: all 0.2s;
         }
-        .tool-btn:hover { background: var(--border); color: var(--text-strong); }
-        .tool-btn.flag.active { background: var(--warning-soft); color: var(--warning); border: 1px solid var(--warning); }
-
-        .security-status-pill {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          background: #1e293b;
-          color: white;
-          padding: 0.35rem 0.8rem;
-          border-radius: 99px;
-          font-size: 0.65rem;
-          font-weight: 800;
-          letter-spacing: 0.02em;
-          border: 1px solid rgba(255,255,255,0.1);
-          box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-        }
-
-        .security-status-dot {
-          width: 6px;
-          height: 6px;
-          background: #10b981;
-          border-radius: 50%;
-          box-shadow: 0 0 8px #10b981;
-          animation: pulse-status 2s infinite;
-        }
-
-        @keyframes pulse-status {
-          0% { opacity: 1; }
-          50% { opacity: 0.4; }
-          100% { opacity: 1; }
-        }
-
-
+        .tool-btn.active { background: #fef3c7; color: #d97706; border: 1px solid #fbbf24; }
         .note-input-wrapper {
-          flex: 1; min-width: 200px;
-          display: flex; align-items: center; gap: 0.75rem;
-          background: var(--bg-soft); padding: 0.6rem 1.2rem; border-radius: var(--radius-lg);
-          border: 1px solid var(--border);
+          flex: 1; display: flex; align-items: center; gap: 0.75rem;
+          background: #f8fafc; padding: 0.75rem 1.25rem; border-radius: 14px;
+          border: 1px solid #f1f5f9;
         }
-        .note-input-wrapper input { background: transparent; border: none; padding: 0; flex: 1; font-weight: 600; color: var(--text); font-size: 0.9rem; }
-        .note-input-wrapper input::placeholder { color: var(--text-muted); opacity: 0.6; }
+        .note-input-wrapper input { background: transparent; border: none; flex: 1; font-weight: 600; color: #1e293b; }
 
-        .desktop-navigation { display: flex; align-items: center; gap: 2rem; width: 100%; margin-top: 2rem; }
+        .desktop-navigation { display: flex; align-items: center; gap: 2.5rem; margin-top: 3rem; }
         .nav-step-btn {
-          padding: 0 1.5rem; height: 48px; border-radius: var(--radius-lg);
-          background: var(--surface); border: 1px solid var(--border);
-          font-weight: 800; color: var(--text-strong); display: flex; align-items: center; gap: 0.5rem;
-          transition: all 0.2s;
+          height: 56px; padding: 0 2rem; border-radius: 16px; background: #ffffff;
+          border: 1.5px solid #e2e8f0; font-weight: 900; color: #1e293b;
+          display: flex; align-items: center; gap: 10px; transition: all 0.2s;
         }
-        .nav-step-btn:hover:not(:disabled) { border-color: var(--primary); color: var(--primary); background: var(--primary-soft-fade); }
-        .nav-step-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .nav-step-btn:hover:not(:disabled) { border-color: var(--primary); color: var(--primary); background: #f0f7ff; }
+        .nav-step-btn:disabled { opacity: 0.3; cursor: not-allowed; }
 
-        .exam-progress { flex: 1; height: 8px; background: var(--border-soft); border-radius: 99px; overflow: hidden; }
-        .progress-fill { height: 100%; background: var(--primary); transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .exam-progress { flex: 1; height: 6px; background: #f1f5f9; border-radius: 99px; overflow: hidden; }
+        .progress-fill { height: 100%; background: var(--primary); border-radius: 99px; }
 
         .exam-navigator {
-          width: 320px; background: var(--surface); border-left: 1px solid var(--border);
-          padding: 2rem; display: flex; flex-direction: column; gap: 2rem;
-          overflow-y: auto;
+          width: 360px; background: #ffffff; border-left: 1px solid #f1f5f9;
+          padding: 2.5rem; display: flex; flex-direction: column; gap: 2.5rem;
         }
-
-        .nav-header { font-weight: 900; text-transform: uppercase; font-size: 0.75rem; color: var(--text-muted); display: flex; align-items: center; gap: 0.75rem; letter-spacing: 0.05em; }
-        .nav-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.6rem; }
+        .nav-header { font-weight: 900; color: #0f172a; display: flex; align-items: center; gap: 10px; font-size: 0.9rem; }
+        .nav-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.75rem; }
         .nav-grid-item {
-          aspect-ratio: 1; border-radius: 10px; border: 1px solid var(--border);
-          background: var(--bg-soft); font-weight: 900; font-size: 0.9rem;
-          color: var(--text-muted); transition: all 0.2s;
+          aspect-ratio: 1; border-radius: 14px; background: #f8fafc; border: 1.5px solid #f1f5f9;
+          font-weight: 900; color: #64748b; transition: all 0.2s;
         }
-        .nav-grid-item:hover { border-color: var(--primary); color: var(--primary); }
-        .nav-grid-item.active { background: var(--primary); color: white; border-color: var(--primary); transform: scale(1.1); z-index: 1; box-shadow: var(--shadow-lg); }
-        .nav-grid-item.completed { background: var(--primary-soft-fade); color: var(--primary); border-color: var(--primary); }
-        .nav-grid-item.flagged { border-color: var(--warning); color: var(--warning); background: var(--warning-soft-fade); }
+        .nav-grid-item.active { background: #0f172a; color: white; border-color: #0f172a; transform: scale(1.05); }
+        .nav-grid-item.completed { background: #f0f9ff; color: #0369a1; border-color: #bae6fd; }
+        .nav-grid-item.flagged { background: #fffbeb; color: #b45309; border-color: #fef3c7; }
 
-        .nav-legend { display: flex; flex-direction: column; gap: 0.75rem; padding-top: 1.5rem; border-top: 1px solid var(--border); }
-        .legend-item { display: flex; align-items: center; gap: 0.75rem; font-size: 0.75rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; }
-        .dot { width: 12px; height: 12px; border-radius: 4px; }
-        .dot.active { background: var(--primary); }
-        .dot.completed { background: var(--primary-soft-fade); border: 1.5px solid var(--primary); }
-        .dot.flagged { background: var(--warning); }
-
-        .view-mode-toggle { margin-top: auto; display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
-        .mode-toggle-btn {
-          height: 40px; border-radius: 10px; border: 1px solid var(--border);
-          font-size: 0.75rem; font-weight: 800; color: var(--text-muted);
-          display: flex; align-items: center; justify-content: center; gap: 0.5rem;
-          transition: all 0.2s;
-        }
-        .mode-toggle-btn.active { background: var(--primary-soft-fade); color: var(--primary); border-color: var(--primary); }
+        .nav-legend { display: flex; flex-direction: column; gap: 1rem; border-top: 1px solid #f1f5f9; padding-top: 2rem; }
+        .legend-item { display: flex; align-items: center; gap: 12px; font-size: 0.75rem; font-weight: 800; color: #64748b; text-transform: uppercase; }
+        .dot { width: 10px; height: 10px; border-radius: 50%; }
+        .dot.active { background: #0f172a; }
+        .dot.completed { background: #bae6fd; }
+        .dot.flagged { background: #fbbf24; }
 
         .mobile-footer-nav { display: none; }
 
-        .exam-loading, .exam-error {
-          position: fixed; inset: 0; background: var(--bg); z-index: 3000;
-          display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.5rem;
-        }
-
-        /* Responsive Fixes */
         @media (max-width: 1024px) {
-          .exam-navigator {
-            position: fixed; top: 64px; bottom: 0; right: 0;
-            transform: translateX(100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: -10px 0 30px rgba(0,0,0,0.1); z-index: 500;
-            width: 280px;
-          }
-          .exam-navigator.mob-show { transform: translateX(0); }
-          .desktop-navigation { display: none; }
+          .exam-header-premium { height: 72px; }
+          .header-content { padding: 0 1.25rem; }
+          .exam-navigator { display: none; }
+          .exam-main { padding: 2rem 1rem; }
+          .question-card { padding: 2rem; border-radius: 2rem; }
+          .question-text { font-size: 1.3rem; }
           .mobile-footer-nav {
             display: flex; position: fixed; bottom: 0; left: 0; right: 0;
-            height: calc(72px + var(--safe-bottom)); background: var(--surface); 
-            border-top: 1px solid var(--border);
-            padding: 0 1rem var(--safe-bottom) 1rem;
-            align-items: center; justify-content: space-between; z-index: 100;
+            height: 80px; background: #ffffff; border-top: 1px solid #f1f5f9;
+            padding: 0 1.25rem; align-items: center; justify-content: space-between; z-index: 1000;
           }
-          .mob-nav-btn { width: 52px; height: 52px; border-radius: 14px; background: var(--bg-soft); color: var(--text-strong); display: flex; align-items: center; justify-content: center; }
-          .mob-questions-btn { flex: 1; margin: 0 0.75rem; height: 52px; border-radius: 14px; background: var(--primary-brand); color: white; font-weight: 800; font-size: 0.95rem; }
-          .exam-main { padding: 1rem; padding-bottom: calc(96px + var(--safe-bottom)); }
-          .question-wrapper { gap: 1rem; }
-          .question-card { padding: 1.5rem; border-radius: 1.5rem; }
-          .exam-title-group h1 { max-width: 150px; }
-          .security-status-pill span { display: none; }
-          .security-status-pill { padding: 0.4rem; }
-        }
-
-        @media (max-width: 640px) {
-          .exam-main { padding: 0.75rem; padding-bottom: calc(96px + var(--safe-bottom)); }
-          .question-card { padding: 1.25rem; border-radius: 1rem; }
-          .question-text { font-size: clamp(1.1rem, 4.5vw, 1.3rem); line-height: 1.4; }
-          
-          .option-item {
-            grid-template-columns: 36px minmax(0, 1fr) 24px;
-            padding: 0.875rem 0.75rem;
-            gap: 0.65rem;
-            border-radius: 1rem;
-          }
-          .option-control { width: 24px; }
-          .option-item input { width: 18px; height: 18px; }
-          .option-letter { width: 34px; height: 34px; border-radius: 8px; font-size: 0.85rem; }
-          .option-text { font-size: 1rem; line-height: 1.35; }
-        }
-
-        @media (max-width: 380px) {
-          .option-item {
-            grid-template-columns: 34px minmax(0, 1fr) 22px;
-            gap: 0.55rem;
-            padding: 0.8rem 0.65rem;
-          }
-          .option-control { width: 22px; }
-          .option-letter { width: 32px; height: 32px; }
-        }
-
-        @media (max-width: 480px) {
-          .exam-header { padding: 0 0.75rem; height: 60px; }
-          .header-left { gap: 0.5rem; }
-          .icon-btn-exit { width: 36px; height: 36px; }
-          .exam-title-group h1 { font-size: 0.85rem; max-width: 110px; }
-          .exam-timer { font-size: 0.9rem; padding: 0.35rem 0.5rem; min-width: 80px; }
-          .exam-submit-btn { padding: 0 0.75rem; height: 36px; font-size: 0.8rem; }
-          
-          .question-tools { flex-direction: column; align-items: stretch; gap: 0.75rem; }
-          .note-input-wrapper { min-width: 0; }
+          .mob-nav-btn { width: 48px; height: 48px; border-radius: 14px; background: #f8fafc; color: #1e293b; display: flex; align-items: center; justify-content: center; }
+          .mob-questions-btn { flex: 1; margin: 0 1rem; height: 48px; border-radius: 14px; background: #0f172a; color: white; font-weight: 800; }
         }
       `}</style>
     </div>
