@@ -68,9 +68,24 @@
 
   /* Glassmorphism & Modern UI */
   --surface-glass: rgba(255, 255, 255, 0.7);
+  --surface-glass-deep: rgba(255, 255, 255, 0.9);
   --border-glass: rgba(255, 255, 255, 0.3);
   --border-soft: rgba(0, 0, 0, 0.05);
   --radius-3xl: 2.5rem;
+  
+  /* Depth & Motion */
+  --z-index-back: -1;
+  --z-index-base: 1;
+  --z-index-above: 10;
+  --z-index-sticky: 100;
+  --z-index-modal: 1000;
+  --z-index-popover: 2000;
+  --z-index-toast: 3000;
+
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
   
   /* RGB variants for transparency */
   --primary-rgb: 11, 61, 145;
