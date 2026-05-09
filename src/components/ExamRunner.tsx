@@ -460,7 +460,6 @@ const ExamRunner: React.FC = () => {
                <button 
                  className={`view-switch-btn ${displayMode === 'full' ? 'active' : ''}`}
                  onClick={() => setDisplayMode('full')}
-                 style={{ display: window.innerWidth <= 640 ? 'none' : 'flex' }}
                >
                  <Layers size={16} /> <span>FULL QUESTIONS</span>
                </button>

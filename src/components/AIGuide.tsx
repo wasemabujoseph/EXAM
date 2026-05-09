@@ -350,6 +350,7 @@ const AIGuide: React.FC<Props> = ({ userName, embedded = false, externalOpen, on
         <button 
           onClick={() => setIsOpen(!isOpen)}
           className={`ai-floating-trigger ${isOpen ? 'is-open' : ''}`}
+          style={{ display: hideTrigger ? 'none' : 'flex' }}
         >
           {isOpen ? <X size={28} /> : <MessageCircle size={32} />}
         </button>
