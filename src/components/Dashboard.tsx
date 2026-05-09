@@ -26,10 +26,11 @@ const Dashboard: React.FC = () => {
 
   useEffect(() => {
     const handleResize = () => {
-      if (window.innerWidth > 1024) {
-        setIsSidebarOpen(true);
-      } else {
+      // Auto-close only on small screens
+      if (window.innerWidth <= 1024) {
         setIsSidebarOpen(false);
+      } else {
+        setIsSidebarOpen(true);
       }
     };
     window.addEventListener('resize', handleResize);
@@ -137,6 +138,15 @@ const Dashboard: React.FC = () => {
       </aside>
 
       <main className="dashboard-main">
+        {!isSidebarOpen && (
+          <button 
+            className="desktop-menu-toggle animate-fade-in" 
+            onClick={() => setIsSidebarOpen(true)}
+            aria-label="Open Menu"
+          >
+            <Menu size={24} />
+          </button>
+        )}
         <div className="dashboard-content">
           <Outlet />
         </div>
@@ -158,13 +168,40 @@ const Dashboard: React.FC = () => {
           border-right: 1px solid var(--border);
           display: flex;
           flex-direction: column;
-          justify-content: space-between;
           position: fixed;
           top: 0;
           bottom: 0;
           left: 0;
           z-index: 1000;
           transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          overflow: hidden; /* Hide outer scroll */
+        }
+
+        .sidebar-top {
+          display: flex;
+          flex-direction: column;
+          padding: 1.5rem;
+          flex: 1;
+          overflow-y: auto; /* Only this part scrolls */
+          scrollbar-width: thin;
+          scrollbar-color: var(--border) transparent;
+        }
+
+        .sidebar-top::-webkit-scrollbar { width: 4px; }
+        .sidebar-top::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+
+        .sidebar-bottom { 
+          padding: 1.5rem; 
+          border-top: 1px solid var(--border); 
+          display: flex; 
+          flex-direction: column; 
+          gap: 1rem;
+          background: var(--surface);
+          margin-top: auto;
+        }
+
+        .dashboard-sidebar:not(.active) {
+          transform: translateX(-100%);
         }
 
         .sidebar-top {
@@ -180,9 +217,14 @@ const Dashboard: React.FC = () => {
           margin-bottom: 2.5rem;
         }
 
-        .full-logo { height: 48px; display: block; }
-        .compact-logo { height: 32px; display: none; }
-        .sidebar-close-btn { display: none; background: transparent; color: var(--text-muted); }
+        .sidebar-close-btn { 
+          display: flex; /* Always show close button */
+          background: transparent; 
+          color: var(--text-muted); 
+          padding: 8px;
+          border-radius: var(--radius-lg);
+        }
+        .sidebar-close-btn:hover { background: var(--bg-soft); color: var(--text-strong); }
 
         .sidebar-profile {
           display: flex;
@@ -232,17 +274,28 @@ const Dashboard: React.FC = () => {
         .admin-nav-link { margin-top: 1rem; border-left: 4px solid var(--warning); background: var(--warning-soft); }
         .admin-nav-link:hover { background: var(--warning); color: white; }
 
-        .sidebar-bottom { padding: 1.5rem; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 1rem; }
+
         .logout-btn { color: var(--danger); width: 100%; justify-content: flex-start; }
         .logout-btn:hover { background: var(--danger-soft); color: var(--danger); }
 
         /* Main Content Styles */
         .dashboard-main {
           flex: 1;
-          margin-left: var(--sidebar-width);
+          margin-left: 0;
           transition: margin-left 0.3s ease;
           display: flex;
           flex-direction: column;
+          width: 100%;
+        }
+
+        .dashboard-container.sidebar-open .dashboard-main {
+          margin-left: var(--sidebar-width);
+        }
+
+        @media (max-width: 1024px) {
+          .dashboard-container.sidebar-open .dashboard-main {
+            margin-left: 0;
+          }
         }
 
         .dashboard-content {
@@ -252,12 +305,37 @@ const Dashboard: React.FC = () => {
           width: 100%;
         }
 
+        .desktop-menu-toggle {
+          position: fixed;
+          top: 1.5rem;
+          left: 1.5rem;
+          background: var(--surface);
+          border: 1px solid var(--border);
+          color: var(--text-strong);
+          width: 44px;
+          height: 44px;
+          border-radius: var(--radius-lg);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: var(--shadow-md);
+          z-index: 50;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .desktop-menu-toggle:hover {
+          background: var(--bg-soft);
+          transform: scale(1.05);
+        }
+
         .mobile-top-bar { display: none; }
 
         /* Responsive Breakpoints */
         @media (max-width: 1024px) {
-          .dashboard-main { margin-left: 0; padding-top: var(--header-height); }
-          .dashboard-sidebar { transform: translateX(-100%); width: min(85vw, 300px); }
+          .dashboard-main { margin-left: 0 !important; padding-top: var(--header-height); }
+          .desktop-menu-toggle { display: none; }
+          .dashboard-sidebar { width: min(85vw, 300px); }
           .dashboard-sidebar.active { transform: translateX(0); }
           .sidebar-close-btn { display: flex; }
           .mobile-top-bar {

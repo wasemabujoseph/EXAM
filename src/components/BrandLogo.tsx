@@ -25,31 +25,37 @@ const BrandLogo: React.FC<BrandLogoProps> = ({
 
   return (
     <div 
-      className={`medexam-brand-logo flex items-center gap-3 ${className}`} 
+      className={`medexam-brand-logo ${className}`} 
+      style={{ 
+        display: 'flex', 
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        flexWrap: 'nowrap',
+        justifyContent: className.includes('justify-center') ? 'center' : 'flex-start',
+        gap: size === 'sm' ? '8px' : '12px'
+      }}
       aria-label="MEDEXAM AI Medical Learning Assistant"
     >
-      <div className="logo-symbol flex-shrink-0 relative">
+      <div className="logo-symbol flex-shrink-0 relative flex items-center justify-center">
         <img 
           src="/brand/medexam-logo-light.svg" 
           alt="MEDEXAM Symbol" 
-          style={{ width: current.icon, height: current.icon }}
           className="logo-img-light block object-contain"
         />
         <img 
           src="/brand/medexam-logo-dark.svg" 
           alt="MEDEXAM Symbol" 
-          style={{ width: current.icon, height: current.icon }}
           className="logo-img-dark hidden object-contain"
         />
       </div>
 
       {variant !== 'icon' && (
-        <div className="logo-text-stack flex flex-col justify-center leading-[1.1]">
-          <span className={`brand-name font-black tracking-tighter ${current.name} text-[#053579] dark:text-white`}>
+        <div className="logo-text-stack flex flex-col justify-center leading-[1.1] flex-shrink">
+          <span className={`brand-name font-black tracking-tighter ${current.name} text-[#053579] dark:text-white whitespace-nowrap`}>
             MEDEXAM
           </span>
           {((variant === 'full') || (variant === 'compact' && showSubtitle)) && (
-            <span className={`brand-subtitle font-bold tracking-wider uppercase opacity-60 ${current.sub} text-slate-600 dark:text-slate-400 mt-0.5`}>
+            <span className={`brand-subtitle font-bold tracking-wider uppercase opacity-60 ${current.sub} text-slate-600 dark:text-slate-400 mt-0.5 whitespace-nowrap overflow-hidden text-ellipsis`}>
               AI Medical Learning Assistant
             </span>
           )}
@@ -57,6 +63,31 @@ const BrandLogo: React.FC<BrandLogoProps> = ({
       )}
 
       <style>{`
+        .medexam-brand-logo {
+          background: transparent !important;
+          max-width: 100%;
+        }
+        .medexam-brand-logo .logo-symbol img {
+          width: ${current.icon}px;
+          height: ${current.icon}px;
+          transition: all 0.2s ease;
+        }
+        
+        /* Mobile specific adjustments */
+        @media (max-width: 640px) {
+          .medexam-brand-logo .logo-symbol img {
+            width: ${Math.max(22, Math.floor(current.icon * 0.8))}px;
+            height: ${Math.max(22, Math.floor(current.icon * 0.8))}px;
+          }
+          .medexam-brand-logo .brand-name {
+            font-size: 0.9em;
+          }
+          .medexam-brand-logo .brand-subtitle {
+            display: ${size === 'sm' ? 'none' : 'block'};
+            font-size: 0.8em;
+          }
+        }
+
         .medexam-brand-logo .brand-name {
           font-family: 'Space Grotesk', 'Inter', system-ui, sans-serif;
           transition: color 0.3s ease;
@@ -67,15 +98,17 @@ const BrandLogo: React.FC<BrandLogoProps> = ({
         }
         
         /* Theme switching for logo images */
+        html[data-theme="dark"] .logo-img-light { display: none !important; }
+        html[data-theme="dark"] .logo-img-dark { display: block !important; }
+        
+        /* Default state */
         .logo-img-dark { display: none; }
         .logo-img-light { display: block; }
-        
-        html.dark .logo-img-light { display: none; }
-        html.dark .logo-img-dark { display: block; }
 
         /* Ensure smooth rendering */
         .medexam-brand-logo img {
           image-rendering: -webkit-optimize-contrast;
+          background: transparent !important;
         }
       `}</style>
     </div>
