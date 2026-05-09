@@ -13,7 +13,9 @@ import {
   AlertCircle,
   Info,
   ShieldAlert,
-  RefreshCw
+  RefreshCw,
+  MoreVertical,
+  Settings
 } from 'lucide-react';
 import { useVault } from '../../context/VaultContext';
 
@@ -54,9 +56,11 @@ const InternalPdfViewer: React.FC<InternalPdfViewerProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showDebug, setShowDebug] = useState(false);
+  const [showAdminMenu, setShowAdminMenu] = useState(false);
   const [renderKey, setRenderKey] = useState(0);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const loadPdf = async () => {
@@ -74,7 +78,6 @@ const InternalPdfViewer: React.FC<InternalPdfViewerProps> = ({
 
         const loadingTask = pdfjsLib.getDocument({ 
           data,
-          // Removed disableWorker retry as we are now using a bundled local worker
           disableWorker: false 
         } as any);
 
@@ -84,7 +87,7 @@ const InternalPdfViewer: React.FC<InternalPdfViewerProps> = ({
         setIsLoading(false);
       } catch (err: any) {
         console.error('PDF.js Internal Error:', err);
-        setError(err.message || 'Initialization failed.');
+        setError(err.message || 'The document could not be rendered internally. Please check the source file.');
         setIsLoading(false);
       }
     };
@@ -115,90 +118,412 @@ const InternalPdfViewer: React.FC<InternalPdfViewerProps> = ({
     renderPage();
   }, [pdf, currentPage, scale, renderKey]);
 
+  const fitToWidth = () => {
+    if (containerRef.current) {
+      const containerWidth = containerRef.current.clientWidth - 40; // padding
+      pdf?.getPage(currentPage).then((page: any) => {
+        const viewport = page.getViewport({ scale: 1 });
+        const newScale = containerWidth / viewport.width;
+        setScale(newScale);
+      });
+    }
+  };
+
   return (
-    <div className="internal-pdf-viewer pro-theme">
-      <div className="viewer-toolbar">
-        <div className="toolbar-section">
-          <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage <= 1} className="toolbar-btn"><ChevronLeft /></button>
-          <span className="page-info">{currentPage} / {numPages}</span>
-          <button onClick={() => setCurrentPage(p => Math.min(numPages, p + 1))} disabled={currentPage >= numPages} className="toolbar-btn"><ChevronRight /></button>
+    <div className="internal-pdf-viewer themed-viewer" ref={containerRef}>
+      <div className="viewer-toolbar-premium glass">
+        <div className="toolbar-left">
+          <div className="pagination-controls">
+            <button 
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))} 
+              disabled={currentPage <= 1 || isLoading} 
+              className="toolbar-action-btn"
+              title="Previous Page"
+            >
+              <ChevronLeft size={20} />
+            </button>
+            <div className="page-counter">
+              <span className="current">{currentPage}</span>
+              <span className="separator">of</span>
+              <span className="total">{numPages || '--'}</span>
+            </div>
+            <button 
+              onClick={() => setCurrentPage(p => Math.min(numPages, p + 1))} 
+              disabled={currentPage >= numPages || isLoading} 
+              className="toolbar-action-btn"
+              title="Next Page"
+            >
+              <ChevronRight size={20} />
+            </button>
+          </div>
         </div>
 
-        <div className="toolbar-section">
-          <button onClick={() => setScale(s => s - 0.2)} className="toolbar-btn"><ZoomOut size={18} /></button>
-          <span className="zoom-info">{Math.round(scale * 100)}%</span>
-          <button onClick={() => setScale(s => s + 0.2)} className="toolbar-btn"><ZoomIn size={18} /></button>
+        <div className="toolbar-center">
+          <div className="zoom-controls">
+            <button onClick={() => setScale(s => Math.max(0.5, s - 0.2))} className="toolbar-action-btn" title="Zoom Out">
+              <ZoomOut size={18} />
+            </button>
+            <div className="zoom-value" onClick={fitToWidth}>
+              {Math.round(scale * 100)}%
+            </div>
+            <button onClick={() => setScale(s => Math.min(3, s + 0.2))} className="toolbar-action-btn" title="Zoom In">
+              <ZoomIn size={18} />
+            </button>
+            <div className="toolbar-divider" />
+            <button onClick={fitToWidth} className="toolbar-action-btn" title="Fit to Width">
+              <Maximize size={18} />
+            </button>
+          </div>
         </div>
 
-        <div className="toolbar-section">
-          {/* Info/Debug icon remains available for technical inspection */}
-          <button onClick={() => setShowDebug(!showDebug)} className="toolbar-btn debug"><Info size={18} /></button>
-          
-          {/* Download and External Drive buttons are strictly Admin-only */}
+        <div className="toolbar-right">
           {isAdmin && (
-            <>
-              {adminActions?.onDownload && (
-                <button onClick={adminActions.onDownload} className="toolbar-btn admin" title="Admin: Download Original"><Download size={18} /></button>
+            <div className="admin-tools-wrapper">
+              <button 
+                onClick={() => setShowAdminMenu(!showAdminMenu)} 
+                className={`toolbar-action-btn admin-trigger ${showAdminMenu ? 'active' : ''}`}
+                title="Admin Tools"
+              >
+                <Settings size={18} />
+              </button>
+              
+              {showAdminMenu && (
+                <div className="admin-dropdown-menu animate-pop-in">
+                  <div className="menu-header">Admin Control Panel</div>
+                  {adminActions?.onDownload && (
+                    <button onClick={adminActions.onDownload} className="menu-item">
+                      <Download size={16} /> <span>Download Original</span>
+                    </button>
+                  )}
+                  {adminActions?.onOpenDrive && (
+                    <button onClick={adminActions.onOpenDrive} className="menu-item">
+                      <ExternalLink size={16} /> <span>Open in Google Drive</span>
+                    </button>
+                  )}
+                  <button onClick={() => setShowDebug(!showDebug)} className="menu-item">
+                    <Info size={16} /> <span>Diagnostic Inspector</span>
+                  </button>
+                </div>
               )}
-              {adminActions?.onOpenDrive && (
-                <button onClick={adminActions.onOpenDrive} className="toolbar-btn admin" title="Admin: Open in Drive"><ExternalLink size={18} /></button>
-              )}
-            </>
+            </div>
           )}
+          
+          <button 
+            onClick={() => setRenderKey(k => k + 1)} 
+            className="toolbar-action-btn"
+            title="Refresh Display"
+          >
+            <RefreshCw size={18} />
+          </button>
         </div>
       </div>
 
-      <div className="pdf-canvas-container">
+      <div className="pdf-workspace">
         {isLoading ? (
-          <div className="v-state"><Loader2 className="animate-spin" size={48} /><p>Loading Document...</p></div>
+          <div className="viewer-state-loading">
+            <div className="medical-loader">
+              <Loader2 className="animate-spin text-primary" size={48} />
+              <div className="loader-pulse"></div>
+            </div>
+            <p className="loading-text">Preparing Secure Learning Material...</p>
+            <div className="loading-subtext">Initializing internal PDF engine (v3.3.2)</div>
+          </div>
         ) : error ? (
-          <div className="v-state error">
-            <AlertCircle size={64} className="text-danger" />
-            <h2>Viewer Initialization Failed</h2>
-            <p className="err-txt">{error}</p>
+          <div className="viewer-state-error">
+            <div className="error-icon-wrapper">
+              <AlertCircle size={48} />
+            </div>
+            <h3>Unable to load PDF</h3>
+            <p className="error-description">{error}</p>
             <div className="error-actions">
-              <button onClick={() => setRenderKey(k => k + 1)} className="btn-retry">
-                <RefreshCw size={16} /> Retry
+              <button onClick={() => setRenderKey(k => k + 1)} className="btn-primary-small">
+                <RefreshCw size={16} /> Try Again
               </button>
             </div>
           </div>
         ) : (
-          <div className="canvas-wrapper"><canvas ref={canvasRef} onContextMenu={e => e.preventDefault()} /></div>
+          <div className="pdf-canvas-container">
+            <div className="canvas-shadow-wrapper">
+              <canvas ref={canvasRef} onContextMenu={e => e.preventDefault()} />
+            </div>
+          </div>
         )}
 
-        {showDebug && (
-          <div className="diag-overlay">
-            <h4>Internal Viewer (v3.3.2)</h4>
-            <div className="diag-row"><span>File:</span> {fileData.fileName}</div>
-            <div className="diag-row"><span>Status:</span> {fileData.pdfHeaderValid ? 'VALID' : 'INVALID'}</div>
-            <div className="diag-row"><span>Bytes:</span> {fileData.byteLength || 'ERR'}</div>
-            <div className="diag-row"><span>Worker:</span> <span>Bundled Local</span></div>
-            <button className="close-diag" onClick={() => setShowDebug(false)}>CLOSE</button>
+        {showDebug && isAdmin && (
+          <div className="admin-diagnostic-inspector glass animate-pop-in">
+            <div className="inspector-header">
+              <ShieldAlert size={16} />
+              <span>Diagnostic Inspector (Admin)</span>
+            </div>
+            <div className="inspector-content">
+              <div className="inspector-row"><span>Filename</span> <strong>{fileData.fileName}</strong></div>
+              <div className="inspector-row"><span>Type</span> <strong>{fileData.mimeType}</strong></div>
+              <div className="inspector-row"><span>Size</span> <strong>{(fileData.sizeBytes / 1024 / 1024).toFixed(2)} MB</strong></div>
+              <div className="inspector-row"><span>PDF Valid</span> <strong className={fileData.pdfHeaderValid ? 'text-success' : 'text-danger'}>{fileData.pdfHeaderValid ? 'YES' : 'NO'}</strong></div>
+              <div className="inspector-row"><span>Worker</span> <strong>Bundled Asset</strong></div>
+            </div>
+            <button className="inspector-close" onClick={() => setShowDebug(false)}>Close Inspector</button>
           </div>
         )}
       </div>
 
       <style>{`
-        .pro-theme .viewer-toolbar { background: #1e1b4b !important; }
-        .internal-pdf-viewer { display: flex; flex-direction: column; height: 100%; width: 100%; background: #0f172a; position: relative; }
-        .viewer-toolbar { height: 50px; display: flex; align-items: center; justify-content: center; gap: 2rem; color: white; border-bottom: 1px solid rgba(255,255,255,0.1); }
-        .toolbar-section { display: flex; align-items: center; gap: 0.5rem; }
-        .toolbar-btn { width: 32px; height: 32px; border-radius: 6px; display: flex; align-items: center; justify-content: center; transition: 0.2s; color: rgba(255,255,255,0.7); }
-        .toolbar-btn:hover { background: rgba(255,255,255,0.1); color: white; }
-        .toolbar-btn.debug { color: #facc15; }
-        .toolbar-btn.admin { color: #38bdf8; }
-        .page-info, .zoom-info { font-size: 0.75rem; font-weight: 800; min-width: 60px; text-align: center; }
-        .pdf-canvas-container { flex: 1; overflow: auto; display: flex; justify-content: center; padding: 2rem; background: #020617; position: relative; }
-        .canvas-wrapper { background: white; box-shadow: 0 20px 50px rgba(0,0,0,0.7); }
-        .v-state { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem; color: white; }
-        .err-txt { color: #94a3b8; font-size: 0.8rem; margin-bottom: 1.5rem; text-align: center; }
-        .error-actions { display: flex; gap: 1rem; }
-        .btn-retry { background: #1e293b; color: white; padding: 0.6rem 1.25rem; border-radius: 8px; font-weight: 800; font-size: 0.8rem; display: flex; align-items: center; gap: 0.5rem; }
-        .diag-overlay { position: absolute; top: 1rem; right: 1rem; width: 260px; background: rgba(15,23,42,0.95); border: 1px solid #312e81; padding: 1.25rem; border-radius: 12px; color: white; z-index: 500; }
-        .diag-overlay h4 { font-size: 0.75rem; color: #facc15; margin-bottom: 0.75rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.5rem; }
-        .diag-row { display: flex; justify-content: space-between; font-size: 0.7rem; margin-bottom: 0.4rem; font-weight: 700; }
-        .diag-row span:first-child { color: rgba(255,255,255,0.5); }
-        .close-diag { width: 100%; margin-top: 1rem; background: #312e81; font-size: 0.7rem; font-weight: 800; padding: 6px; border-radius: 6px; }
+        .themed-viewer {
+          display: flex;
+          flex-direction: column;
+          height: 100%;
+          width: 100%;
+          background: var(--bg-soft);
+          position: relative;
+          overflow: hidden;
+        }
+
+        .viewer-toolbar-premium {
+          height: 64px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 0 1.5rem;
+          margin: 0.75rem;
+          border-radius: var(--radius-xl);
+          border: 1px solid var(--border);
+          z-index: 100;
+          box-shadow: var(--shadow-lg);
+        }
+
+        .toolbar-left, .toolbar-center, .toolbar-right {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+        }
+
+        .pagination-controls, .zoom-controls {
+          display: flex;
+          align-items: center;
+          background: var(--surface-muted);
+          padding: 4px;
+          border-radius: var(--radius-lg);
+          border: 1px solid var(--border);
+        }
+
+        .toolbar-action-btn {
+          width: 36px;
+          height: 36px;
+          border-radius: var(--radius-md);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: var(--text-muted);
+          transition: all 0.2s;
+          background: transparent;
+          min-height: auto;
+        }
+
+        .toolbar-action-btn:hover:not(:disabled) {
+          background: var(--surface-elevated);
+          color: var(--primary);
+          box-shadow: var(--shadow-sm);
+        }
+
+        .toolbar-action-btn.active {
+          background: var(--primary);
+          color: white;
+        }
+
+        .page-counter, .zoom-value {
+          font-size: 0.85rem;
+          font-weight: 700;
+          padding: 0 1rem;
+          color: var(--text-strong);
+          display: flex;
+          align-items: center;
+          gap: 0.4rem;
+        }
+
+        .page-counter .separator {
+          color: var(--text-soft);
+          font-weight: 500;
+        }
+
+        .zoom-value {
+          min-width: 60px;
+          justify-content: center;
+          cursor: pointer;
+        }
+
+        .toolbar-divider {
+          width: 1px;
+          height: 20px;
+          background: var(--border);
+          margin: 0 4px;
+        }
+
+        .admin-tools-wrapper {
+          position: relative;
+        }
+
+        .admin-dropdown-menu {
+          position: absolute;
+          top: calc(100% + 12px);
+          right: 0;
+          width: 240px;
+          background: var(--surface);
+          border: 1px solid var(--border);
+          border-radius: var(--radius-lg);
+          box-shadow: var(--shadow-xl);
+          padding: 8px;
+          z-index: 200;
+        }
+
+        .menu-header {
+          font-size: 0.7rem;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          color: var(--text-soft);
+          padding: 8px 12px;
+          font-weight: 800;
+        }
+
+        .menu-item {
+          width: 100%;
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          padding: 10px 12px;
+          border-radius: var(--radius-md);
+          font-size: 0.85rem;
+          color: var(--text);
+          text-align: left;
+          background: transparent;
+          min-height: auto;
+        }
+
+        .menu-item:hover {
+          background: var(--bg-soft);
+          color: var(--primary);
+        }
+
+        .pdf-workspace {
+          flex: 1;
+          overflow: auto;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          padding: 2rem;
+          position: relative;
+        }
+
+        .pdf-canvas-container {
+          width: fit-content;
+          display: flex;
+          justify-content: center;
+        }
+
+        .canvas-shadow-wrapper {
+          background: white;
+          box-shadow: var(--shadow-xl);
+          border: 1px solid var(--border);
+          transition: transform 0.2s ease;
+        }
+
+        /* Loading & Error States */
+        .viewer-state-loading, .viewer-state-error {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          text-align: center;
+          margin: auto;
+          gap: 1.5rem;
+        }
+
+        .loading-text { font-weight: 800; color: var(--text-strong); font-size: 1.1rem; }
+        .loading-subtext { color: var(--text-soft); font-size: 0.85rem; font-family: monospace; }
+        
+        .error-icon-wrapper { color: var(--danger); }
+        .error-description { color: var(--text-muted); max-width: 400px; margin-bottom: 1rem; }
+
+        .btn-primary-small {
+          background: var(--primary);
+          color: white;
+          padding: 0.5rem 1.25rem;
+          border-radius: var(--radius-lg);
+          font-weight: 800;
+          font-size: 0.85rem;
+          gap: 0.5rem;
+        }
+
+        .admin-diagnostic-inspector {
+          position: absolute;
+          bottom: 1.5rem;
+          right: 1.5rem;
+          width: 300px;
+          padding: 1.5rem;
+          border-radius: var(--radius-xl);
+          border: 1px solid var(--primary-soft);
+          z-index: 150;
+        }
+
+        .inspector-header {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          color: var(--primary);
+          font-weight: 800;
+          font-size: 0.8rem;
+          margin-bottom: 1rem;
+          border-bottom: 1px solid var(--border);
+          padding-bottom: 0.5rem;
+        }
+
+        .inspector-content {
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+        }
+
+        .inspector-row {
+          display: flex;
+          justify-content: space-between;
+          font-size: 0.75rem;
+        }
+
+        .inspector-row span { color: var(--text-soft); }
+        .inspector-row strong { color: var(--text-strong); }
+
+        .inspector-close {
+          width: 100%;
+          margin-top: 1rem;
+          background: var(--bg-soft);
+          color: var(--text);
+          font-size: 0.75rem;
+          font-weight: 800;
+          padding: 6px;
+          border-radius: var(--radius-md);
+        }
+
+        /* Force Desktop density on phones */
+        @media (max-width: 600px) {
+          .viewer-toolbar-premium {
+            padding: 0 0.5rem;
+            margin: 0.5rem;
+            height: auto;
+            flex-direction: column;
+            gap: 0.75rem;
+            padding: 1rem;
+          }
+          .toolbar-left, .toolbar-center, .toolbar-right {
+            width: 100%;
+            justify-content: center;
+          }
+          .page-counter, .zoom-value {
+            min-width: auto;
+            padding: 0 0.5rem;
+          }
+          .pdf-workspace {
+            padding: 1rem 0.5rem;
+          }
+        }
       `}</style>
     </div>
   );
