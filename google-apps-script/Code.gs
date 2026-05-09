@@ -139,6 +139,12 @@ function doPost(e) {
       case 'deleteMaterial':
         result = handleDeleteMaterial(user, payload.id);
         break;
+      case 'syncMaterialsFromDrive':
+        result = handleSyncMaterialsFromDrive(user);
+        break;
+      case 'materialsHealth':
+        result = handleMaterialsHealth(user);
+        break;
 
       default:
         throw new Error('Unknown action: ' + action);
@@ -600,12 +606,19 @@ function handleUploadMaterial(user, payload) {
   const blob = Utilities.newBlob(fileData, mimeType, fileName);
   const file = typeFolder.createFile(blob);
   
-  // 3. Set Sharing
-  file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-  
   const fileId = file.getId();
   const now = new Date().toISOString();
   const id = generateUUID();
+  const warnings = [];
+
+  // 3. Set Sharing (Resilient)
+  try {
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  } catch (err) {
+    const msg = "File uploaded, but public link sharing could not be applied automatically. Please check Drive settings.";
+    warnings.push(msg);
+    Logger.log("Sharing warning: " + err.message);
+  }
   
   let examQuestionCount = 0;
   if (type === 'exam') {
@@ -616,6 +629,16 @@ function handleUploadMaterial(user, payload) {
     } catch (e) {
       Logger.log('Failed to parse exam JSON: ' + e.message);
     }
+  }
+
+  let thumbnailUrl = null;
+  try {
+    const thumb = file.getThumbnail();
+    // We don't call getDownloadUrl() as it often fails with access denied for certain file types
+    // Drive thumbnails are usually short-lived anyway
+    if (thumb) thumbnailUrl = null; 
+  } catch (err) {
+    Logger.log("Thumbnail warning: " + err.message);
   }
 
   const material = {
@@ -632,7 +655,7 @@ function handleUploadMaterial(user, payload) {
     driveUrl: file.getUrl(),
     previewUrl: `https://drive.google.com/file/d/${fileId}/preview`,
     downloadUrl: `https://drive.google.com/uc?export=download&id=${fileId}`,
-    thumbnailUrl: file.getThumbnail() ? file.getThumbnail().getDownloadUrl() : null,
+    thumbnailUrl: thumbnailUrl,
     tags: JSON.stringify(tags || []),
     uploadedBy: user.username,
     uploadedAt: now,
@@ -648,7 +671,122 @@ function handleUploadMaterial(user, payload) {
 
   logAction(user.id, 'UPLOAD_MATERIAL', `Uploaded: ${title} (${type})`);
   
-  return material;
+  return { material, warnings };
+}
+
+function handleSyncMaterialsFromDrive(user) {
+  checkAdmin(user);
+  const rootFolderId = PropertiesService.getScriptProperties().getProperty('MATERIALS_ROOT_FOLDER_ID');
+  if (!rootFolderId) throw new Error("Materials root folder ID is not configured.");
+
+  const sheet = getSheet(TABLES.MATERIALS);
+  const existingData = sheet.getDataRange().getValues();
+  const existingFileIds = new Set(existingData.slice(1).map(row => row[1])); // fileId is at index 1
+
+  const results = { added: 0, skipped: 0, errors: [] };
+  const now = new Date().toISOString();
+  const rootFolder = DriveApp.getFolderById(rootFolderId);
+
+  // Helper to scan folders recursively
+  function scan(folder, pathParts) {
+    // Files in this folder
+    const files = folder.getFiles();
+    while (files.hasNext()) {
+      const file = files.next();
+      const fileId = file.getId();
+
+      if (existingFileIds.has(fileId)) {
+        results.skipped++;
+        continue;
+      }
+
+      try {
+        // Infer metadata from pathParts
+        // Path expected: Root / Year X / Subject / Type / file
+        const year = pathParts[0]?.replace('Year ', '') || 'Unknown';
+        const subject = pathParts[1] || 'General';
+        const typeFolderName = pathParts[2] || 'Other';
+        
+        let type = 'pdf';
+        if (typeFolderName === 'Exams') type = 'exam';
+        else if (typeFolderName === 'Images') type = 'image';
+        else if (typeFolderName === 'PowerPoints') type = 'presentation';
+
+        const id = Utilities.getUuid();
+        const material = [
+          id,
+          fileId,
+          file.getName(), // title
+          '', // description
+          year,
+          subject,
+          type,
+          file.getName(), // originalFilename
+          file.getMimeType(),
+          file.getSize(),
+          file.getUrl(),
+          `https://drive.google.com/file/d/${fileId}/preview`,
+          `https://drive.google.com/uc?export=download&id=${fileId}`,
+          null, // thumbnailUrl
+          '[]', // tags
+          user.username || 'Drive Sync',
+          now,
+          now,
+          'TRUE', // isVisibleToStudents
+          0 // examQuestionCount
+        ];
+
+        sheet.appendRow(material);
+        existingFileIds.add(fileId);
+        results.added++;
+      } catch (e) {
+        results.errors.push(`Error adding ${file.getName()}: ${e.message}`);
+      }
+    }
+
+    // Subfolders
+    const subfolders = folder.getFolders();
+    while (subfolders.hasNext()) {
+      const sub = subfolders.next();
+      scan(sub, [...pathParts, sub.getName()]);
+    }
+  }
+
+  scan(rootFolder, []);
+  return results;
+}
+
+function handleMaterialsHealth(user) {
+  checkAdmin(user);
+  const rootFolderId = PropertiesService.getScriptProperties().getProperty('MATERIALS_ROOT_FOLDER_ID');
+  if (!rootFolderId) return { success: false, message: "Materials folder is not configured." };
+
+  try {
+    const folder = DriveApp.getFolderById(rootFolderId);
+    const sheet = getSheet(TABLES.MATERIALS);
+    const count = Math.max(0, sheet.getLastRow() - 1);
+
+    return {
+      success: true,
+      folderName: folder.getName(),
+      folderId: rootFolderId,
+      materialsCount: count,
+      message: "Materials system is healthy."
+    };
+  } catch (e) {
+    return { success: false, message: "Error accessing materials folder: " + e.message };
+  }
+}
+
+/**
+ * Manual sync function to be run from Apps Script editor
+ */
+function SYNC_MATERIALS_FROM_DRIVE() {
+  const adminEmail = SUPER_ADMIN_EMAILS[0];
+  const user = { username: 'System Admin', email: adminEmail, role: 'admin' };
+  const result = handleSyncMaterialsFromDrive(user);
+  Logger.log('Sync Results: ' + JSON.stringify(result, null, 2));
+  return result;
 }
 
 function handleListMaterials(user, payload) {

@@ -133,6 +133,8 @@ export const api = {
   getMaterialContent: (id: string) => request<any>('getMaterialContent', { id }),
   updateMaterialMetadata: (id: string, updates: any) => request<any>('updateMaterialMetadata', { id, updates }),
   deleteMaterial: (id: string) => request<any>('deleteMaterial', { id }),
+  syncMaterialsFromDrive: () => request<any>('syncMaterialsFromDrive'),
+  materialsHealth: () => request<any>('materialsHealth'),
 };
 
 export const isApiConfigured = !!API_URL;

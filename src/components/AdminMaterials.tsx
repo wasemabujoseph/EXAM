@@ -5,21 +5,24 @@ import {
   Search, 
   Filter, 
   Trash2, 
-  Edit3, 
+  Edit, 
   ExternalLink, 
-  Eye, 
+  Check, 
+  AlertCircle, 
+  Upload, 
   FileText, 
   Image as ImageIcon, 
   Presentation, 
   FileCode,
-  Download,
-  Loader2,
-  X,
-  Upload,
-  Check,
-  AlertCircle,
+  Eye,
+  EyeOff,
+  RefreshCw,
+  AlertTriangle,
   Copy,
-  FolderOpen
+  FolderOpen,
+  X,
+  Loader2,
+  Plus
 } from 'lucide-react';
 import { formatSafeDate } from '../utils/robustHelpers';
 
@@ -27,6 +30,12 @@ const AdminMaterials: React.FC = () => {
   const [materials, setMaterials] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadWarnings, setUploadWarnings] = useState<string[]>([]);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState<any | null>(null);
+  const [showSyncModal, setShowSyncModal] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterYear, setFilterYear] = useState('All');
@@ -44,7 +53,6 @@ const AdminMaterials: React.FC = () => {
   });
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [filePreview, setFilePreview] = useState<string | null>(null);
-  const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -76,14 +84,12 @@ const AdminMaterials: React.FC = () => {
       setSelectedFile(file);
       setUploadError(null);
 
-      // Auto-detect type
       const ext = file.name.split('.').pop()?.toLowerCase();
       if (['pdf'].includes(ext!)) setUploadForm(f => ({ ...f, type: 'pdf' }));
       else if (['ppt', 'pptx'].includes(ext!)) setUploadForm(f => ({ ...f, type: 'presentation' }));
       else if (['png', 'jpg', 'jpeg', 'webp'].includes(ext!)) setUploadForm(f => ({ ...f, type: 'image' }));
       else if (['json'].includes(ext!)) setUploadForm(f => ({ ...f, type: 'exam' }));
 
-      // Preview for images
       if (file.type.startsWith('image/')) {
         const reader = new FileReader();
         reader.onloadend = () => setFilePreview(reader.result as string);
@@ -106,26 +112,53 @@ const AdminMaterials: React.FC = () => {
     }
 
     setIsUploading(true);
+    setUploadProgress(10);
     setUploadError(null);
-
+    setUploadWarnings([]);
+    
     try {
       const reader = new FileReader();
       reader.onload = async () => {
         const base64 = (reader.result as string).split(',')[1];
         try {
-          await api.uploadMaterial({
+          const materialData = {
             ...uploadForm,
             fileName: selectedFile.name,
             mimeType: selectedFile.type,
             fileBase64: base64,
             tags: uploadForm.tags.split(',').map(t => t.trim()).filter(t => t)
-          });
-          setShowUploadModal(false);
-          resetUploadForm();
+          };
+
+          const timer = setInterval(() => {
+            setUploadProgress(prev => prev < 90 ? prev + 10 : prev);
+          }, 500);
+
+          const response = await api.uploadMaterial(materialData);
+          clearInterval(timer);
+          setUploadProgress(100);
+          
+          if (response.warnings && response.warnings.length > 0) {
+            setUploadWarnings(response.warnings);
+          }
+          
           loadMaterials();
+          
+          setTimeout(() => {
+            if (!response.warnings || response.warnings.length === 0) {
+              setShowUploadModal(false);
+              resetUploadForm();
+            }
+            setIsUploading(false);
+          }, 1500);
         } catch (err: any) {
-          setUploadError(err.message || 'Could not upload material. Please try again.');
-        } finally {
+          console.error('Upload failed', err);
+          let errorMsg = 'Upload failed. Please try again.';
+          if (err.message?.includes('DriveApp') || err.message?.includes('წვდომა უარყოფილია')) {
+            errorMsg = 'Google Drive upload partially failed. Please check Drive sharing permissions or run Materials Sync.';
+          } else if (err.message) {
+            errorMsg = err.message;
+          }
+          setUploadError(errorMsg);
           setIsUploading(false);
         }
       };
@@ -133,6 +166,21 @@ const AdminMaterials: React.FC = () => {
     } catch (err) {
       setUploadError('Failed to read file.');
       setIsUploading(false);
+    }
+  };
+
+  const handleSyncFromDrive = async () => {
+    setIsSyncing(true);
+    setSyncResult(null);
+    try {
+      const result = await api.syncMaterialsFromDrive();
+      setSyncResult(result);
+      loadMaterials();
+    } catch (err: any) {
+      console.error('Sync failed', err);
+      alert('Sync failed: ' + (err.message || 'Unknown error'));
+    } finally {
+      setIsSyncing(false);
     }
   };
 
@@ -149,10 +197,12 @@ const AdminMaterials: React.FC = () => {
     setSelectedFile(null);
     setFilePreview(null);
     setUploadError(null);
+    setUploadWarnings([]);
+    setUploadProgress(0);
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this material? This will also remove the file from Google Drive.')) return;
+    if (!confirm('Are you sure you want to delete this material?')) return;
     try {
       await api.deleteMaterial(id);
       loadMaterials();
@@ -174,7 +224,6 @@ const AdminMaterials: React.FC = () => {
 
   const copyLink = (url: string) => {
     navigator.clipboard.writeText(url);
-    // Could add a toast here
   };
 
   const getIcon = (type: string) => {
@@ -201,15 +250,21 @@ const AdminMaterials: React.FC = () => {
 
   return (
     <div className="admin-materials-page animate-fade-in">
-      <header className="admin-view-header">
-        <div className="header-txt">
+      <header className="admin-header">
+        <div className="header-left">
           <h1>Materials Library</h1>
-          <p>Manage learning resources, PDFs, and exam JSONs.</p>
+          <p>Manage cloud-hosted learning resources for students.</p>
         </div>
-        <button className="primary-button" onClick={() => setShowUploadModal(true)}>
-          <FilePlus size={18} />
-          <span>Upload Material</span>
-        </button>
+        <div className="header-actions">
+          <button className="sync-btn" onClick={() => setShowSyncModal(true)} disabled={isLoading || isSyncing}>
+            {isSyncing ? <Loader2 className="animate-spin" size={18} /> : <RefreshCw size={18} />}
+            <span>Sync from Drive</span>
+          </button>
+          <button className="add-btn" onClick={() => setShowUploadModal(true)}>
+            <Plus size={20} />
+            <span>Add Material</span>
+          </button>
+        </div>
       </header>
 
       <div className="materials-toolbar">
@@ -267,7 +322,7 @@ const AdminMaterials: React.FC = () => {
                   {m.isVisibleToStudents === 'TRUE' ? (
                     <span className="status-badge visible"><Check size={12} /> Student Visible</span>
                   ) : (
-                    <span className="status-badge hidden"><Eye size={12} /> Hidden</span>
+                    <span className="status-badge hidden"><EyeOff size={12} /> Hidden</span>
                   )
                   }
                 </div>
@@ -281,7 +336,7 @@ const AdminMaterials: React.FC = () => {
                   <span>{m.subject}</span>
                 </div>
                 <div className="file-info">
-                  <small>{(m.sizeBytes / 1024 / 1024).toFixed(2)} MB</small>
+                  <small>{m.sizeBytes ? (m.sizeBytes / 1024 / 1024).toFixed(2) : '0.00'} MB</small>
                   <small>{formatSafeDate(m.uploadedAt)}</small>
                 </div>
               </div>
@@ -291,13 +346,13 @@ const AdminMaterials: React.FC = () => {
                   <Eye size={18} />
                 </a>
                 <a href={m.downloadUrl} className="icon-btn" title="Download">
-                  <Download size={18} />
+                  <Check size={18} />
                 </a>
                 <button className="icon-btn" onClick={() => copyLink(m.previewUrl)} title="Copy Link">
                   <Copy size={18} />
                 </button>
                 <button className={`icon-btn ${m.isVisibleToStudents === 'TRUE' ? 'active' : ''}`} onClick={() => toggleVisibility(m)} title="Toggle Visibility">
-                  {m.isVisibleToStudents === 'TRUE' ? <Eye size={18} /> : <Eye size={18} style={{opacity: 0.4}} />}
+                  {m.isVisibleToStudents === 'TRUE' ? <Eye size={18} /> : <EyeOff size={18} />}
                 </button>
                 <button className="icon-btn delete" onClick={() => handleDelete(m.id)} title="Delete">
                   <Trash2 size={18} />
@@ -320,106 +375,41 @@ const AdminMaterials: React.FC = () => {
               <div className="form-grid">
                 <div className="form-group">
                   <label>Title *</label>
-                  <input 
-                    type="text" 
-                    required 
-                    value={uploadForm.title} 
-                    onChange={e => setUploadForm({...uploadForm, title: e.target.value})} 
-                    placeholder="e.g. Anatomy Lower Limb PDF"
-                  />
+                  <input type="text" required value={uploadForm.title} onChange={e => setUploadForm({...uploadForm, title: e.target.value})} placeholder="e.g. Anatomy Lower Limb PDF" />
                 </div>
                 <div className="form-group">
                   <label>Subject *</label>
-                  <input 
-                    type="text" 
-                    required 
-                    value={uploadForm.subject} 
-                    onChange={e => setUploadForm({...uploadForm, subject: e.target.value})} 
-                    placeholder="e.g. Anatomy"
-                  />
-                </div>
-                <div className="form-row">
-                  <div className="form-group">
-                    <label>Academic Year</label>
-                    <select value={uploadForm.year} onChange={e => setUploadForm({...uploadForm, year: e.target.value})}>
-                      <option value="1">Year 1</option>
-                      <option value="2">Year 2</option>
-                      <option value="3">Year 3</option>
-                      <option value="4">Year 4</option>
-                      <option value="5">Year 5</option>
-                      <option value="6">Year 6</option>
-                    </select>
-                  </div>
-                  <div className="form-group">
-                    <label>Material Type</label>
-                    <select value={uploadForm.type} onChange={e => setUploadForm({...uploadForm, type: e.target.value})}>
-                      <option value="pdf">PDF Document</option>
-                      <option value="presentation">PowerPoint / Slides</option>
-                      <option value="image">Image / Diagram</option>
-                      <option value="exam">Exam JSON</option>
-                    </select>
-                  </div>
-                </div>
-                <div className="form-group">
-                  <label>Description</label>
-                  <textarea 
-                    value={uploadForm.description} 
-                    onChange={e => setUploadForm({...uploadForm, description: e.target.value})}
-                    placeholder="Brief details about this material..."
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Tags (comma separated)</label>
-                  <input 
-                    type="text" 
-                    value={uploadForm.tags} 
-                    onChange={e => setUploadForm({...uploadForm, tags: e.target.value})} 
-                    placeholder="anatomy, bone, exam"
-                  />
+                  <input type="text" required value={uploadForm.subject} onChange={e => setUploadForm({...uploadForm, subject: e.target.value})} placeholder="e.g. Anatomy" />
                 </div>
                 
                 <div className="file-upload-zone" onClick={() => fileInputRef.current?.click()} onDragOver={e => e.preventDefault()}>
-                  <input 
-                    type="file" 
-                    hidden 
-                    ref={fileInputRef} 
-                    onChange={handleFileChange}
-                    accept=".pdf,.ppt,.pptx,.png,.jpg,.jpeg,.webp,.json"
-                  />
+                  <input type="file" hidden ref={fileInputRef} onChange={handleFileChange} accept=".pdf,.ppt,.pptx,.png,.jpg,.jpeg,.webp,.json" />
                   {selectedFile ? (
                     <div className="file-selected">
-                      {filePreview ? (
-                        <img src={filePreview} alt="Preview" className="upload-preview-img" />
-                      ) : (
-                        <div className="file-icon-large">
-                           {getIcon(uploadForm.type)}
-                        </div>
-                      )}
+                      <div className="file-icon-large">{getIcon(uploadForm.type)}</div>
                       <div className="file-info-text">
                         <strong>{selectedFile.name}</strong>
                         <span>{(selectedFile.size / 1024 / 1024).toFixed(2)} MB</span>
                       </div>
-                      <button type="button" className="change-file-btn" onClick={(e) => { e.stopPropagation(); setSelectedFile(null); }}>Change</button>
                     </div>
                   ) : (
                     <div className="upload-prompt">
                       <Upload size={32} />
-                      <p>Drag and drop or click to select a file</p>
+                      <p>Click to select a file</p>
                       <span>Max size: 10MB</span>
                     </div>
                   )}
                 </div>
 
-                <div className="form-group toggle-group">
-                  <label className="checkbox-label">
-                    <input 
-                      type="checkbox" 
-                      checked={uploadForm.isVisibleToStudents} 
-                      onChange={e => setUploadForm({...uploadForm, isVisibleToStudents: e.target.checked})} 
-                    />
-                    <span>Visible to Students immediately</span>
-                  </label>
-                </div>
+                {uploadWarnings.length > 0 && (
+                  <div className="upload-warning-msg">
+                    <AlertTriangle size={24} className="shrink-0" />
+                    <div>
+                      <strong>Upload Complete with Warnings:</strong>
+                      <ul>{uploadWarnings.map((w, i) => <li key={i}>{w}</li>)}</ul>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {uploadError && (
@@ -432,7 +422,7 @@ const AdminMaterials: React.FC = () => {
               <div className="modal-footer">
                 <button type="button" className="secondary-button" onClick={() => setShowUploadModal(false)}>Cancel</button>
                 <button type="submit" className="primary-button" disabled={isUploading || !selectedFile}>
-                  {isUploading ? <><Loader2 className="animate-spin" size={18} /> Uploading...</> : 'Start Upload'}
+                  {isUploading ? <><Loader2 className="animate-spin" size={18} /> {uploadProgress}%</> : 'Start Upload'}
                 </button>
               </div>
             </form>
@@ -440,14 +430,65 @@ const AdminMaterials: React.FC = () => {
         </div>
       )}
 
+      {showSyncModal && (
+        <div className="modal-overlay">
+          <div className="upload-modal sync-modal animate-pop-in">
+            <div className="modal-header">
+              <h2>Sync From Drive</h2>
+              <button className="close-btn" onClick={() => setShowSyncModal(false)}><X /></button>
+            </div>
+            <div className="sync-body">
+              {!syncResult ? (
+                <div className="sync-prompt">
+                  <div className="sync-icon-box"><RefreshCw size={40} /></div>
+                  <h3>Full Library Sync</h3>
+                  <p>This will scan your connected Google Drive folder, update titles, subjects, and sync any missing files to the system.</p>
+                  <button className="run-sync-btn" onClick={handleSyncFromDrive} disabled={isSyncing}>
+                    {isSyncing ? 'Syncing...' : 'Run Full Sync'}
+                  </button>
+                </div>
+              ) : (
+                <div className="sync-results">
+                  <div className="success-icon-box"><Check size={40} /></div>
+                  <h3>Sync Finished</h3>
+                  <div className="stats-grid">
+                    <div className="stat-item"><span className="stat-val">{syncResult.added}</span><span className="stat-lbl">Added</span></div>
+                    <div className="stat-item"><span className="stat-val">{syncResult.updated}</span><span className="stat-lbl">Updated</span></div>
+                    <div className="stat-item errors"><span className="stat-val">{syncResult.errors?.length || 0}</span><span className="stat-lbl">Errors</span></div>
+                  </div>
+                  {syncResult.errors?.length > 0 && (
+                    <div className="error-log">
+                      <h4>Error Logs:</h4>
+                      <ul>{syncResult.errors.map((e: string, i: number) => <li key={i}>{e}</li>)}</ul>
+                    </div>
+                  )}
+                  <button className="run-sync-btn" onClick={() => setShowSyncModal(false)}>Done</button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       <style>{`
         .admin-materials-page { display: flex; flex-direction: column; gap: 2rem; }
+        .admin-header { display: flex; justify-content: space-between; align-items: center; }
+        .header-left h1 { font-size: 2.25rem; font-weight: 900; letter-spacing: -0.04em; margin-bottom: 0.5rem; }
+        .header-left p { color: var(--text-muted); font-weight: 600; }
         
-        .admin-view-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
-        .header-txt h1 { font-size: 2.25rem; font-weight: 900; letter-spacing: -0.04em; margin-bottom: 0.5rem; }
-        .header-txt p { color: var(--text-muted); font-weight: 600; }
-
         .materials-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 1.5rem; background: var(--surface); padding: 1rem 1.5rem; border-radius: var(--radius-xl); border: 1px solid var(--border); }
+        .header-actions { display: flex; gap: 1rem; }
+        .add-btn, .sync-btn { 
+          display: flex; align-items: center; gap: 0.5rem; 
+          height: 44px; padding: 0 1.25rem; border-radius: 10px; 
+          font-weight: 800; transition: all 0.2s; 
+        }
+        .add-btn { background: var(--primary); color: white; }
+        .add-btn:hover { background: var(--primary-dark); transform: translateY(-2px); }
+        .sync-btn { background: var(--bg-soft); color: var(--text-soft); border: 1px solid var(--border); }
+        .sync-btn:hover { background: var(--border); color: var(--text-strong); }
+        .sync-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
         .search-box { flex: 1; display: flex; align-items: center; gap: 0.75rem; background: var(--bg-soft-fade); padding: 0.5rem 1rem; border-radius: 99px; border: 1px solid var(--border-soft); }
         .search-box input { background: transparent; border: none; outline: none; width: 100%; color: var(--text-strong); font-weight: 600; }
         
