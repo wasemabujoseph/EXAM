@@ -3,14 +3,12 @@ import React from 'react';
 interface BrandLogoProps {
   variant?: 'full' | 'compact' | 'icon';
   size?: 'sm' | 'md' | 'lg' | 'xl';
-  showSubtitle?: boolean;
   className?: string;
 }
 
 const BrandLogo: React.FC<BrandLogoProps> = ({
   variant = 'compact',
   size = 'md',
-  showSubtitle = true,
   className = ''
 }) => {
   // Size mapping for flexible usage
@@ -50,15 +48,11 @@ const BrandLogo: React.FC<BrandLogoProps> = ({
       </div>
 
       {variant !== 'icon' && (
-        <div className="logo-text-stack flex flex-col justify-center leading-[1.1] flex-shrink">
-          <span className={`brand-name font-black tracking-tighter ${current.name} text-[#053579] dark:text-white whitespace-nowrap`}>
-            MEDEXAM
-          </span>
-          {((variant === 'full') || (variant === 'compact' && showSubtitle)) && (
-            <span className={`brand-subtitle font-bold tracking-wider uppercase opacity-60 ${current.sub} text-slate-600 dark:text-slate-400 mt-0.5 whitespace-nowrap overflow-hidden text-ellipsis`}>
-              AI Medical Learning Assistant
-            </span>
-          )}
+        <div className="logo-text-stack flex flex-col justify-center leading-none flex-shrink">
+          <div className={`brand-name font-black tracking-tighter ${current.name} whitespace-nowrap flex`}>
+            <span className="text-[#0B3D91] dark:text-blue-400">MED</span>
+            <span className="text-[#00B2A9] dark:text-[#27C6F6]">EXAM</span>
+          </div>
         </div>
       )}
 
@@ -82,18 +76,10 @@ const BrandLogo: React.FC<BrandLogoProps> = ({
           .medexam-brand-logo .brand-name {
             font-size: 0.9em;
           }
-          .medexam-brand-logo .brand-subtitle {
-            display: ${size === 'sm' ? 'none' : 'block'};
-            font-size: 0.8em;
-          }
         }
 
         .medexam-brand-logo .brand-name {
           font-family: 'Space Grotesk', 'Inter', system-ui, sans-serif;
-          transition: color 0.3s ease;
-        }
-        .medexam-brand-logo .brand-subtitle {
-          font-family: 'Inter', system-ui, sans-serif;
           transition: color 0.3s ease;
         }
         

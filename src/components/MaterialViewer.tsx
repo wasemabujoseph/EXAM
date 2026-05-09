@@ -243,7 +243,7 @@ const MaterialViewer: React.FC<MaterialViewerProps> = ({ material: propMaterial,
           </div>
           <div className="header-right desktop-only">
              <div className="platform-branding flex items-center gap-2">
-               <BrandLogo variant="compact" size="sm" showSubtitle={false} />
+               <BrandLogo variant="compact" size="sm" />
                <span className="brand-internal">Internal Viewer</span>
              </div>
           </div>

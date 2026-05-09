@@ -183,12 +183,13 @@ const Dashboard: React.FC = () => {
           padding: 1.5rem;
           flex: 1;
           overflow-y: auto; /* Only this part scrolls */
-          scrollbar-width: thin;
-          scrollbar-color: var(--border) transparent;
+          scrollbar-width: none; /* Hide scrollbar for Firefox */
+          -ms-overflow-style: none; /* Hide scrollbar for IE/Edge */
         }
 
-        .sidebar-top::-webkit-scrollbar { width: 4px; }
-        .sidebar-top::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+        .sidebar-top::-webkit-scrollbar { 
+          display: none; /* Hide scrollbar for Chrome/Safari */
+        }
 
         .sidebar-bottom { 
           padding: 1.5rem; 

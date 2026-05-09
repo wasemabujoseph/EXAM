@@ -81,7 +81,7 @@ const AdminLayout: React.FC = () => {
       <aside className="admin-sidebar">
         <div className="admin-sidebar-header">
           <div className="admin-brand">
-            <BrandLogo variant="compact" size="md" showSubtitle={false} />
+            <BrandLogo variant="compact" size="md" />
             <div className="brand-txt">
               <span className="brand-tag">SYSTEM ADMIN</span>
             </div>
