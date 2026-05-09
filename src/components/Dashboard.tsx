@@ -67,13 +67,15 @@ const Dashboard: React.FC = () => {
     <div className={`dashboard-container ${isSidebarOpen ? 'sidebar-open' : ''}`}>
       {/* Mobile Top Header */}
       <header className="mobile-top-bar">
-        <button className="menu-toggle-btn" onClick={() => setIsSidebarOpen(true)} aria-label="Open Menu">
-          <Menu size={24} />
-        </button>
-        <div className="mobile-logo">
-          <BrandLogo variant="icon" size="sm" />
+        <div className="mobile-header-left">
+          <button className="menu-toggle-btn" onClick={() => setIsSidebarOpen(true)} aria-label="Open Menu">
+            <Menu size={22} />
+          </button>
+          <div className="mobile-logo-wrap">
+            <BrandLogo variant="compact" size="sm" />
+          </div>
         </div>
-        <div className="header-actions">
+        <div className="mobile-header-right">
           <ThemeToggle />
         </div>
       </header>
@@ -343,7 +345,7 @@ const Dashboard: React.FC = () => {
             height: var(--header-height);
             background: var(--surface-glass);
             border-bottom: 1px solid var(--border-soft);
-            padding: 0 1rem;
+            padding: 0 0.75rem;
             align-items: center;
             justify-content: space-between;
             z-index: 900;
@@ -351,7 +353,23 @@ const Dashboard: React.FC = () => {
             box-shadow: 0 2px 10px rgba(0,0,0,0.02);
           }
           
-          .mobile-logo { transform: scale(0.9); }
+          .mobile-header-left {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+          }
+
+          .mobile-header-right {
+            display: flex;
+            align-items: center;
+          }
+
+          .mobile-logo-wrap {
+            display: flex;
+            align-items: center;
+            transform: scale(0.9);
+            transform-origin: left center;
+          }
           
           .menu-toggle-btn { 
             width: 40px; height: 40px;
