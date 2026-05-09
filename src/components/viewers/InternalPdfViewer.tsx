@@ -12,14 +12,14 @@ import {
   AlertCircle,
   Info,
   ShieldAlert,
-  RefreshCw,
-  Eye
+  RefreshCw
 } from 'lucide-react';
 import { useVault } from '../../context/VaultContext';
 
-// FINAL FAILSAFE WORKER - Using unpkg for better compatibility
+// FINAL FAILSAFE WORKER - Using unpkg with standard JS for maximum compatibility
 const PDFJS_VERSION = '5.6.205'; 
-pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${PDFJS_VERSION}/build/pdf.worker.min.mjs`;
+// Switching to .js instead of .mjs to avoid MIME type issues in some environments
+pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${PDFJS_VERSION}/build/pdf.worker.min.js`;
 
 interface InternalPdfViewerProps {
   fileData: {
@@ -72,9 +72,9 @@ const InternalPdfViewer: React.FC<InternalPdfViewerProps> = ({
 
         const loadingTask = pdfjs.getDocument({ 
           data,
-          // If legacy mode is ON, we disable worker to run in main thread
+          // Using any to bypass TS check for disableWorker which is valid in JS but often missing in types
           disableWorker: useLegacyMode 
-        });
+        } as any);
 
         const pdfDoc = await loadingTask.promise;
         setPdf(pdfDoc);
