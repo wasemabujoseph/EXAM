@@ -5,15 +5,18 @@ import {
   AlertCircle, 
   Loader2, 
   ChevronLeft, 
-  Download, 
-  ExternalLink,
   ShieldAlert,
   Server,
-  RefreshCw
+  RefreshCw,
+  FileText,
+  Calendar,
+  BookOpen,
+  Lock
 } from 'lucide-react';
 import InternalPdfViewer from './viewers/InternalPdfViewer';
 import InternalImageViewer from './viewers/InternalImageViewer';
 import InternalExamMaterialViewer from './viewers/InternalExamMaterialViewer';
+import ProtectedContentShell from './security/ProtectedContentShell';
 
 interface MaterialViewerProps {
   material?: any;
@@ -56,15 +59,13 @@ const MaterialViewer: React.FC<MaterialViewerProps> = ({ material: propMaterial,
       setError(null);
       setIsOutdatedBackend(false);
       try {
-        console.log('📡 Fetching material file data for:', material.id);
         const data = await api.getMaterialFileData(material.id);
         setFileData(data);
       } catch (err: any) {
         console.error('Failed to fetch material file data:', err);
-        
         if (err.message?.includes('Unknown action') || err.message?.includes('getMaterialFileData')) {
           setIsOutdatedBackend(true);
-          setError('Backend action missing. The secure internal viewer requires a backend update.');
+          setError('Backend version mismatch.');
         } else {
           setError(err.message || 'Unable to retrieve material content.');
         }
@@ -77,29 +78,20 @@ const MaterialViewer: React.FC<MaterialViewerProps> = ({ material: propMaterial,
   }, [material?.id]);
 
   const handleClose = () => {
-    if (propOnClose) {
-      propOnClose();
-    } else {
-      navigate(-1);
-    }
+    if (propOnClose) propOnClose();
+    else navigate(-1);
   };
 
   const handleAdminDownload = () => {
-    if (material?.downloadUrl) {
-      window.open(material.downloadUrl, '_blank');
-    }
+    if (material?.downloadUrl) window.open(material.downloadUrl, '_blank');
   };
 
   const handleAdminOpenDrive = () => {
-    if (material?.driveUrl) {
-      window.open(material.driveUrl, '_blank');
-    }
+    if (material?.driveUrl) window.open(material.driveUrl, '_blank');
   };
 
   const handleStartExam = () => {
-    if (material?.id) {
-      navigate(`/dashboard/exam/material/${material.id}`);
-    }
+    if (material?.id) navigate(`/dashboard/exam/material/${material.id}`);
   };
 
   const handleUpdateMetadata = (updates: any) => {
@@ -108,68 +100,47 @@ const MaterialViewer: React.FC<MaterialViewerProps> = ({ material: propMaterial,
 
   const isProtected = material?.isProtected === 'TRUE' || material?.isProtected === true;
 
-  const renderViewer = () => {
+  const renderViewerContent = () => {
     if (isLoading && !error) return (
-      <div className="viewer-loading">
+      <div className="viewer-loading-state">
         <Loader2 className="animate-spin" size={48} />
-        <p>Establishing Secure Connection...</p>
+        <h3>Securing Document</h3>
+        <p>Establishing encrypted channel for material retrieval...</p>
       </div>
     );
 
     if (isOutdatedBackend) {
       return (
-        <div className="viewer-error deployment-alert">
-          <Server size={64} className="text-warning" />
-          <h2>Backend Update Required</h2>
-          <p>The secure internal viewer requires a newer version of the Google Apps Script backend.</p>
-          
-          <div className="deployment-steps">
-            <h4>Instructions for Admin:</h4>
-            <ol>
-              <li>Go to your Google Apps Script editor.</li>
-              <li>Deploy the latest <code>Code.gs</code> content.</li>
-              <li>Select <strong>Deploy {'>'} New Deployment</strong>.</li>
-              <li>Ensure the version is <strong>3.3.0</strong> or higher.</li>
-            </ol>
-          </div>
-
-          <div className="admin-only-fallback">
-            <p className="admin-note">Students cannot see this. Admin fallback options:</p>
-            <div className="fallback-btns">
-              <button onClick={handleAdminOpenDrive} className="btn-outline">
-                <ExternalLink size={16} /> Open in Drive
-              </button>
-              <button onClick={() => window.location.reload()} className="btn-retry">
-                <RefreshCw size={16} /> Retry After Update
-              </button>
-            </div>
+        <div className="viewer-error-panel">
+          <Server size={64} className="icon-warning" />
+          <h2>Infrastructure Update Required</h2>
+          <p>This material requires Backend v3.3.0. Please contact your system administrator.</p>
+          <div className="error-actions">
+            <button onClick={() => window.location.reload()} className="btn-retry-med">
+              <RefreshCw size={16} /> Retry After Update
+            </button>
           </div>
         </div>
       );
     }
 
     if (error) return (
-      <div className="viewer-error">
-        <AlertCircle size={48} className="text-danger" />
-        <h2>Unable to load material</h2>
+      <div className="viewer-error-panel">
+        <AlertCircle size={64} className="icon-danger" />
+        <h2>Access Interrupted</h2>
         <p>{error}</p>
-        <button onClick={() => window.location.reload()} className="retry-btn">Retry Handshake</button>
+        <button onClick={() => window.location.reload()} className="btn-retry-med">Retry Connection</button>
       </div>
     );
 
-    if (!fileData) return (
-      <div className="viewer-error">
-        <AlertCircle size={48} />
-        <p>File content could not be retrieved.</p>
-      </div>
-    );
+    if (!fileData) return null;
 
     const isPdf = fileData.mimeType === 'application/pdf' || material?.previewStatus === 'converted';
 
     if (isPdf) {
       return (
         <InternalPdfViewer 
-          fileData={fileData}
+          fileData={{...fileData, isProtected}}
           adminActions={{
             onDownload: handleAdminDownload,
             onOpenDrive: handleAdminOpenDrive
@@ -203,123 +174,170 @@ const MaterialViewer: React.FC<MaterialViewerProps> = ({ material: propMaterial,
     }
 
     return (
-      <div className="viewer-error">
-        <ShieldAlert size={48} />
-        <p>This file type ({fileData.mimeType}) is not supported by the internal viewer.</p>
-        <div className="unsupported-actions">
-           <button onClick={handleAdminOpenDrive} className="btn-outline">Open Original File</button>
-        </div>
+      <div className="viewer-error-panel">
+        <ShieldAlert size={64} />
+        <h2>Format Not Supported</h2>
+        <p>This file type ({fileData.mimeType}) is not optimized for internal viewing.</p>
       </div>
     );
   };
 
   return (
-    <div className="material-viewer-overlay animate-fade-in">
-      <div className="viewer-container">
-        <header className="viewer-header">
-          <button className="back-btn" onClick={handleClose}>
-            <ChevronLeft size={20} />
-            <span>Back</span>
-          </button>
-          <div className="viewer-title">
-            <h2>{material?.title || 'Loading...'}</h2>
-            {material && <span className="badge">{material.type.toUpperCase()}</span>}
+    <div className="material-viewer-full">
+      <div className="viewer-layout">
+        <header className="viewer-navbar">
+          <div className="navbar-left">
+            <button className="nav-back-btn" onClick={handleClose}>
+              <ChevronLeft size={20} />
+              <span>EXIT</span>
+            </button>
+            <div className="nav-divider" />
+            <div className="nav-content">
+              <div className="nav-title">
+                <FileText size={16} className="title-icon" />
+                <h1>{material?.title || 'Material Library'}</h1>
+              </div>
+              {material && (
+                <div className="nav-meta-row">
+                  <div className="meta-badge">
+                    <Calendar size={12} />
+                    <span>{material.year || 'Academic Year'}</span>
+                  </div>
+                  <div className="meta-badge">
+                    <BookOpen size={12} />
+                    <span>{material.subject || 'Subject'}</span>
+                  </div>
+                  {isProtected && (
+                    <div className="meta-badge protected">
+                      <Lock size={12} />
+                      <span>PROTECTED</span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
-          <div className="header-spacer" />
+          <div className="navbar-right">
+            {/* Context-aware badges or status indicators */}
+          </div>
         </header>
         
-        <main className="viewer-main">
-          {renderViewer()}
+        <main className="viewer-workspace">
+          <ProtectedContentShell 
+            isProtected={isProtected} 
+            materialId={material?.id}
+            title={material?.title}
+          >
+            {renderViewerContent()}
+          </ProtectedContentShell>
         </main>
       </div>
 
       <style>{`
-        .material-viewer-overlay {
+        .material-viewer-full {
           position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: #0f172a;
+          inset: 0;
+          background: var(--bg);
           z-index: 2000;
           display: flex;
           flex-direction: column;
+          animation: fadeIn 0.3s ease-out;
         }
 
-        .viewer-container {
+        .viewer-layout {
           flex: 1;
           display: flex;
           flex-direction: column;
           height: 100%;
         }
 
-        .viewer-header {
-          height: 64px;
-          background: #1e293b;
-          border-bottom: 1px solid rgba(255,255,255,0.1);
+        .viewer-navbar {
+          height: 72px;
+          background: var(--surface);
+          border-bottom: 1px solid var(--border);
           display: flex;
           align-items: center;
+          justify-content: space-between;
           padding: 0 1.5rem;
-          gap: 2rem;
-          color: white;
+          box-shadow: var(--shadow-sm);
         }
 
-        .back-btn {
+        .navbar-left { display: flex; align-items: center; gap: 1.5rem; }
+        
+        .nav-back-btn {
           display: flex;
           align-items: center;
           gap: 0.5rem;
-          color: rgba(255,255,255,0.7);
-          font-weight: 700;
-          font-size: 0.9rem;
+          color: var(--text-muted);
+          font-weight: 800;
+          font-size: 0.75rem;
+          letter-spacing: 0.05em;
+          padding: 0.5rem 1rem;
+          border-radius: 8px;
+          background: var(--bg-soft);
           transition: all 0.2s;
         }
-        .back-btn:hover { color: white; transform: translateX(-4px); }
+        .nav-back-btn:hover { color: var(--primary); background: var(--primary-soft); transform: translateX(-4px); }
 
-        .viewer-title { display: flex; align-items: center; gap: 1rem; }
-        .viewer-title h2 { font-size: 1.1rem; font-weight: 900; letter-spacing: -0.02em; }
-        .badge { background: var(--primary); font-size: 0.7rem; font-weight: 900; padding: 2px 8px; border-radius: 4px; }
+        .nav-divider { width: 1px; height: 32px; background: var(--border); }
 
-        .viewer-main { flex: 1; overflow: hidden; position: relative; }
+        .nav-content { display: flex; flex-direction: column; gap: 0.25rem; }
+        .nav-title { display: flex; align-items: center; gap: 0.6rem; }
+        .nav-title h1 { font-size: 1rem; font-weight: 900; color: var(--text-strong); }
+        .title-icon { color: var(--primary); }
 
-        .viewer-loading, .viewer-error {
+        .nav-meta-row { display: flex; align-items: center; gap: 0.75rem; }
+        .meta-badge {
+          display: flex;
+          align-items: center;
+          gap: 0.4rem;
+          font-size: 0.65rem;
+          font-weight: 800;
+          color: var(--text-soft);
+          background: var(--bg-soft-fade);
+          padding: 0.15rem 0.6rem;
+          border-radius: 4px;
+        }
+        .meta-badge.protected { color: var(--danger); background: var(--danger-soft); }
+
+        .viewer-workspace { flex: 1; overflow: hidden; position: relative; }
+
+        .viewer-loading-state, .viewer-error-panel {
           height: 100%;
           display: flex;
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          gap: 1.5rem;
-          color: white;
+          gap: 1rem;
           text-align: center;
           padding: 2rem;
+          background: var(--bg);
         }
         
-        .deployment-alert { background: rgba(245, 158, 11, 0.05); }
-        .deployment-steps { 
-          text-align: left; 
-          background: rgba(0,0,0,0.2); 
-          padding: 1.5rem; 
-          border-radius: 12px; 
-          border: 1px solid rgba(255,255,255,0.1);
-          max-width: 500px;
-          margin: 1rem 0;
+        .viewer-loading-state h3 { font-size: 1.25rem; color: var(--text-strong); }
+        .viewer-loading-state p { color: var(--text-soft); font-weight: 600; }
+
+        .icon-warning { color: var(--warning); margin-bottom: 1rem; }
+        .icon-danger { color: var(--danger); margin-bottom: 1rem; }
+        
+        .btn-retry-med {
+          background: var(--primary);
+          color: white;
+          padding: 0.75rem 1.5rem;
+          border-radius: 12px;
+          font-weight: 800;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          margin-top: 1.5rem;
         }
-        .deployment-steps h4 { margin-bottom: 0.75rem; color: #fbbf24; }
-        .deployment-steps ol { padding-left: 1.25rem; font-size: 0.9rem; color: rgba(255,255,255,0.8); }
-        .deployment-steps li { margin-bottom: 0.5rem; }
 
-        .admin-only-fallback { margin-top: 2rem; padding-top: 1.5rem; border-top: 1px dashed rgba(255,255,255,0.1); }
-        .admin-note { font-size: 0.75rem; color: rgba(255,255,255,0.4); font-weight: 700; margin-bottom: 1rem; text-transform: uppercase; }
-        .fallback-btns { display: flex; gap: 1rem; }
-
-        .btn-retry, .retry-btn { background: var(--primary); color: white; padding: 0.75rem 1.5rem; border-radius: 10px; font-weight: 800; display: flex; align-items: center; gap: 0.5rem; }
-        .btn-outline { border: 1px solid rgba(255,255,255,0.2); color: white; padding: 0.75rem 1.5rem; border-radius: 10px; font-weight: 800; display: flex; align-items: center; gap: 0.5rem; }
-
-        .unsupported-actions { margin-top: 1rem; }
-
-        @media (max-width: 640px) {
-          .viewer-header { gap: 1rem; padding: 0 1rem; }
-          .viewer-title h2 { font-size: 0.9rem; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-          .back-btn span { display: none; }
+        @media (max-width: 768px) {
+          .viewer-navbar { height: 64px; padding: 0 1rem; }
+          .nav-divider { display: none; }
+          .nav-back-btn span { display: none; }
+          .nav-meta-row { display: none; }
+          .nav-title h1 { font-size: 0.85rem; max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         }
       `}</style>
     </div>
