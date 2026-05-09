@@ -12,10 +12,19 @@ interface Message {
 interface Props {
   userName?: string;
   embedded?: boolean;
+  externalOpen?: boolean;
+  onToggle?: (open: boolean) => void;
+  hideTrigger?: boolean;
 }
 
-const AIGuide: React.FC<Props> = ({ userName, embedded = false }) => {
-  const [isOpen, setIsOpen] = useState(embedded);
+const AIGuide: React.FC<Props> = ({ userName, embedded = false, externalOpen, onToggle, hideTrigger = false }) => {
+  const [internalOpen, setInternalOpen] = useState(embedded);
+  const isOpen = externalOpen !== undefined ? externalOpen : internalOpen;
+
+  const setIsOpen = (val: boolean) => {
+    if (onToggle) onToggle(val);
+    setInternalOpen(val);
+  };
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -337,7 +346,7 @@ const AIGuide: React.FC<Props> = ({ userName, embedded = false }) => {
         }
       `}</style>
 
-      {!embedded && (
+      {!embedded && !hideTrigger && (
         <button 
           onClick={() => setIsOpen(!isOpen)}
           className={`ai-floating-trigger ${isOpen ? 'is-open' : ''}`}

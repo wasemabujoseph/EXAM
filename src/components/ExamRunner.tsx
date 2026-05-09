@@ -23,10 +23,13 @@ import {
   StickyNote,
   Loader2,
   AlertCircle,
-  Hash
+  Hash,
+  MessageCircle,
+  Cpu
 } from 'lucide-react';
 import BrandLogo from './BrandLogo';
 import ProtectedContentShell from './security/ProtectedContentShell';
+import AIGuide from './AIGuide';
 
 const ExamRunner: React.FC = () => {
   const { type, id } = useParams<{ type: string; id: string }>();
@@ -49,6 +52,7 @@ const ExamRunner: React.FC = () => {
   const [startedAt] = useState(Date.now());
   const [isProtected, setIsProtected] = useState(false);
   const [aiHints, setAiHints] = useState<Record<number, { text: string; loading: boolean; error?: string }>>({});
+  const [isAiOpen, setIsAiOpen] = useState(false);
 
   useEffect(() => {
     if (user && user.role !== 'admin' && user.plan === 'free') {
@@ -444,22 +448,40 @@ const ExamRunner: React.FC = () => {
             <div className="legend-item"><span className="dot flagged" /> Flagged</div>
           </div>
 
-          <div className="smart-view-switcher">
-             <button 
-               className={`view-switch-btn ${displayMode === 'single' ? 'active' : ''}`}
-               onClick={() => setDisplayMode('single')}
-               title="Single Question View"
-             >
-               <Layout size={18} /> <span>Single</span>
-             </button>
-             <button 
-               className={`view-switch-btn ${displayMode === 'full' ? 'active' : ''}`}
-               onClick={() => setDisplayMode('full')}
-               style={{ display: window.innerWidth <= 640 ? 'none' : 'flex' }}
-               title="Full Exam View"
-             >
-               <Layers size={18} /> <span>Full Page</span>
-             </button>
+          <div className="sidebar-exam-tools">
+            <div className="tool-section-title">Display Mode</div>
+            <div className="smart-view-switcher">
+               <button 
+                 className={`view-switch-btn ${displayMode === 'single' ? 'active' : ''}`}
+                 onClick={() => setDisplayMode('single')}
+               >
+                 <Layout size={16} /> <span>ONE QUESTION</span>
+               </button>
+               <button 
+                 className={`view-switch-btn ${displayMode === 'full' ? 'active' : ''}`}
+                 onClick={() => setDisplayMode('full')}
+                 style={{ display: window.innerWidth <= 640 ? 'none' : 'flex' }}
+               >
+                 <Layers size={16} /> <span>FULL QUESTIONS</span>
+               </button>
+            </div>
+
+            <div className="tool-section-title">AI Assistance</div>
+            <button className={`sidebar-ai-btn ${isAiOpen ? 'active' : ''}`} onClick={() => setIsAiOpen(!isAiOpen)}>
+               <div className="ai-icon-wrap">
+                  <Cpu size={18} />
+               </div>
+               <span>AI MENTOR</span>
+               <Sparkles size={12} className="ai-sparkle" />
+            </button>
+            
+            <AIGuide 
+              userName={user?.username} 
+              embedded={false} 
+              externalOpen={isAiOpen} 
+              onToggle={setIsAiOpen} 
+              hideTrigger={true} 
+            />
           </div>
         </aside>
 
@@ -680,35 +702,33 @@ const ExamRunner: React.FC = () => {
         .smart-option-card.compact .option-body-text { font-size: 1rem; }
 
         .smart-view-switcher {
-          margin-top: auto;
-          background: var(--bg-soft);
-          padding: 6px;
-          border-radius: 16px;
-          display: flex;
-          gap: 4px;
+          background: var(--bg-soft); padding: 6px; border-radius: 16px;
+          display: flex; gap: 4px;
         }
-
         .view-switch-btn {
-          flex: 1;
-          height: 44px;
-          border-radius: 12px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 8px;
-          font-size: 0.75rem;
-          font-weight: 800;
-          color: var(--text-muted);
-          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-          background: transparent;
+          flex: 1; height: 44px; border-radius: 12px;
+          display: flex; align-items: center; justify-content: center;
+          gap: 8px; font-size: 0.7rem; font-weight: 800; color: var(--text-soft);
+          transition: all 0.2s; background: transparent; border: none;
         }
-
         .view-switch-btn:hover { color: var(--text-strong); background: rgba(0,0,0,0.05); }
-        .view-switch-btn.active {
-          background: var(--surface);
-          color: var(--primary);
-          box-shadow: var(--shadow-sm);
+        .view-switch-btn.active { background: var(--surface); color: var(--primary); box-shadow: var(--shadow-sm); }
+
+        .sidebar-exam-tools { display: flex; flex-direction: column; gap: 1rem; border-top: 1px solid var(--border-soft); padding-top: 1.5rem; }
+        .tool-section-title { font-size: 0.65rem; font-weight: 900; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem; }
+        
+        .sidebar-ai-btn {
+          width: 100%; height: 52px; border-radius: 16px; 
+          background: linear-gradient(135deg, var(--primary-brand), #1e40af);
+          color: white; display: flex; align-items: center; gap: 12px; padding: 0 1rem;
+          font-weight: 800; font-size: 0.85rem; border: none; position: relative; overflow: hidden;
+          box-shadow: 0 8px 20px -6px rgba(var(--primary-rgb), 0.4); transition: all 0.3s;
         }
+        .sidebar-ai-btn:hover { transform: translateY(-2px); box-shadow: 0 12px 25px -6px rgba(var(--primary-rgb), 0.5); }
+        .sidebar-ai-btn.active { background: var(--danger); box-shadow: 0 8px 20px -6px rgba(239, 68, 68, 0.4); }
+        .ai-icon-wrap { width: 32px; height: 32px; border-radius: 10px; background: rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+        .ai-sparkle { position: absolute; top: 10px; right: 10px; color: #fbbf24; animation: sparkle-float 2s infinite ease-in-out; }
+        @keyframes sparkle-float { 0%, 100% { transform: translateY(0) scale(1); opacity: 0.8; } 50% { transform: translateY(-4px) scale(1.2); opacity: 1; } }
 
         .question-tools {
           margin-top: 3rem; padding-top: 2rem; border-top: 1px solid var(--border-soft);
