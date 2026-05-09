@@ -53,3 +53,17 @@ export const getYearLabelFromValue = (value: string | number): string => {
     default: return v;
   }
 };
+
+/**
+ * Ensures year values are consistent (e.g. "Year 5", "5", "V Course" -> "V Course")
+ */
+export const normalizeAcademicYear = (val: string | number): string => {
+  const v = val.toString().toLowerCase();
+  if (v.includes('1') || v.includes('i year')) return 'I Year';
+  if (v.includes('2') || v.includes('ii year')) return 'II Year';
+  if (v.includes('3') || v.includes('iii year')) return 'III Year';
+  if (v.includes('4') || v.includes('iv')) return 'IV Course';
+  if (v.includes('5') || v.includes('v')) return 'V Course';
+  if (v.includes('6') || v.includes('vi')) return 'VI Course';
+  return val.toString();
+};

@@ -28,7 +28,7 @@ const HEADERS = {
   [TABLES.EXAMS]: ['id', 'user_id', 'title', 'description', 'grade', 'subject', 'tags_json', 'difficulty', 'time_limit_minutes', 'exam_data_json', 'is_public', 'status', 'featured', 'created_at', 'updated_at'],
   [TABLES.EXAM_ATTEMPTS]: ['id', 'user_id', 'exam_id', 'score', 'total_questions', 'percentage', 'answers_json', 'questions_snapshot_json', 'duration_seconds', 'mode', 'created_at'],
   [TABLES.AUDIT_LOG]: ['id', 'user_id', 'action', 'details', 'ip_address', 'created_at'],
-  [TABLES.MATERIALS]: ['id', 'fileId', 'title', 'description', 'year', 'subject', 'type', 'originalFilename', 'mimeType', 'sizeBytes', 'driveUrl', 'previewUrl', 'downloadUrl', 'thumbnailUrl', 'tags', 'uploadedBy', 'uploadedAt', 'updatedAt', 'isVisibleToStudents', 'examQuestionCount', 'isProtected'],
+  [TABLES.MATERIALS]: ['id', 'fileId', 'previewFileId', 'title', 'description', 'year', 'subject', 'type', 'originalFilename', 'mimeType', 'previewMimeType', 'previewStatus', 'sizeBytes', 'driveUrl', 'previewUrl', 'downloadUrl', 'thumbnailUrl', 'tags', 'uploadedBy', 'uploadedAt', 'updatedAt', 'isVisibleToStudents', 'examQuestionCount', 'isProtected'],
   'SECURITY_EVENTS': ['id', 'user_id', 'eventType', 'page', 'materialId', 'examId', 'attemptId', 'timestamp', 'userAgent']
 };
 
@@ -112,6 +112,12 @@ function doPost(e) {
       case 'adminGetAllAttempts':
         result = handleAdminGetAllAttempts(user);
         break;
+      case 'adminUpdateExam':
+        result = handleAdminUpdateExam(user, payload);
+        break;
+      case 'adminUpdateExamJson':
+        result = handleAdminUpdateExamJson(user, payload);
+        break;
       
       // AI Actions
       case 'aiChat':
@@ -139,6 +145,15 @@ function doPost(e) {
         break;
       case 'deleteMaterial':
         result = handleDeleteMaterial(user, payload.id);
+        break;
+      case 'getMaterialFileData':
+        result = handleGetMaterialFileData(user, payload.id);
+        break;
+      case 'updateMaterialContent':
+        result = handleUpdateMaterialContent(user, payload);
+        break;
+      case 'replaceMaterialFile':
+        result = handleReplaceMaterialFile(user, payload);
         break;
       case 'syncMaterialsFromDrive':
         result = handleSyncMaterialsFromDrive(user);
@@ -651,6 +666,7 @@ function handleUploadMaterial(user, payload) {
   const material = {
     id,
     fileId,
+    previewFileId: null,
     title,
     description,
     year,
@@ -658,6 +674,8 @@ function handleUploadMaterial(user, payload) {
     type,
     originalFilename: fileName,
     mimeType,
+    previewMimeType: null,
+    previewStatus: 'ready',
     sizeBytes: file.getSize(),
     driveUrl: file.getUrl(),
     previewUrl: `https://drive.google.com/file/d/${fileId}/preview`,
@@ -671,6 +689,25 @@ function handleUploadMaterial(user, payload) {
     examQuestionCount,
     isProtected: isProtected === true || isProtected === 'true' || type === 'exam' ? 'TRUE' : 'FALSE'
   };
+
+  // 4. Handle Office Conversion (PPTX, DOCX)
+  if (['application/vnd.openxmlformats-officedocument.presentationml.presentation', 
+       'application/vnd.ms-powerpoint',
+       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+       'application/msword'].includes(mimeType)) {
+    try {
+      const previewFileId = convertOfficeToPdf(fileId, typeFolder);
+      if (previewFileId) {
+        material.previewFileId = previewFileId;
+        material.previewMimeType = 'application/pdf';
+        material.previewStatus = 'converted';
+      }
+    } catch (e) {
+      material.previewStatus = 'failed';
+      warnings.push("Office to PDF conversion failed. Student preview may be limited.");
+      Logger.log('Conversion error: ' + e.message);
+    }
+  }
 
   const sheet = getSheet(TABLES.MATERIALS);
   const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
@@ -1246,4 +1283,175 @@ function ULTIMATE_ADMIN_FIX() {
   
   SpreadsheetApp.flush();
   Logger.log('✅ ADMIN ACCOUNT READY: ' + email);
+}
+
+// --- NEW ENHANCED HANDLERS ---
+
+function handleGetMaterialFileData(user, id) {
+  const material = handleGetMaterialById(user, id);
+  // If it's a converted Office file, fetch the preview PDF instead of original
+  const targetFileId = (material.previewFileId && material.previewStatus === 'converted') ? material.previewFileId : material.fileId;
+  const file = DriveApp.getFileById(targetFileId);
+  
+  // Limit check for internal base64 transfer (Apps Script limit is around 50MB, but let's stay safe at 10MB)
+  if (file.getSize() > 10 * 1024 * 1024) {
+    throw new Error('This file is too large ( > 10MB) for the internal viewer. Please use the Google Drive preview link or contact an admin.');
+  }
+
+  const blob = file.getBlob();
+  return {
+    fileName: material.title + (material.previewFileId ? '.pdf' : ''),
+    mimeType: blob.getMimeType(),
+    base64: Utilities.base64Encode(blob.getBytes()),
+    sizeBytes: file.getSize(),
+    type: material.type,
+    title: material.title,
+    isProtected: material.isProtected === 'TRUE' || material.isProtected === true
+  };
+}
+
+function handleUpdateMaterialContent(user, payload) {
+  checkAdmin(user);
+  const { id, content } = payload;
+  const material = handleGetMaterialById(user, id);
+  
+  const file = DriveApp.getFileById(material.fileId);
+  file.setContent(content);
+  
+  // If it's an exam, update question count
+  if (material.type === 'exam') {
+    try {
+      const examData = JSON.parse(content);
+      const count = Array.isArray(examData.questions) ? examData.questions.length : 0;
+      handleUpdateMaterialMetadata(user, { id, updates: { examQuestionCount: count } });
+    } catch (e) {}
+  }
+  
+  return { success: true };
+}
+
+function handleReplaceMaterialFile(user, payload) {
+  checkAdmin(user);
+  const { id, fileName, mimeType, fileBase64 } = payload;
+  const material = handleGetMaterialById(user, id);
+  
+  // 1. Delete old files
+  try {
+    DriveApp.getFileById(material.fileId).setTrashed(true);
+    if (material.previewFileId) DriveApp.getFileById(material.previewFileId).setTrashed(true);
+  } catch (e) {}
+
+  // 2. Upload new file
+  const fileData = Utilities.base64Decode(fileBase64);
+  const blob = Utilities.newBlob(fileData, mimeType, fileName);
+  
+  // Find original folder
+  const oldFile = DriveApp.getFileById(material.fileId);
+  const folders = oldFile.getParents();
+  const folder = folders.hasNext() ? folders.next() : DriveApp.getRootFolder();
+  
+  const newFile = folder.createFile(blob);
+  newFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  
+  const newFileId = newFile.getId();
+  const updates = {
+    fileId: newFileId,
+    originalFilename: fileName,
+    mimeType: mimeType,
+    sizeBytes: newFile.getSize(),
+    driveUrl: newFile.getUrl(),
+    previewUrl: `https://drive.google.com/file/d/${newFileId}/preview`,
+    downloadUrl: `https://drive.google.com/uc?export=download&id=${newFileId}`,
+    previewFileId: null,
+    previewStatus: 'ready'
+  };
+
+  // 3. Handle Conversion if needed
+  if (['application/vnd.openxmlformats-officedocument.presentationml.presentation', 
+       'application/vnd.ms-powerpoint',
+       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+       'application/msword'].includes(mimeType)) {
+    try {
+      const previewId = convertOfficeToPdf(newFileId, folder);
+      if (previewId) {
+        updates.previewFileId = previewId;
+        updates.previewMimeType = 'application/pdf';
+        updates.previewStatus = 'converted';
+      }
+    } catch (e) {
+      updates.previewStatus = 'failed';
+    }
+  }
+
+  handleUpdateMaterialMetadata(user, { id, updates });
+  return { success: true, material: { ...material, ...updates } };
+}
+
+function handleAdminUpdateExam(user, payload) {
+  checkAdmin(user);
+  const { id, updates } = payload;
+  const sheet = getSheet(TABLES.EXAMS);
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+  
+  let rowIdx = -1;
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === id) {
+      rowIdx = i;
+      break;
+    }
+  }
+  if (rowIdx === -1) throw new Error('Exam not found');
+
+  updates.updated_at = new Date().toISOString();
+  
+  Object.keys(updates).forEach(key => {
+    const colIdx = headers.indexOf(key);
+    if (colIdx !== -1) {
+      let val = updates[key];
+      if (typeof val === 'object') val = JSON.stringify(val);
+      sheet.getRange(rowIdx + 1, colIdx + 1).setValue(val);
+    }
+  });
+  
+  return { success: true };
+}
+
+function handleAdminUpdateExamJson(user, payload) {
+  checkAdmin(user);
+  const { id, examData } = payload;
+  return handleAdminUpdateExam(user, { id, updates: { exam_data_json: JSON.stringify(examData) } });
+}
+
+/**
+ * Converts Office file to PDF using Drive API
+ * REQUIRES: Drive Advanced Service enabled
+ */
+function convertOfficeToPdf(fileId, targetFolder) {
+  try {
+    // 1. Get the file
+    const file = DriveApp.getFileById(fileId);
+    
+    // 2. Use Drive API to export as PDF
+    // Note: This requires "Drive" service to be enabled in Apps Script Services
+    const url = "https://www.googleapis.com/drive/v3/files/" + fileId + "/export?mimeType=application/pdf";
+    const token = ScriptApp.getOAuthToken();
+    const response = UrlFetchApp.fetch(url, {
+      headers: { Authorization: "Bearer " + token },
+      muteHttpExceptions: true
+    });
+    
+    if (response.getResponseCode() !== 200) {
+      throw new Error("Export failed: " + response.getContentText());
+    }
+    
+    const pdfBlob = response.getBlob().setName(file.getName().split('.')[0] + "_preview.pdf");
+    const pdfFile = targetFolder.createFile(pdfBlob);
+    pdfFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    
+    return pdfFile.getId();
+  } catch (e) {
+    Logger.log("Conversion error: " + e.message);
+    return null;
+  }
 }

@@ -125,6 +125,8 @@ export const api = {
   adminUpdateUser: (userId: string, updates: any) => request<any>('adminUpdateUser', { userId, updates }),
   adminGetAllExams: () => request<any[]>('adminGetAllExams'),
   adminGetAllAttempts: () => request<any[]>('adminGetAllAttempts'),
+  adminUpdateExam: (id: string, updates: any) => request<any>('adminUpdateExam', { id, updates }),
+  adminUpdateExamJson: (id: string, examData: any) => request<any>('adminUpdateExamJson', { id, examData }),
 
   // Materials
   uploadMaterial: (data: any) => request<any>('uploadMaterial', data, 60000), // 60s timeout for uploads
@@ -135,6 +137,17 @@ export const api = {
   deleteMaterial: (id: string) => request<any>('deleteMaterial', { id }),
   syncMaterialsFromDrive: () => request<any>('syncMaterialsFromDrive'),
   materialsHealth: () => request<any>('materialsHealth'),
+  getMaterialFileData: (id: string) => request<{ 
+    fileName: string; 
+    mimeType: string; 
+    base64: string; 
+    sizeBytes: number; 
+    type: string; 
+    title: string; 
+    isProtected: boolean;
+  }>('getMaterialFileData', { id }),
+  updateMaterialContent: (id: string, content: string) => request<any>('updateMaterialContent', { id, content }),
+  replaceMaterialFile: (data: any) => request<any>('replaceMaterialFile', data, 60000),
   logSecurityEvent: (data: { eventType: string; page?: string; materialId?: string; examId?: string; attemptId?: string; userAgent?: string }) => 
     request<any>('logSecurityEvent', data),
   validateExamAccess: (data: { examId?: string; materialId?: string }) => 

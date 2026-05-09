@@ -13,26 +13,41 @@ import {
   Image as ImageIcon,
   FileCode,
   Maximize2,
-  Play
+  Play,
+  Settings
 } from 'lucide-react';
 import ProtectedContentShell from './security/ProtectedContentShell';
 import { formatSafeDate } from '../utils/robustHelpers';
+import InternalPdfViewer from './viewers/InternalPdfViewer';
+import InternalImageViewer from './viewers/InternalImageViewer';
+import InternalExamMaterialViewer from './viewers/InternalExamMaterialViewer';
+import { useVault } from '../context/VaultContext';
 
 const MaterialViewer: React.FC = () => {
   const { materialId } = useParams<{ materialId: string }>();
   const navigate = useNavigate();
+  const { user } = useVault();
+  
   const [material, setMaterial] = useState<any>(null);
+  const [fileData, setFileData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [iframeError, setIframeError] = useState(false);
 
   useEffect(() => {
-    const fetchMaterial = async () => {
+    const fetchMaterialAndFile = async () => {
       if (!materialId) return;
       setIsLoading(true);
+      setError(null);
       try {
-        const data = await api.getMaterialById(materialId);
-        setMaterial(data);
+        // 1. Get Metadata
+        const meta = await api.getMaterialById(materialId);
+        setMaterial(meta);
+
+        // 2. If it's an exam, we don't need base64 yet (InternalExamMaterialViewer fetches it as string)
+        if (meta.type !== 'exam') {
+          const file = await api.getMaterialFileData(materialId);
+          setFileData(file);
+        }
       } catch (err: any) {
         console.error('Failed to load material', err);
         setError(err.message || 'Material not found or access denied.');
@@ -40,7 +55,7 @@ const MaterialViewer: React.FC = () => {
         setIsLoading(false);
       }
     };
-    fetchMaterial();
+    fetchMaterialAndFile();
   }, [materialId]);
 
   const handleStartExam = async () => {
@@ -63,11 +78,21 @@ const MaterialViewer: React.FC = () => {
     }
   };
 
+  const handleAdminDownload = () => {
+    if (!material) return;
+    window.open(material.downloadUrl, '_blank');
+  };
+
+  const handleAdminOpenDrive = () => {
+    if (!material) return;
+    window.open(material.driveUrl, '_blank');
+  };
+
   if (isLoading) {
     return (
       <div className="viewer-loading-container">
         <Loader2 className="animate-spin" size={48} />
-        <p>Initializing Secure Viewer...</p>
+        <p>Initializing Secure Internal Viewer...</p>
       </div>
     );
   }
@@ -86,8 +111,68 @@ const MaterialViewer: React.FC = () => {
   }
 
   const isProtected = material.isProtected === 'TRUE' || material.isProtected === true;
-  const isImage = material.type === 'image';
-  const isExam = material.type === 'exam';
+
+  const renderViewer = () => {
+    if (material.type === 'exam') {
+      return (
+        <InternalExamMaterialViewer 
+          material={material} 
+          onStartExam={handleStartExam}
+          onUpdateMetadata={(updates) => setMaterial({ ...material, ...updates })}
+        />
+      );
+    }
+
+    if (!fileData) return (
+      <div className="viewer-error">
+        <AlertCircle size={48} />
+        <p>File content could not be retrieved.</p>
+      </div>
+    );
+
+    const isPdf = fileData.mimeType === 'application/pdf' || material.previewStatus === 'converted';
+
+    if (isPdf) {
+      return (
+        <InternalPdfViewer 
+          base64Data={fileData.base64} 
+          fileName={fileData.fileName}
+          isProtected={isProtected}
+          adminActions={{
+            onDownload: handleAdminDownload,
+            onOpenDrive: handleAdminOpenDrive
+          }}
+        />
+      );
+    }
+
+    if (fileData.mimeType.startsWith('image/')) {
+      return (
+        <InternalImageViewer 
+          base64Data={fileData.base64} 
+          mimeType={fileData.mimeType} 
+          title={material.title}
+          adminActions={{
+            onDownload: handleAdminDownload,
+            onOpenDrive: handleAdminOpenDrive
+          }}
+        />
+      );
+    }
+
+    return (
+      <div className="unsupported-viewer">
+        <AlertCircle size={64} />
+        <h3>Unsupported Preview Format</h3>
+        <p>Internal preview is not available for this file type ({fileData.mimeType}).</p>
+        <div className="fallback-actions">
+           <a href={material.driveUrl} target="_blank" rel="noopener noreferrer" className="btn-fallback">
+             View in Google Drive
+           </a>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="material-viewer-layout animate-fade-in">
@@ -112,14 +197,7 @@ const MaterialViewer: React.FC = () => {
         </div>
         
         <div className="header-right">
-          {!isProtected && (
-            <a href={material.downloadUrl} className="control-btn secondary" title="Download">
-              <Download size={18} />
-            </a>
-          )}
-          <a href={material.driveUrl} target="_blank" rel="noopener noreferrer" className="control-btn secondary" title="Open in Drive">
-            <ExternalLink size={18} />
-          </a>
+          {/* Admin Tools Placeholder */}
         </div>
       </header>
 
@@ -129,54 +207,7 @@ const MaterialViewer: React.FC = () => {
           materialId={material.id}
           title={material.title}
         >
-          <div className="viewer-display-area">
-            {isExam ? (
-              <div className="exam-preview-hero">
-                <FileCode size={80} className="text-primary" />
-                <h2>Practice Exam: {material.title}</h2>
-                <p>This material is a structured medical examination. You can start the interactive exam mode below.</p>
-                <div className="exam-stats-row">
-                  <div className="stat-pill">
-                    <strong>{material.examQuestionCount || '?'}</strong>
-                    <span>Questions</span>
-                  </div>
-                  <div className="stat-pill">
-                    <strong>{material.subject}</strong>
-                    <span>Subject</span>
-                  </div>
-                </div>
-                <button onClick={handleStartExam} className="start-exam-btn">
-                  <Play size={20} fill="currentColor" />
-                  <span>Start Secure Exam</span>
-                </button>
-              </div>
-            ) : isImage ? (
-              <div className="image-viewer-container">
-                <img src={material.driveUrl} alt={material.title} className="viewer-image" />
-              </div>
-            ) : (
-              <div className="iframe-viewer-wrapper">
-                {iframeError ? (
-                  <div className="iframe-fallback">
-                    <AlertCircle size={48} />
-                    <h3>Preview Unavailable</h3>
-                    <p>We couldn't load the internal preview. Please open it directly in Google Drive.</p>
-                    <a href={material.previewUrl} target="_blank" rel="noopener noreferrer" className="btn-fallback">
-                      Open in Google Drive
-                    </a>
-                  </div>
-                ) : (
-                  <iframe 
-                    src={material.previewUrl} 
-                    className="viewer-iframe"
-                    onLoad={() => setIframeError(false)}
-                    onError={() => setIframeError(true)}
-                    allow="autoplay"
-                  />
-                )}
-              </div>
-            )}
-          </div>
+          {renderViewer()}
         </ProtectedContentShell>
       </main>
 
@@ -221,46 +252,29 @@ const MaterialViewer: React.FC = () => {
         .path-meta { font-size: 0.7rem; font-weight: 700; color: var(--text-muted); }
         .title-area h1 { font-size: 1.1rem; font-weight: 800; color: var(--text-strong); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-        .header-right { display: flex; gap: 0.75rem; }
-        .control-btn { 
-          width: 40px; height: 40px; border-radius: 10px; 
-          display: flex; align-items: center; justify-content: center; 
-          transition: all 0.2s; 
-        }
-        .control-btn.secondary { background: var(--bg-soft); color: var(--text-soft); border: 1px solid var(--border); }
-        .control-btn:hover { background: var(--border); color: var(--text-strong); }
-
         .viewer-main-content { flex: 1; overflow: hidden; position: relative; }
-        .viewer-display-area { width: 100%; height: 100%; background: #1e293b; display: flex; align-items: center; justify-content: center; }
 
-        .iframe-viewer-wrapper { width: 100%; height: 100%; position: relative; }
-        .viewer-iframe { width: 100%; height: 100%; border: none; }
-        
-        .image-viewer-container { width: 100%; height: 100%; padding: 2rem; display: flex; align-items: center; justify-content: center; overflow: auto; }
-        .viewer-image { max-width: 100%; max-height: 100%; object-fit: contain; box-shadow: var(--shadow-2xl); }
-
-        .exam-preview-hero { 
-          max-width: 500px; padding: 3rem; background: var(--surface); 
-          border-radius: var(--radius-2xl); border: 1px solid var(--border); 
-          text-align: center; display: flex; flex-direction: column; align-items: center; gap: 1.5rem; 
+        .unsupported-viewer, .viewer-error {
+          height: 100%;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 1.5rem;
+          color: var(--text-muted);
+          text-align: center;
+          padding: 2rem;
+          background: var(--bg);
         }
-        .exam-preview-hero h2 { font-size: 1.5rem; font-weight: 900; color: var(--text-strong); }
-        .exam-preview-hero p { color: var(--text-muted); font-weight: 500; line-height: 1.5; }
         
-        .exam-stats-row { display: flex; gap: 1.5rem; }
-        .stat-pill { display: flex; flex-direction: column; align-items: center; gap: 2px; }
-        .stat-pill strong { font-size: 1.25rem; font-weight: 900; color: var(--primary); }
-        .stat-pill span { font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; }
-
-        .start-exam-btn { 
-          width: 100%; height: 52px; background: var(--primary); color: white; 
-          border-radius: 12px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 0.75rem; 
-          transition: all 0.2s; 
+        .btn-fallback {
+          background: var(--primary);
+          color: white;
+          padding: 0.75rem 1.5rem;
+          border-radius: 12px;
+          font-weight: 800;
+          text-decoration: none;
         }
-        .start-exam-btn:hover { background: var(--primary-dark); transform: translateY(-2px); box-shadow: var(--shadow-premium); }
-
-        .iframe-fallback { text-align: center; color: white; display: flex; flex-direction: column; align-items: center; gap: 1rem; }
-        .btn-fallback { background: white; color: #1e293b; padding: 0.75rem 1.5rem; border-radius: 8px; font-weight: 800; text-decoration: none; }
 
         .viewer-loading-container, .viewer-error-container { 
           position: fixed; inset: 0; background: var(--bg); z-index: 10001; 
@@ -273,7 +287,6 @@ const MaterialViewer: React.FC = () => {
 
         @media (max-width: 640px) {
           .viewer-header { height: auto; padding: 1rem; flex-direction: column; gap: 1rem; align-items: flex-start; }
-          .header-right { width: 100%; justify-content: space-between; }
         }
       `}</style>
     </div>
