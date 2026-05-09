@@ -49,9 +49,8 @@ const BrandLogo: React.FC<BrandLogoProps> = ({
 
       {variant !== 'icon' && (
         <div className="logo-text-stack flex flex-col justify-center leading-none flex-shrink">
-          <div className={`brand-name font-black tracking-tighter ${current.name} whitespace-nowrap flex`}>
-            <span className="text-[#0B3D91] dark:text-blue-400">MED</span>
-            <span className="text-[#00B2A9] dark:text-[#27C6F6]">EXAM</span>
+          <div className={`brand-name font-black tracking-tighter ${current.name} whitespace-nowrap`}>
+            MEDEXAM
           </div>
         </div>
       )}
@@ -80,7 +79,19 @@ const BrandLogo: React.FC<BrandLogoProps> = ({
 
         .medexam-brand-logo .brand-name {
           font-family: 'Space Grotesk', 'Inter', system-ui, sans-serif;
-          transition: color 0.3s ease;
+          transition: all 0.3s ease;
+          background: linear-gradient(to right, #0B3D91 0%, #00B2A9 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+          display: inline-block;
+        }
+
+        html[data-theme="dark"] .brand-name {
+          background: linear-gradient(to right, #4facfe 0%, #00f2fe 100%) !important;
+          -webkit-background-clip: text !important;
+          -webkit-text-fill-color: transparent !important;
+          text-shadow: 0 0 20px rgba(79, 172, 254, 0.3);
         }
         
         /* Theme switching for logo images */
