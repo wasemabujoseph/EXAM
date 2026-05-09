@@ -218,7 +218,6 @@ const AIGuide: React.FC<Props> = ({ userName, embedded = false }) => {
   return (
     <>
       <style>{`
-      <style>{`
         .ai-chat-window {
           display: flex; flex-direction: column; background: var(--surface);
           border: 1px solid var(--border-soft); box-shadow: var(--shadow-premium);
