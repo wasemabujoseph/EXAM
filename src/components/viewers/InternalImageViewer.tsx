@@ -6,8 +6,7 @@ import {
   RotateCw,
   Download,
   ExternalLink,
-  Loader2,
-  MoreVertical
+  Loader2
 } from 'lucide-react';
 import { useVault } from '../../context/VaultContext';
 
@@ -33,7 +32,6 @@ const InternalImageViewer: React.FC<InternalImageViewerProps> = ({
   const [scale, setScale] = useState(1);
   const [rotation, setRotation] = useState(0);
   const [isLoaded, setIsLoaded] = useState(false);
-  const [showAdminMenu, setShowAdminMenu] = useState(false);
 
   const imageUrl = `data:${mimeType};base64,${base64Data}`;
 
@@ -46,80 +44,68 @@ const InternalImageViewer: React.FC<InternalImageViewerProps> = ({
   };
 
   return (
-    <div className="internal-image-viewer pro-theme">
-      {/* Premium Toolbar */}
-      <div className="image-toolbar-premium">
+    <div className="internal-image-viewer">
+      {/* Toolbar */}
+      <div className="image-toolbar">
         <div className="toolbar-section">
-          <button onClick={zoomOut} className="tool-btn" title="Zoom Out">
+          <button onClick={zoomOut} className="toolbar-btn" title="Zoom Out">
             <ZoomOut size={18} />
           </button>
-          <span className="zoom-value">{Math.round(scale * 100)}%</span>
-          <button onClick={zoomIn} className="tool-btn" title="Zoom In">
+          <span className="zoom-text">{Math.round(scale * 100)}%</span>
+          <button onClick={zoomIn} className="toolbar-btn" title="Zoom In">
             <ZoomIn size={18} />
           </button>
-          <div className="tool-divider" />
-          <button onClick={reset} className="tool-btn" title="Reset View">
+          <button onClick={reset} className="toolbar-btn" title="Reset View">
             <Maximize size={18} />
           </button>
-          <button onClick={rotate} className="tool-btn" title="Rotate">
+          <button onClick={rotate} className="toolbar-btn" title="Rotate">
             <RotateCw size={18} />
           </button>
         </div>
 
-        <div className="toolbar-section">
-          {isAdmin && (
-            <div className="admin-tools-container">
-              <button 
-                onClick={() => setShowAdminMenu(!showAdminMenu)} 
-                className={`tool-btn admin-trigger ${showAdminMenu ? 'active' : ''}`}
-                title="Admin Tools"
-              >
-                <MoreVertical size={18} />
-              </button>
-              
-              {showAdminMenu && (
-                <div className="admin-dropdown animate-pop-in">
-                  <div className="dropdown-header">ADMIN TOOLS</div>
-                  {adminActions?.onDownload && (
-                    <button onClick={() => { adminActions.onDownload!(); setShowAdminMenu(false); }} className="dropdown-item">
-                      <Download size={16} />
-                      <span>Download Original</span>
-                    </button>
-                  )}
-                  {adminActions?.onOpenDrive && (
-                    <button onClick={() => { adminActions.onOpenDrive!(); setShowAdminMenu(false); }} className="dropdown-item">
-                      <ExternalLink size={16} />
-                      <span>Open in Drive</span>
-                    </button>
-                  )}
-                </div>
+        {isAdmin && (
+          <>
+            <div className="toolbar-divider" />
+            <div className="toolbar-section admin-tools">
+              {adminActions?.onDownload && (
+                <button onClick={adminActions.onDownload} className="toolbar-btn admin" title="Download Original">
+                  <Download size={18} />
+                </button>
+              )}
+              {adminActions?.onOpenDrive && (
+                <button onClick={adminActions.onOpenDrive} className="toolbar-btn admin" title="Open in Drive">
+                  <ExternalLink size={18} />
+                </button>
               )}
             </div>
-          )}
-        </div>
+          </>
+        )}
       </div>
 
       {/* Image Area */}
-      <div className="image-viewport-container">
+      <div className="image-display-container">
         {!isLoaded && (
-          <div className="image-placeholder">
-            <Loader2 className="animate-spin" size={32} />
-            <p>Processing High-Resolution Image...</p>
+          <div className="image-loading">
+            <Loader2 className="animate-spin text-primary" size={32} />
           </div>
         )}
         <div 
-          className="image-render-wrapper"
+          className="image-wrapper"
           style={{ 
             transform: `scale(${scale}) rotate(${rotation}deg)`,
-            transition: 'transform 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
+            transition: 'transform 0.2s ease-out'
           }}
         >
           <img 
             src={imageUrl} 
             alt={title} 
             onLoad={() => setIsLoaded(true)}
-            className="pro-rendered-image"
-            style={{ display: isLoaded ? 'block' : 'none' }} 
+            style={{ 
+              display: isLoaded ? 'block' : 'none',
+              maxWidth: '90vw',
+              maxHeight: '80vh',
+              boxShadow: '0 20px 50px rgba(0,0,0,0.5)'
+            }} 
             draggable={false}
             onContextMenu={(e) => e.preventDefault()}
           />
@@ -132,21 +118,24 @@ const InternalImageViewer: React.FC<InternalImageViewerProps> = ({
           flex-direction: column;
           height: 100%;
           width: 100%;
-          background: var(--bg-soft);
+          background: #0f172a;
           position: relative;
           overflow: hidden;
         }
 
-        .image-toolbar-premium {
+        .image-toolbar {
           height: 56px;
-          background: var(--surface);
-          border-bottom: 1px solid var(--border);
+          background: rgba(15, 23, 42, 0.9);
+          backdrop-filter: blur(8px);
+          border-bottom: 1px solid rgba(255,255,255,0.1);
           display: flex;
           align-items: center;
-          justify-content: space-between;
+          justify-content: center;
           padding: 0 1rem;
-          box-shadow: var(--shadow-sm);
-          z-index: 100;
+          gap: 1rem;
+          color: white;
+          z-index: 10;
+          flex-shrink: 0;
         }
 
         .toolbar-section {
@@ -155,120 +144,70 @@ const InternalImageViewer: React.FC<InternalImageViewerProps> = ({
           gap: 0.5rem;
         }
 
-        .tool-btn {
+        .toolbar-btn {
           width: 36px;
           height: 36px;
           border-radius: 8px;
-          color: var(--text-muted);
           display: flex;
           align-items: center;
           justify-content: center;
+          background: rgba(255,255,255,0.05);
+          color: rgba(255,255,255,0.8);
           transition: all 0.2s;
         }
-        .tool-btn:hover {
-          background: var(--primary-soft);
-          color: var(--primary);
-        }
-        .tool-btn.admin-trigger { color: var(--secondary); }
-        .tool-btn.admin-trigger.active { background: var(--secondary); color: white; }
 
-        .zoom-value {
+        .toolbar-btn:hover {
+          background: rgba(255,255,255,0.15);
+          color: white;
+        }
+
+        .toolbar-btn.admin {
+          color: #38bdf8;
+        }
+
+        .toolbar-divider {
+          width: 1px;
+          height: 24px;
+          background: rgba(255,255,255,0.1);
+        }
+
+        .zoom-text {
           font-size: 0.8rem;
           font-weight: 800;
-          min-width: 50px;
+          min-width: 45px;
           text-align: center;
-          color: var(--text-strong);
+          color: rgba(255,255,255,0.6);
         }
 
-        .tool-divider {
-          width: 1px;
-          height: 20px;
-          background: var(--border);
-          margin: 0 0.5rem;
-        }
-
-        .image-viewport-container {
+        .image-display-container {
           flex: 1;
           display: flex;
           align-items: center;
           justify-content: center;
           overflow: auto;
           padding: 2rem;
-          background: var(--bg);
+          position: relative;
         }
 
-        .image-render-wrapper {
+        .image-wrapper {
           display: flex;
           align-items: center;
           justify-content: center;
           transform-origin: center center;
         }
 
-        .pro-rendered-image {
-          max-width: 90vw;
-          max-height: 80vh;
-          box-shadow: var(--shadow-2xl);
-          border: 1px solid var(--border);
-          background: white; /* Base for transparent images */
-        }
-        html[data-theme="dark"] .pro-rendered-image {
-          box-shadow: 0 20px 60px rgba(0,0,0,0.6);
-          border-color: rgba(255,255,255,0.1);
-          background: #1e293b;
-        }
-
-        .image-placeholder {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 1rem;
-          color: var(--text-soft);
-          font-weight: 700;
-        }
-
-        /* ADMIN DROPDOWN */
-        .admin-tools-container { position: relative; }
-        .admin-dropdown {
+        .image-loading {
           position: absolute;
-          top: calc(100% + 10px);
-          right: 0;
-          width: 220px;
-          background: var(--surface-elevated);
-          border: 1px solid var(--border);
-          border-radius: 12px;
-          box-shadow: var(--shadow-xl);
-          padding: 0.5rem;
-          z-index: 1000;
-        }
-        .dropdown-header {
-          padding: 0.5rem 0.75rem;
-          font-size: 0.65rem;
-          font-weight: 900;
-          color: var(--text-soft);
-          letter-spacing: 0.1em;
-          border-bottom: 1px solid var(--border);
-          margin-bottom: 0.5rem;
-        }
-        .dropdown-item {
-          width: 100%;
-          padding: 0.75rem;
-          border-radius: 8px;
+          inset: 0;
           display: flex;
           align-items: center;
-          gap: 0.75rem;
-          color: var(--text);
-          font-size: 0.85rem;
-          font-weight: 700;
-          transition: all 0.2s;
-        }
-        .dropdown-item:hover {
-          background: var(--primary-soft);
-          color: var(--primary);
+          justify-content: center;
+          z-index: 1;
         }
 
         @media (max-width: 640px) {
-          .image-toolbar-premium { gap: 0.5rem; }
-          .zoom-value, .tool-divider { display: none; }
+          .image-toolbar { height: auto; padding: 0.75rem; flex-wrap: wrap; }
+          .zoom-text, .toolbar-divider { display: none; }
         }
       `}</style>
     </div>
