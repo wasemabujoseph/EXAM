@@ -12,13 +12,14 @@ import {
   AlertCircle,
   Info,
   ShieldAlert,
-  RefreshCw
+  RefreshCw,
+  Eye
 } from 'lucide-react';
 import { useVault } from '../../context/VaultContext';
 
-// FORCE UPDATE v2 - CDN WORKER
+// FINAL FAILSAFE WORKER - Using unpkg for better compatibility
 const PDFJS_VERSION = '5.6.205'; 
-pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDFJS_VERSION}/pdf.worker.min.mjs`;
+pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${PDFJS_VERSION}/build/pdf.worker.min.mjs`;
 
 interface InternalPdfViewerProps {
   fileData: {
@@ -49,8 +50,11 @@ const InternalPdfViewer: React.FC<InternalPdfViewerProps> = ({
   const [scale, setScale] = useState(1.5);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showDebug, setShowDebug] = useState(true); // Default to ON for troubleshooting
+  const [showDebug, setShowDebug] = useState(false);
   const [renderKey, setRenderKey] = useState(0);
+  const [useLegacyMode, setUseLegacyMode] = useState(false);
+
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     const loadPdf = async () => {
@@ -66,13 +70,19 @@ const InternalPdfViewer: React.FC<InternalPdfViewerProps> = ({
           data[i] = binaryString.charCodeAt(i);
         }
 
-        const loadingTask = pdfjs.getDocument({ data });
+        const loadingTask = pdfjs.getDocument({ 
+          data,
+          // If legacy mode is ON, we disable worker to run in main thread
+          disableWorker: useLegacyMode 
+        });
+
         const pdfDoc = await loadingTask.promise;
         setPdf(pdfDoc);
         setNumPages(pdfDoc.numPages);
         setIsLoading(false);
       } catch (err: any) {
-        setError(err.message || 'PDF structure failure.');
+        console.error('PDF Load Error:', err);
+        setError(err.message || 'Worker initialization failed.');
         setIsLoading(false);
       }
     };
@@ -80,7 +90,7 @@ const InternalPdfViewer: React.FC<InternalPdfViewerProps> = ({
     if (fileData?.base64) {
       loadPdf();
     }
-  }, [fileData?.base64, renderKey]);
+  }, [fileData?.base64, renderKey, useLegacyMode]);
 
   useEffect(() => {
     const renderPage = async () => {
@@ -91,24 +101,29 @@ const InternalPdfViewer: React.FC<InternalPdfViewerProps> = ({
         const canvas = canvasRef.current;
         const context = canvas.getContext('2d');
         if (!context) return;
+        
         canvas.height = viewport.height;
         canvas.width = viewport.width;
         canvas.style.width = `${viewport.width / window.devicePixelRatio}px`;
         canvas.style.height = `${viewport.height / window.devicePixelRatio}px`;
+        
         await page.render({ canvasContext: context, viewport }).promise;
       } catch (e) {}
     };
     renderPage();
   }, [pdf, currentPage, scale, renderKey]);
 
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const toggleLegacy = () => {
+    setUseLegacyMode(!useLegacyMode);
+    setRenderKey(k => k + 1);
+  };
 
   return (
-    <div className="internal-pdf-viewer purple-theme">
+    <div className="internal-pdf-viewer pro-theme">
       <div className="viewer-toolbar">
         <div className="toolbar-section">
           <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage <= 1} className="toolbar-btn"><ChevronLeft /></button>
-          <span className="page-info">P. {currentPage} / {numPages}</span>
+          <span className="page-info">{currentPage} / {numPages}</span>
           <button onClick={() => setCurrentPage(p => Math.min(numPages, p + 1))} disabled={currentPage >= numPages} className="toolbar-btn"><ChevronRight /></button>
         </div>
 
@@ -118,7 +133,7 @@ const InternalPdfViewer: React.FC<InternalPdfViewerProps> = ({
           <button onClick={() => setScale(s => s + 0.2)} className="toolbar-btn"><ZoomIn size={18} /></button>
         </div>
 
-        <div className="toolbar-section debug-tools">
+        <div className="toolbar-section">
           <button onClick={() => setShowDebug(!showDebug)} className="toolbar-btn debug"><Info size={18} /></button>
           {isAdmin && adminActions?.onOpenDrive && (
             <button onClick={adminActions.onOpenDrive} className="toolbar-btn admin"><ExternalLink size={18} /></button>
@@ -128,48 +143,59 @@ const InternalPdfViewer: React.FC<InternalPdfViewerProps> = ({
 
       <div className="pdf-canvas-container">
         {isLoading ? (
-          <div className="v-state"><Loader2 className="animate-spin" size={40} /><p>NEW BUILD LOADING...</p></div>
+          <div className="v-state"><Loader2 className="animate-spin" size={48} /><p>Optimizing Display...</p></div>
         ) : error ? (
           <div className="v-state error">
-            <AlertCircle size={64} color="#ef4444" />
-            <h2 style={{color:'white'}}>V3.3.0 SYSTEM ERROR</h2>
+            <AlertCircle size={64} className="text-danger" />
+            <h2>Viewer Initialization Failed</h2>
             <p className="err-txt">{error}</p>
-            <button onClick={() => setRenderKey(k => k + 1)} className="force-btn">FORCE RE-DECODE</button>
+            <div className="error-actions">
+              <button onClick={toggleLegacy} className="btn-legacy">
+                {useLegacyMode ? 'Try Worker Mode' : 'Try Compatibility Mode'}
+              </button>
+              <button onClick={() => setRenderKey(k => k + 1)} className="btn-retry">
+                <RefreshCw size={16} /> Retry
+              </button>
+            </div>
           </div>
         ) : (
-          <div className="canvas-wrapper"><canvas ref={canvasRef} /></div>
+          <div className="canvas-wrapper"><canvas ref={canvasRef} onContextMenu={e => e.preventDefault()} /></div>
         )}
 
         {showDebug && (
           <div className="diag-overlay">
-            <h4>System Diagnostics (v3.3.0)</h4>
+            <h4>Security & Health (v3.3.0)</h4>
             <div className="diag-row"><span>File:</span> {fileData.fileName}</div>
-            <div className="diag-row"><span>Backend PDF:</span> {fileData.pdfHeaderValid ? 'VALID' : 'INVALID'}</div>
-            <div className="diag-row"><span>Size:</span> {fileData.byteLength || 'ERR'} bytes</div>
-            <button className="close-diag" onClick={() => setShowDebug(false)}>DISMISS</button>
+            <div className="diag-row"><span>Status:</span> {fileData.pdfHeaderValid ? 'VALID' : 'INVALID'}</div>
+            <div className="diag-row"><span>Mode:</span> {useLegacyMode ? 'COMPATIBILITY' : 'WORKER'}</div>
+            <div className="diag-row"><span>Bytes:</span> {fileData.byteLength || 'ERR'}</div>
+            <button className="close-diag" onClick={() => setShowDebug(false)}>CLOSE</button>
           </div>
         )}
       </div>
 
       <style>{`
-        .purple-theme .viewer-toolbar { background: #4c1d95 !important; } /* DEEP PURPLE TOOLBAR */
-        .internal-pdf-viewer { display: flex; flex-direction: column; height: 100%; background: #0f172a; position: relative; }
-        .viewer-toolbar { height: 50px; display: flex; align-items: center; justify-content: center; gap: 2rem; color: white; padding: 0 1rem; border-bottom: 2px solid rgba(255,255,255,0.1); }
+        .pro-theme .viewer-toolbar { background: #1e1b4b !important; } /* DEEP NAVY TOOLBAR */
+        .internal-pdf-viewer { display: flex; flex-direction: column; height: 100%; width: 100%; background: #0f172a; position: relative; }
+        .viewer-toolbar { height: 50px; display: flex; align-items: center; justify-content: center; gap: 2rem; color: white; border-bottom: 1px solid rgba(255,255,255,0.1); }
         .toolbar-section { display: flex; align-items: center; gap: 0.5rem; }
-        .toolbar-btn { width: 32px; height: 32px; border-radius: 6px; display: flex; align-items: center; justify-content: center; transition: 0.2s; color: rgba(255,255,255,0.8); }
+        .toolbar-btn { width: 32px; height: 32px; border-radius: 6px; display: flex; align-items: center; justify-content: center; transition: 0.2s; color: rgba(255,255,255,0.7); }
         .toolbar-btn:hover { background: rgba(255,255,255,0.1); color: white; }
         .toolbar-btn.debug { color: #facc15; }
         .toolbar-btn.admin { color: #38bdf8; }
         .page-info, .zoom-info { font-size: 0.75rem; font-weight: 800; min-width: 60px; text-align: center; }
-        .pdf-canvas-container { flex: 1; overflow: auto; display: flex; justify-content: center; padding: 2rem; background: #1e293b; position: relative; }
-        .canvas-wrapper { background: white; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .pdf-canvas-container { flex: 1; overflow: auto; display: flex; justify-content: center; padding: 2rem; background: #020617; position: relative; }
+        .canvas-wrapper { background: white; box-shadow: 0 20px 50px rgba(0,0,0,0.7); }
         .v-state { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem; color: white; }
-        .err-txt { color: #94a3b8; font-size: 0.8rem; max-width: 300px; text-align: center; }
-        .force-btn { background: #8b5cf6; color: white; padding: 0.5rem 1rem; border-radius: 6px; font-weight: 800; font-size: 0.75rem; margin-top: 1rem; }
-        .diag-overlay { position: absolute; top: 1rem; right: 1rem; width: 250px; background: rgba(0,0,0,0.9); border: 1px solid #4c1d95; padding: 1rem; border-radius: 12px; color: white; z-index: 500; font-family: monospace; }
-        .diag-overlay h4 { font-size: 0.7rem; color: #facc15; margin-bottom: 0.5rem; border-bottom: 1px solid #4c1d95; padding-bottom: 0.5rem; }
-        .diag-row { display: flex; justify-content: space-between; font-size: 0.65rem; margin-bottom: 0.3rem; }
-        .close-diag { width: 100%; margin-top: 0.5rem; background: #4c1d95; font-size: 0.6rem; font-weight: 800; padding: 4px; border-radius: 4px; }
+        .err-txt { color: #94a3b8; font-size: 0.8rem; margin-bottom: 1.5rem; text-align: center; }
+        .error-actions { display: flex; gap: 1rem; }
+        .btn-legacy { background: #4f46e5; color: white; padding: 0.6rem 1.25rem; border-radius: 8px; font-weight: 800; font-size: 0.8rem; }
+        .btn-retry { background: #1e293b; color: white; padding: 0.6rem 1.25rem; border-radius: 8px; font-weight: 800; font-size: 0.8rem; display: flex; align-items: center; gap: 0.5rem; }
+        .diag-overlay { position: absolute; top: 1rem; right: 1rem; width: 260px; background: rgba(15,23,42,0.95); border: 1px solid #312e81; padding: 1.25rem; border-radius: 12px; color: white; z-index: 500; }
+        .diag-overlay h4 { font-size: 0.75rem; color: #facc15; margin-bottom: 0.75rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.5rem; }
+        .diag-row { display: flex; justify-content: space-between; font-size: 0.7rem; margin-bottom: 0.4rem; font-weight: 700; }
+        .diag-row span:first-child { color: rgba(255,255,255,0.5); }
+        .close-diag { width: 100%; margin-top: 1rem; background: #312e81; font-size: 0.7rem; font-weight: 800; padding: 6px; border-radius: 6px; }
       `}</style>
     </div>
   );
