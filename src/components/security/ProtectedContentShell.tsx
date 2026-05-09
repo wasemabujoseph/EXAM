@@ -158,11 +158,6 @@ const ProtectedContentShell: React.FC<ProtectedContentShellProps> = ({
         </div>
       )}
 
-      <div className="protection-toast-pro">
-        <Info size={14} />
-        <span>Strict Content Protection Enabled</span>
-      </div>
-
       <style>{`
         .protected-viewport-shell { position: relative; width: 100%; height: 100%; overflow: hidden; user-select: none; background: var(--bg); }
         
@@ -235,37 +230,10 @@ const ProtectedContentShell: React.FC<ProtectedContentShellProps> = ({
           border: 1px solid var(--primary-soft);
         }
 
-        .protection-toast-pro {
-          position: fixed;
-          bottom: 2.5rem;
-          left: 50%;
-          transform: translateX(-50%);
-          background: var(--surface-elevated);
-          border: 1px solid var(--border);
-          padding: 0.75rem 1.5rem;
-          border-radius: 99px;
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-          font-size: 0.75rem;
-          font-weight: 800;
-          box-shadow: var(--shadow-xl);
-          z-index: 10001;
-          color: var(--text);
-          pointer-events: none;
-          opacity: 0;
-          animation: slideUpInPro 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
-
         @keyframes lockPulse {
           0% { transform: scale(1); opacity: 1; filter: drop-shadow(0 0 0px var(--primary-glow)); }
           50% { transform: scale(1.1); opacity: 0.8; filter: drop-shadow(0 0 20px var(--primary-glow)); }
           100% { transform: scale(1); opacity: 1; filter: drop-shadow(0 0 0px var(--primary-glow)); }
-        }
-        
-        @keyframes slideUpInPro {
-          from { transform: translate(-50%, 40px); opacity: 0; }
-          to { transform: translate(-50%, 0); opacity: 1; }
         }
 
         @media print {

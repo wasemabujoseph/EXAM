@@ -18,10 +18,14 @@ import {
   Minimize2,
   Layout,
   ScrollText,
-  Copy
+  Copy,
+  Sparkles,
+  MessageCircle,
+  Bot
 } from 'lucide-react';
 import { useVault } from '../../context/VaultContext';
 import ProtectedContentShell from '../security/ProtectedContentShell';
+import AIGuide from '../AIGuide';
 
 // Set worker source to the locally bundled Vite asset URL
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerSrc;
@@ -106,6 +110,7 @@ const InternalPdfViewer: React.FC<InternalPdfViewerProps> = ({
   const [showDebug, setShowDebug] = useState(false);
   const [showAdminMenu, setShowAdminMenu] = useState(false);
   const [showZoomMenu, setShowZoomMenu] = useState(false);
+  const [showAIChat, setShowAIChat] = useState(false);
   const [renderKey, setRenderKey] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
@@ -153,7 +158,6 @@ const InternalPdfViewer: React.FC<InternalPdfViewerProps> = ({
     if (!containerRef.current) return;
     const padding = window.innerWidth < 768 ? 20 : 60;
     const containerWidth = containerRef.current.clientWidth - padding;
-    // Estimate scale based on standard A4-ish width if no canvas exists yet
     const baseWidth = 800; 
     setScale(containerWidth / baseWidth);
     setShowZoomMenu(false);
@@ -234,6 +238,15 @@ const InternalPdfViewer: React.FC<InternalPdfViewerProps> = ({
         </div>
 
         <div className="toolbar-right">
+          {/* AI Mentor Trigger */}
+          <button 
+            onClick={() => setShowAIChat(!showAIChat)} 
+            className={`icon-btn ai-btn-pro ${showAIChat ? 'active' : ''}`}
+            title="Ask AI Mentor"
+          >
+            <Sparkles size={18} />
+          </button>
+
           <button 
             onClick={() => setViewMode(viewMode === 'single' ? 'continuous' : 'single')} 
             className={`icon-btn ${viewMode === 'continuous' ? 'active' : ''}`}
@@ -332,6 +345,26 @@ const InternalPdfViewer: React.FC<InternalPdfViewerProps> = ({
           </div>
         )}
       </div>
+
+      {/* AI Mentor Chat Overlay */}
+      {showAIChat && (
+        <div className="pdf-ai-overlay">
+          <div className="ai-chat-container">
+            <div className="ai-chat-header">
+               <div className="ai-chat-title">
+                 <Bot size={18} className="text-primary" />
+                 <span>MEDEXAM AI Mentor</span>
+               </div>
+               <button onClick={() => setShowAIChat(false)} className="close-ai">
+                 <X size={20} />
+               </button>
+            </div>
+            <div className="ai-chat-body-frame">
+               <AIGuide userName={user?.username} embedded={true} />
+            </div>
+          </div>
+        </div>
+      )}
 
       <style>{`
         .internal-pdf-viewer {
@@ -436,6 +469,9 @@ const InternalPdfViewer: React.FC<InternalPdfViewerProps> = ({
         }
         .icon-btn:hover { background: var(--bg-soft); color: var(--primary); }
         .icon-btn.active { background: var(--primary-soft); color: var(--primary); border: 1px solid var(--primary-soft); }
+        .ai-btn-pro { color: var(--primary); background: var(--primary-soft-fade); }
+        .ai-btn-pro:hover { background: var(--primary-soft); }
+        .ai-btn-pro.active { background: var(--primary); color: white; }
 
         .pdf-scroller-main {
           flex: 1;
@@ -475,31 +511,34 @@ const InternalPdfViewer: React.FC<InternalPdfViewerProps> = ({
           white-space: nowrap;
         }
 
-        .page-skeleton {
-          width: 100%;
-          aspect-ratio: 1 / 1.4;
-          background: var(--bg-soft);
-          animation: pulse 2s infinite;
+        .pdf-ai-overlay {
+          position: absolute;
+          top: 60px;
+          right: 0;
+          bottom: 0;
+          width: 400px;
+          background: var(--surface);
+          border-left: 1px solid var(--border);
+          box-shadow: var(--shadow-xl);
+          z-index: 500;
+          display: flex;
+          animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
-        .admin-menu {
-          position: absolute;
-          top: calc(100% + 8px);
-          right: 0;
-          width: 180px;
-          background: var(--surface-elevated);
-          border: 1px solid var(--border);
-          border-radius: var(--radius-lg);
-          box-shadow: var(--shadow-lg);
-          padding: 6px;
-          z-index: 1000;
+        .ai-chat-container { display: flex; flex-direction: column; width: 100%; height: 100%; }
+        .ai-chat-header { 
+          padding: 1rem; 
+          border-bottom: 1px solid var(--border); 
+          display: flex; align-items: center; justify-content: space-between;
+          background: var(--bg-soft);
         }
-        .menu-header { font-size: 0.6rem; font-weight: 900; color: var(--text-soft); padding: 8px; border-bottom: 1px solid var(--border); margin-bottom: 4px; }
-        .menu-item {
-          width: 100%; display: flex; align-items: center; gap: 10px; padding: 10px;
-          font-size: 0.8rem; font-weight: 700; border-radius: var(--radius-md);
+        .ai-chat-title { display: flex; align-items: center; gap: 0.75rem; font-weight: 800; font-size: 0.9rem; }
+        .ai-chat-body-frame { flex: 1; overflow: hidden; }
+
+        @keyframes slideInRight {
+          from { transform: translateX(100%); }
+          to { transform: translateX(0); }
         }
-        .menu-item:hover { background: var(--bg-soft); color: var(--primary); }
 
         @media (max-width: 768px) {
           .pdf-scroller-main { padding: 1rem 0.5rem; }
@@ -509,12 +548,7 @@ const InternalPdfViewer: React.FC<InternalPdfViewerProps> = ({
           .zoom-trigger-pro { padding: 5px 10px; font-size: 0.75rem; }
           .pdf-page-wrapper { margin-bottom: 1rem; width: 100% !important; overflow: hidden; }
           .pdf-page-wrapper canvas { width: 100% !important; height: auto !important; }
-        }
-
-        @keyframes pulse {
-          0% { opacity: 0.5; }
-          50% { opacity: 0.8; }
-          100% { opacity: 0.5; }
+          .pdf-ai-overlay { width: 100%; top: 0; z-index: 1000; }
         }
       `}</style>
     </div>
@@ -536,3 +570,22 @@ const InternalPdfViewer: React.FC<InternalPdfViewerProps> = ({
 };
 
 export default InternalPdfViewer;
+function X(props: any) {
+  return (
+    <svg
+      {...props}
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M18 6 6 18" />
+      <path d="m6 6 12 12" />
+    </svg>
+  )
+}
