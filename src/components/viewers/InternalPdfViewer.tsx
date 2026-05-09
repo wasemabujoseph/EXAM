@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import * as pdfjs from 'pdfjs-dist';
+import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
+import pdfWorkerSrc from 'pdfjs-dist/legacy/build/pdf.worker.min.mjs?url';
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -16,9 +17,12 @@ import {
 } from 'lucide-react';
 import { useVault } from '../../context/VaultContext';
 
-// FAILSAFE WORKER - Using Legacy Compatibility Build
-const PDFJS_VERSION = '5.6.205'; 
-pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${PDFJS_VERSION}/legacy/build/pdf.worker.min.js`;
+// Set worker source to the locally bundled Vite asset URL
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerSrc;
+
+if (import.meta.env.DEV) {
+  console.log("PDF.js worker source:", pdfjsLib.GlobalWorkerOptions.workerSrc);
+}
 
 interface InternalPdfViewerProps {
   fileData: {
@@ -51,14 +55,14 @@ const InternalPdfViewer: React.FC<InternalPdfViewerProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [showDebug, setShowDebug] = useState(false);
   const [renderKey, setRenderKey] = useState(0);
-  const [useLegacyMode, setUseLegacyMode] = useState(false);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-    const loadPdf = async (retryWithLegacy = false) => {
+    const loadPdf = async () => {
       setIsLoading(true);
       setError(null);
+      setPdf(null);
       
       try {
         const pureBase64 = fileData.base64.includes(',') ? fileData.base64.split(',')[1] : fileData.base64;
@@ -68,9 +72,10 @@ const InternalPdfViewer: React.FC<InternalPdfViewerProps> = ({
           data[i] = binaryString.charCodeAt(i);
         }
 
-        const loadingTask = pdfjs.getDocument({ 
+        const loadingTask = pdfjsLib.getDocument({ 
           data,
-          disableWorker: retryWithLegacy || useLegacyMode 
+          // Removed disableWorker retry as we are now using a bundled local worker
+          disableWorker: false 
         } as any);
 
         const pdfDoc = await loadingTask.promise;
@@ -78,16 +83,7 @@ const InternalPdfViewer: React.FC<InternalPdfViewerProps> = ({
         setNumPages(pdfDoc.numPages);
         setIsLoading(false);
       } catch (err: any) {
-        console.error('PDF Load Error:', err);
-        
-        // AUTO-RETRY WITH LEGACY MODE IF WORKER FAILS
-        if (!retryWithLegacy && !useLegacyMode) {
-          console.warn('Worker failed, retrying with Legacy Compatibility Mode...');
-          setUseLegacyMode(true);
-          loadPdf(true);
-          return;
-        }
-
+        console.error('PDF.js Internal Error:', err);
         setError(err.message || 'Initialization failed.');
         setIsLoading(false);
       }
@@ -96,7 +92,7 @@ const InternalPdfViewer: React.FC<InternalPdfViewerProps> = ({
     if (fileData?.base64) {
       loadPdf();
     }
-  }, [fileData?.base64, renderKey, useLegacyMode]);
+  }, [fileData?.base64, renderKey]);
 
   useEffect(() => {
     const renderPage = async () => {
@@ -135,25 +131,32 @@ const InternalPdfViewer: React.FC<InternalPdfViewerProps> = ({
         </div>
 
         <div className="toolbar-section">
+          {/* Info/Debug icon remains available for technical inspection */}
           <button onClick={() => setShowDebug(!showDebug)} className="toolbar-btn debug"><Info size={18} /></button>
-          {isAdmin && adminActions?.onOpenDrive && (
-            <button onClick={adminActions.onOpenDrive} className="toolbar-btn admin"><ExternalLink size={18} /></button>
+          
+          {/* Download and External Drive buttons are strictly Admin-only */}
+          {isAdmin && (
+            <>
+              {adminActions?.onDownload && (
+                <button onClick={adminActions.onDownload} className="toolbar-btn admin" title="Admin: Download Original"><Download size={18} /></button>
+              )}
+              {adminActions?.onOpenDrive && (
+                <button onClick={adminActions.onOpenDrive} className="toolbar-btn admin" title="Admin: Open in Drive"><ExternalLink size={18} /></button>
+              )}
+            </>
           )}
         </div>
       </div>
 
       <div className="pdf-canvas-container">
         {isLoading ? (
-          <div className="v-state"><Loader2 className="animate-spin" size={48} /><p>Bypassing Restrictions...</p></div>
+          <div className="v-state"><Loader2 className="animate-spin" size={48} /><p>Loading Document...</p></div>
         ) : error ? (
           <div className="v-state error">
             <AlertCircle size={64} className="text-danger" />
-            <h2>Document Load Blocked</h2>
+            <h2>Viewer Initialization Failed</h2>
             <p className="err-txt">{error}</p>
             <div className="error-actions">
-              <button onClick={() => { setUseLegacyMode(true); setRenderKey(k => k + 1); }} className="btn-legacy">
-                Force Compatibility Mode
-              </button>
               <button onClick={() => setRenderKey(k => k + 1)} className="btn-retry">
                 <RefreshCw size={16} /> Retry
               </button>
@@ -165,10 +168,11 @@ const InternalPdfViewer: React.FC<InternalPdfViewerProps> = ({
 
         {showDebug && (
           <div className="diag-overlay">
-            <h4>Security & Health (v3.3.1)</h4>
+            <h4>Internal Viewer (v3.3.2)</h4>
             <div className="diag-row"><span>File:</span> {fileData.fileName}</div>
-            <div className="diag-row"><span>Mode:</span> {useLegacyMode ? 'COMPATIBILITY' : 'WORKER'}</div>
+            <div className="diag-row"><span>Status:</span> {fileData.pdfHeaderValid ? 'VALID' : 'INVALID'}</div>
             <div className="diag-row"><span>Bytes:</span> {fileData.byteLength || 'ERR'}</div>
+            <div className="diag-row"><span>Worker:</span> <span>Bundled Local</span></div>
             <button className="close-diag" onClick={() => setShowDebug(false)}>CLOSE</button>
           </div>
         )}
@@ -189,7 +193,6 @@ const InternalPdfViewer: React.FC<InternalPdfViewerProps> = ({
         .v-state { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem; color: white; }
         .err-txt { color: #94a3b8; font-size: 0.8rem; margin-bottom: 1.5rem; text-align: center; }
         .error-actions { display: flex; gap: 1rem; }
-        .btn-legacy { background: #4f46e5; color: white; padding: 0.6rem 1.25rem; border-radius: 8px; font-weight: 800; font-size: 0.8rem; }
         .btn-retry { background: #1e293b; color: white; padding: 0.6rem 1.25rem; border-radius: 8px; font-weight: 800; font-size: 0.8rem; display: flex; align-items: center; gap: 0.5rem; }
         .diag-overlay { position: absolute; top: 1rem; right: 1rem; width: 260px; background: rgba(15,23,42,0.95); border: 1px solid #312e81; padding: 1.25rem; border-radius: 12px; color: white; z-index: 500; }
         .diag-overlay h4 { font-size: 0.75rem; color: #facc15; margin-bottom: 0.75rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.5rem; }
