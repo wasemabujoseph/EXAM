@@ -14,7 +14,8 @@ import {
   Server,
   AlertTriangle,
   CheckCircle2,
-  RefreshCw
+  RefreshCw,
+  Wrench
 } from 'lucide-react';
 import { formatSafeDate, formatPercent } from '../utils/robustHelpers';
 
@@ -22,6 +23,7 @@ const AdminDashboard: React.FC = () => {
   const [stats, setStats] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isCheckingBackend, setIsCheckingBackend] = useState(false);
+  const [isRepairing, setIsRepairing] = useState(false);
   const [backendStatus, setBackendStatus] = useState<any>(null);
 
   useEffect(() => {
@@ -60,6 +62,20 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
+  const repairMetadata = async () => {
+    if (!confirm('This will scan all materials and repair missing metadata (MIME types, sizes, URLs). Continue?')) return;
+    setIsRepairing(true);
+    try {
+      const res = await api.repairMaterialsMetadata();
+      alert(`Repair complete! Updated ${res.count} rows.`);
+      loadStats();
+    } catch (err: any) {
+      alert(`Repair failed: ${err.message}`);
+    } finally {
+      setIsRepairing(false);
+    }
+  };
+
   if (isLoading) return <div className="page-loading"><Loader2 className="animate-spin" /> <span>Syncing analytics...</span></div>;
 
   if (!stats) {
@@ -81,6 +97,15 @@ const AdminDashboard: React.FC = () => {
           <p>Global platform performance and user activity.</p>
         </div>
         <div className="header-actions" style={{ display: 'flex', gap: '1rem' }}>
+          <button 
+            className="diagnostic-btn secondary" 
+            onClick={repairMetadata} 
+            disabled={isRepairing}
+            title="Repair Materials Metadata"
+          >
+            {isRepairing ? <Loader2 className="animate-spin" size={16} /> : <Wrench size={16} />}
+            <span>Repair Metadata</span>
+          </button>
           <button 
             className="diagnostic-btn" 
             onClick={checkBackend} 
@@ -179,6 +204,7 @@ const AdminDashboard: React.FC = () => {
           transition: all 0.2s;
         }
         .diagnostic-btn:hover:not(:disabled) { background: var(--primary-soft); color: var(--primary); border-color: var(--primary); }
+        .diagnostic-btn.secondary:hover { background: var(--warning-soft); color: var(--warning); border-color: var(--warning); }
         .diagnostic-btn:disabled { opacity: 0.5; }
 
         .backend-status-card {

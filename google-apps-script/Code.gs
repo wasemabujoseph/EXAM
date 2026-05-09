@@ -72,7 +72,8 @@ function doPost(e) {
             "adminUpdateExam",
             "adminUpdateExamJson",
             "logSecurityEvent",
-            "validateExamAccess"
+            "validateExamAccess",
+            "repairMaterialsMetadata"
           ]
         };
         break;
@@ -186,6 +187,9 @@ function doPost(e) {
         break;
       case 'validateExamAccess':
         result = handleValidateExamAccess(user, payload);
+        break;
+      case 'repairMaterialsMetadata':
+        result = handleRepairMaterialsMetadata(user);
         break;
 
       default:
@@ -676,8 +680,6 @@ function handleUploadMaterial(user, payload) {
   let thumbnailUrl = null;
   try {
     const thumb = file.getThumbnail();
-    // We don't call getDownloadUrl() as it often fails with access denied for certain file types
-    // Drive thumbnails are usually short-lived anyway
     if (thumb) thumbnailUrl = null; 
   } catch (err) {
     Logger.log("Thumbnail warning: " + err.message);
@@ -746,15 +748,13 @@ function handleSyncMaterialsFromDrive(user) {
 
   const sheet = getSheet(TABLES.MATERIALS);
   const existingData = sheet.getDataRange().getValues();
-  const existingFileIds = new Set(existingData.slice(1).map(row => row[1])); // fileId is at index 1
+  const existingFileIds = new Set(existingData.slice(1).map(row => row[1])); 
 
   const results = { added: 0, skipped: 0, errors: [] };
   const now = new Date().toISOString();
   const rootFolder = DriveApp.getFolderById(rootFolderId);
 
-  // Helper to scan folders recursively
   function scan(folder, pathParts) {
-    // Files in this folder
     const files = folder.getFiles();
     while (files.hasNext()) {
       const file = files.next();
@@ -766,8 +766,6 @@ function handleSyncMaterialsFromDrive(user) {
       }
 
       try {
-        // Infer metadata from pathParts
-        // Path expected: Root / Year X / Subject / Type / file
         const year = pathParts[0]?.replace('Year ', '') || 'Unknown';
         const subject = pathParts[1] || 'General';
         const typeFolderName = pathParts[2] || 'Other';
@@ -815,7 +813,6 @@ function handleSyncMaterialsFromDrive(user) {
       }
     }
 
-    // Subfolders
     const subfolders = folder.getFolders();
     while (subfolders.hasNext()) {
       const sub = subfolders.next();
@@ -836,6 +833,7 @@ function handleMaterialsHealth(user) {
     const folder = DriveApp.getFolderById(rootFolderId);
     const sheet = getSheet(TABLES.MATERIALS);
     ensureDatabaseHeaders();
+    const count = Math.max(0, sheet.getLastRow() - 1);
     return {
       success: true,
       version: "3.3.0-material-viewer",
@@ -850,14 +848,10 @@ function handleMaterialsHealth(user) {
   }
 }
 
-/**
- * Manual sync function to be run from Apps Script editor
- */
 function handleLogSecurityEvent(user, payload) {
   if (!user) return { success: false };
   const sheet = getSheet('SecurityEvents');
   if (!sheet) {
-    // Auto-create sheet if missing
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const newSheet = ss.insertSheet('SecurityEvents');
     newSheet.appendRow(HEADERS['SECURITY_EVENTS']);
@@ -884,7 +878,6 @@ function handleLogSecurityEvent(user, payload) {
 function handleValidateExamAccess(user, payload) {
   if (!user) throw new Error('Authentication required');
   
-  // Check user status
   const userRow = getSheet(TABLES.USERS).getDataRange().getValues().find(r => r[0] === user.id);
   if (!userRow) throw new Error('User record not found');
   
@@ -893,7 +886,6 @@ function handleValidateExamAccess(user, payload) {
     return { allowed: false, reason: 'Your account is currently locked.' };
   }
   
-  // Basic validation passed
   return { 
     allowed: true, 
     userStatus: userRow[statusIdx],
@@ -1021,7 +1013,6 @@ function getUserByToken(token) {
   const lastRow = sheet.getLastRow();
   if (lastRow < 2) return null;
 
-  // Search only the token_hash column
   const hashes = sheet.getRange(2, 3, lastRow - 1, 1).getValues();
   const now = new Date();
   
@@ -1068,10 +1059,6 @@ function rowToObject(row, headers) {
 
 // --- AI Handlers ---
 
-/**
- * ONE-TIME SETUP: Run this function once in the Apps Script editor 
- * to securely save your API key.
- */
 function SETUP_OPENROUTER_KEY(apiKey) {
   if (!apiKey) {
     Logger.log("❌ Please provide the API key as an argument: SETUP_OPENROUTER_KEY('sk-or-...')");
@@ -1085,7 +1072,6 @@ function handleAIChat(user, payload) {
   if (!user) throw new Error('Unauthorized');
   const { messages, context } = payload;
   
-  // Build a smart system prompt based on user role/plan
   const systemPrompt = `You are the MEDEXAM AI Mentor, a premium medical education assistant.
 - Your goal is to provide high-level academic support, exam strategies, and concept explanations.
 - Name: MEDEXAM AI PRO.
@@ -1144,12 +1130,10 @@ function callOpenRouter(messages) {
     return "⚠️ OpenRouter API key is missing in Apps Script Script Properties.";
   }
 
-  // Normalize the key
   apiKey = apiKey.trim();
-  apiKey = apiKey.replace(/^["']|["']$/g, ''); // Remove wrapping quotes
-  apiKey = apiKey.replace(/^Bearer\s+/i, ''); // Remove leading "Bearer "
+  apiKey = apiKey.replace(/^["']|["']$/g, ''); 
+  apiKey = apiKey.replace(/^Bearer\s+/i, ''); 
 
-  // Validate key format
   if (!apiKey.startsWith('sk-or-')) {
     Logger.log('❌ Invalid Key Format: Key does not start with sk-or-');
     return "⚠️ Invalid OpenRouter API key format. Please ensure it starts with 'sk-or-'.";
@@ -1200,10 +1184,6 @@ function callOpenRouter(messages) {
   }
 }
 
-/**
- * Diagnostic function to test OpenRouter connectivity.
- * Run this from the Apps Script editor to check your API key.
- */
 function TEST_OPENROUTER_KEY() {
   const result = callOpenRouter([{ role: 'user', content: 'Say hello' }]);
   Logger.log('--- TEST RESULT ---');
@@ -1253,23 +1233,17 @@ function createResponse(data) {
   return ContentService.createTextOutput(JSON.stringify(data)).setMimeType(ContentService.MimeType.JSON);
 }
 
-/**
- * THE MASTER SETUP:
- * Run this function to initialize your database correctly.
- */
 function MASTER_DATABASE_SETUP() {
   const ss = getSs();
   Object.keys(TABLES).forEach(key => {
     const name = TABLES[key];
     let sheet = ss.getSheetByName(name);
     if (sheet) {
-      // Clear existing to start fresh if needed, or just update headers
       sheet.clear();
     } else {
       sheet = ss.insertSheet(name);
     }
     sheet.appendRow(HEADERS[name]);
-    // Format headers
     sheet.getRange(1, 1, 1, HEADERS[name].length).setFontWeight('bold').setBackground('#f3f4f6');
     sheet.setFrozenRows(1);
   });
@@ -1277,10 +1251,6 @@ function MASTER_DATABASE_SETUP() {
   Logger.log('✅ MASTER SETUP COMPLETE. All sheets initialized with correct headers.');
 }
 
-/**
- * THE ULTIMATE ADMIN FIX:
- * Run this to create/reset your admin account.
- */
 function ULTIMATE_ADMIN_FIX() {
   const email = 'wasemkhallaf86@gmail.com';
   const username = 'waseem';
@@ -1318,25 +1288,84 @@ function ULTIMATE_ADMIN_FIX() {
 
 function handleGetMaterialFileData(user, id) {
   const material = handleGetMaterialById(user, id);
-  // If it's a converted Office file, fetch the preview PDF instead of original
+
   const targetFileId = (material.previewFileId && material.previewStatus === 'converted') ? material.previewFileId : material.fileId;
   const file = DriveApp.getFileById(targetFileId);
-  
-  // Limit check for internal base64 transfer (Apps Script limit is around 50MB, but let's stay safe at 10MB)
+
   if (file.getSize() > 10 * 1024 * 1024) {
-    throw new Error('This file is too large ( > 10MB) for the internal viewer. Please use the Google Drive preview link or contact an admin.');
+    throw new Error('This file is too large for the internal viewer. Please upload a smaller file or contact an admin.');
   }
 
   const blob = file.getBlob();
+  const mimeType = file.getMimeType() || blob.getContentType() || material.mimeType || 'application/pdf';
+  const bytes = blob.getBytes();
+
   return {
-    fileName: material.title + (material.previewFileId ? '.pdf' : ''),
-    mimeType: blob.getMimeType(),
-    base64: Utilities.base64Encode(blob.getBytes()),
+    fileName: file.getName(),
+    mimeType: mimeType,
+    base64: Utilities.base64Encode(bytes),
     sizeBytes: file.getSize(),
+    byteLength: bytes.length,
     type: material.type,
     title: material.title,
-    isProtected: material.isProtected === 'TRUE' || material.isProtected === true
+    isProtected: material.isProtected === 'TRUE' || material.isProtected === true,
+    pdfHeaderValid: bytesStartWithPdfHeader(bytes)
   };
+}
+
+function bytesStartWithPdfHeader(bytes) {
+  if (!bytes || bytes.length < 4) return false;
+  return String.fromCharCode(bytes[0] & 255, bytes[1] & 255, bytes[2] & 255, bytes[3] & 255) === '%PDF';
+}
+
+function handleRepairMaterialsMetadata(user) {
+  checkAdmin(user);
+  const sheet = getSheet(TABLES.MATERIALS);
+  const data = sheet.getDataRange().getValues();
+  if (data.length < 2) return { success: true, count: 0 };
+  
+  const headers = data[0];
+  let repairedCount = 0;
+
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    const fileId = row[headers.indexOf('fileId')];
+    if (!fileId) continue;
+
+    try {
+      const file = DriveApp.getFileById(fileId);
+      const updates = {
+        mimeType: file.getMimeType(),
+        sizeBytes: file.getSize(),
+        driveUrl: file.getUrl(),
+        previewUrl: `https://drive.google.com/file/d/${fileId}/preview`,
+        downloadUrl: `https://drive.google.com/uc?export=download&id=${fileId}`,
+        updatedAt: new Date().toISOString()
+      };
+
+      const currentType = row[headers.indexOf('type')];
+      if (!currentType || currentType === 'Unknown') {
+        const mime = updates.mimeType;
+        let newType = 'pdf';
+        if (mime.includes('presentation') || mime.includes('powerpoint')) newType = 'presentation';
+        else if (mime.includes('image')) newType = 'image';
+        else if (mime.includes('json')) newType = 'exam';
+        updates.type = newType;
+      }
+
+      Object.keys(updates).forEach(key => {
+        const colIdx = headers.indexOf(key);
+        if (colIdx !== -1) {
+          sheet.getRange(i + 1, colIdx + 1).setValue(updates[key]);
+        }
+      });
+      repairedCount++;
+    } catch (e) {
+      Logger.log(`Repair failed for row ${i+1} (${fileId}): ${e.message}`);
+    }
+  }
+
+  return { success: true, count: repairedCount };
 }
 
 function handleUpdateMaterialContent(user, payload) {
@@ -1347,7 +1376,6 @@ function handleUpdateMaterialContent(user, payload) {
   const file = DriveApp.getFileById(material.fileId);
   file.setContent(content);
   
-  // If it's an exam, update question count
   if (material.type === 'exam') {
     try {
       const examData = JSON.parse(content);
@@ -1364,17 +1392,14 @@ function handleReplaceMaterialFile(user, payload) {
   const { id, fileName, mimeType, fileBase64 } = payload;
   const material = handleGetMaterialById(user, id);
   
-  // 1. Delete old files
   try {
     DriveApp.getFileById(material.fileId).setTrashed(true);
     if (material.previewFileId) DriveApp.getFileById(material.previewFileId).setTrashed(true);
   } catch (e) {}
 
-  // 2. Upload new file
   const fileData = Utilities.base64Decode(fileBase64);
   const blob = Utilities.newBlob(fileData, mimeType, fileName);
   
-  // Find original folder
   const oldFile = DriveApp.getFileById(material.fileId);
   const folders = oldFile.getParents();
   const folder = folders.hasNext() ? folders.next() : DriveApp.getRootFolder();
@@ -1395,7 +1420,6 @@ function handleReplaceMaterialFile(user, payload) {
     previewStatus: 'ready'
   };
 
-  // 3. Handle Conversion if needed
   if (['application/vnd.openxmlformats-officedocument.presentationml.presentation', 
        'application/vnd.ms-powerpoint',
        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -1452,17 +1476,9 @@ function handleAdminUpdateExamJson(user, payload) {
   return handleAdminUpdateExam(user, { id, updates: { exam_data_json: JSON.stringify(examData) } });
 }
 
-/**
- * Converts Office file to PDF using Drive API
- * REQUIRES: Drive Advanced Service enabled
- */
 function convertOfficeToPdf(fileId, targetFolder) {
   try {
-    // 1. Get the file
     const file = DriveApp.getFileById(fileId);
-    
-    // 2. Use Drive API to export as PDF
-    // Note: This requires "Drive" service to be enabled in Apps Script Services
     const url = "https://www.googleapis.com/drive/v3/files/" + fileId + "/export?mimeType=application/pdf";
     const token = ScriptApp.getOAuthToken();
     const response = UrlFetchApp.fetch(url, {
@@ -1485,32 +1501,27 @@ function convertOfficeToPdf(fileId, targetFolder) {
   }
 }
 
- f u n c t i o n   e n s u r e D a t a b a s e H e a d e r s ( )   { 
-     c o n s t   s s   =   g e t S s ( ) ; 
-     O b j e c t . k e y s ( T A B L E S ) . f o r E a c h ( t a b l e N a m e   = >   { 
-         c o n s t   s h e e t N a m e   =   T A B L E S [ t a b l e N a m e ] ; 
-         c o n s t   s h e e t   =   s s . g e t S h e e t B y N a m e ( s h e e t N a m e ) ; 
-         i f   ( ! s h e e t )   r e t u r n ; 
-         
-         c o n s t   t a r g e t H e a d e r s   =   H E A D E R S [ s h e e t N a m e ] ; 
-         i f   ( ! t a r g e t H e a d e r s )   r e t u r n ; 
-         
-         c o n s t   c u r r e n t H e a d e r s   =   s h e e t . g e t R a n g e ( 1 ,   1 ,   1 ,   s h e e t . g e t L a s t C o l u m n ( ) ) . g e t V a l u e s ( ) [ 0 ] ; 
-         
-         / /   F i n d   m i s s i n g   h e a d e r s 
-         t a r g e t H e a d e r s . f o r E a c h ( ( h e a d e r ,   i n d e x )   = >   { 
-             i f   ( c u r r e n t H e a d e r s . i n d e x O f ( h e a d e r )   = = =   - 1 )   { 
-                 / /   C o l u m n   i s   m i s s i n g 
-                 c o n s t   n e w C o l I d x   =   s h e e t . g e t L a s t C o l u m n ( )   +   1 ; 
-                 s h e e t . i n s e r t C o l u m n A f t e r ( s h e e t . g e t L a s t C o l u m n ( ) ) ; 
-                 s h e e t . g e t R a n g e ( 1 ,   n e w C o l I d x ) . s e t V a l u e ( h e a d e r ) 
-                           . s e t F o n t W e i g h t ( ' b o l d ' ) 
-                           . s e t B a c k g r o u n d ( ' # f 3 f 4 f 6 ' ) ; 
-                 L o g g e r . l o g ( ' A d d e d   m i s s i n g   c o l u m n   \  
-   +   h e a d e r   +    
- \   t o   s h e e t   '   +   s h e e t N a m e ) ; 
-             } 
-         } ) ; 
-     } ) ; 
- }  
- 
+function ensureDatabaseHeaders() {
+  const ss = getSs();
+  Object.keys(TABLES).forEach(tableName => {
+    const sheetName = TABLES[tableName];
+    const sheet = ss.getSheetByName(sheetName);
+    if (!sheet) return;
+    
+    const targetHeaders = HEADERS[sheetName];
+    if (!targetHeaders) return;
+    
+    const currentHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    
+    targetHeaders.forEach((header, index) => {
+      if (currentHeaders.indexOf(header) === -1) {
+        const newColIdx = sheet.getLastColumn() + 1;
+        sheet.insertColumnAfter(sheet.getLastColumn());
+        sheet.getRange(1, newColIdx).setValue(header)
+             .setFontWeight('bold')
+             .setBackground('#f3f4f6');
+        Logger.log('Added missing column "' + header + '" to sheet ' + sheetName);
+      }
+    });
+  });
+}

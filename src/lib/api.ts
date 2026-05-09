@@ -145,6 +145,7 @@ export const api = {
   updateMaterialContent: (id: string, content: string) => request<any>('updateMaterialContent', { id, content }),
   replaceMaterialFile: (payload: any) => request<any>('replaceMaterialFile', payload),
   syncMaterialsFromDrive: () => request<any>('syncMaterialsFromDrive'),
+  repairMaterialsMetadata: () => request<any>('repairMaterialsMetadata'),
   
   // Security
   logSecurityEvent: (payload: any) => request<any>('logSecurityEvent', payload),
