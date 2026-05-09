@@ -351,10 +351,10 @@ const ExamRunner: React.FC = () => {
                     </button>
 
                     <div className="note-input-wrapper">
-                      <StickyNote size={16} />
+                      <StickyNote size={16} className="note-icon" />
                       <input 
                         type="text" 
-                        placeholder="Add a private note to this question..."
+                        placeholder="Add a private note..."
                         value={notes[currentIndex] || ''}
                         onChange={(e) => setNotes({...notes, [currentIndex]: e.target.value})}
                       />
@@ -534,7 +534,7 @@ const ExamRunner: React.FC = () => {
 
         .exam-info-stack { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
         .exam-main-title { 
-          font-size: 1.1rem; 
+          font-size: 1.15rem; 
           font-weight: 900; 
           margin: 0; 
           letter-spacing: -0.02em;
@@ -543,28 +543,21 @@ const ExamRunner: React.FC = () => {
           overflow: hidden;
           text-overflow: ellipsis;
         }
-        .exam-meta-row { display: flex; align-items: center; gap: 1rem; }
-        .q-progress-pill { font-size: 0.7rem; font-weight: 800; color: var(--primary); text-transform: uppercase; letter-spacing: 0.05em; }
         
         .security-pill-premium {
-          display: flex; align-items: center; gap: 6px;
+          display: flex; align-items: center; gap: 8px;
           background: var(--text-strong); color: var(--bg);
-          padding: 4px 12px; border-radius: 99px;
-          font-size: 0.6rem; font-weight: 800; text-transform: uppercase;
+          padding: 6px 14px; border-radius: 99px;
+          font-size: 0.65rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.05em;
         }
         .security-dot-active {
-          width: 6px; height: 6px; background: #10b981; border-radius: 50%;
-          box-shadow: 0 0 8px #10b981; animation: security-pulse 2s infinite;
-        }
-        @keyframes security-pulse {
-          0% { transform: scale(1); opacity: 1; }
-          50% { transform: scale(1.3); opacity: 0.5; }
-          100% { transform: scale(1); opacity: 1; }
+          width: 8px; height: 8px; background: #10b981; border-radius: 50%;
+          box-shadow: 0 0 10px #10b981; animation: security-pulse 2s infinite;
         }
 
         .smart-timer {
           display: flex; align-items: center; gap: 0.75rem;
-          background: var(--bg-soft); padding: 6px; border-radius: 14px;
+          background: var(--bg-soft); padding: 8px 12px; border-radius: 1rem;
           border: 1px solid var(--border-soft);
           color: var(--text-strong);
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -575,19 +568,14 @@ const ExamRunner: React.FC = () => {
           display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow-sm);
         }
         .timer-digits { font-family: 'JetBrains Mono', monospace; font-weight: 800; font-size: 1.1rem; min-width: 60px; text-align: center; }
-        .timer-control {
-          width: 32px; height: 32px; border-radius: 10px; background: var(--surface);
-          display: flex; align-items: center; justify-content: center; transition: all 0.2s;
-        }
-        .timer-control:hover { background: var(--primary); color: white; }
 
         .btn-submit-premium {
           background: var(--primary);
-          color: white; height: 48px; padding: 0 1.5rem; border-radius: 14px;
-          font-weight: 800; font-size: 0.95rem; display: flex; align-items: center; gap: 10px;
-          box-shadow: var(--shadow-premium); transition: all 0.2s;
+          color: white; height: 48px; padding: 0 1.75rem; border-radius: 1rem;
+          font-weight: 900; font-size: 0.95rem; display: flex; align-items: center; gap: 10px;
+          box-shadow: 0 10px 15px -3px rgba(var(--primary-rgb), 0.3); transition: all 0.2s;
         }
-        .btn-submit-premium:hover { transform: translateY(-2px); box-shadow: var(--shadow-xl); }
+        .btn-submit-premium:hover { transform: translateY(-2px); box-shadow: 0 20px 25px -5px rgba(var(--primary-rgb), 0.4); }
 
         .exam-viewport { flex: 1; display: flex; overflow: hidden; background: var(--bg); }
         .exam-main { flex: 1; overflow-y: auto; padding: 3rem 2rem; background: var(--bg); }
@@ -595,8 +583,9 @@ const ExamRunner: React.FC = () => {
         .question-wrapper { width: 100%; max-width: 850px; margin: 0 auto; }
         .question-card {
           background: var(--surface); padding: 3.5rem; border-radius: 2.5rem;
-          border: 1px solid var(--border); box-shadow: var(--shadow-xl);
+          border: 1px solid var(--border-soft); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.05);
           margin-bottom: 2rem;
+          position: relative;
         }
 
         .question-label { font-size: 0.75rem; font-weight: 900; color: var(--primary); text-transform: uppercase; margin-bottom: 1rem; display: block; letter-spacing: 0.1em; }
@@ -646,15 +635,17 @@ const ExamRunner: React.FC = () => {
         .ai-hint-btn.has-hint { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
 
         .hint-display-box {
-          margin-top: 1.5rem;
-          background: var(--bg-soft);
-          border: 1px dashed var(--border);
-          border-radius: 1rem;
-          padding: 1.25rem;
-          border-left: 4px solid #16a34a;
+          margin-top: 2rem;
+          background: linear-gradient(to right, #f0fdf4, var(--surface));
+          border: 1px solid #bbf7d0;
+          border-radius: 1.25rem;
+          padding: 1.5rem;
+          border-left: 6px solid #16a34a;
+          box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.05);
+          animation: slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1);
         }
-        .hint-header { display: flex; align-items: center; gap: 8px; font-size: 0.65rem; font-weight: 900; color: #16a34a; text-transform: uppercase; margin-bottom: 0.5rem; }
-        .hint-text { font-size: 0.95rem; font-weight: 600; color: var(--text-strong); line-height: 1.5; margin: 0; font-style: italic; }
+        .hint-header { display: flex; align-items: center; gap: 8px; font-size: 0.75rem; font-weight: 900; color: #16a34a; text-transform: uppercase; margin-bottom: 0.75rem; letter-spacing: 0.05em; }
+        .hint-text { font-size: 1rem; font-weight: 700; color: var(--text-strong); line-height: 1.6; margin: 0; font-style: italic; }
 
         @keyframes slide-up {
           from { opacity: 0; transform: translateY(10px); }
@@ -720,21 +711,25 @@ const ExamRunner: React.FC = () => {
         }
 
         .question-tools {
-          margin-top: 3rem; padding-top: 2rem; border-top: 1px solid var(--border);
-          display: flex; align-items: center; gap: 1.5rem;
+          margin-top: 3rem; padding-top: 2rem; border-top: 1px solid var(--border-soft);
+          display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;
         }
         .tool-btn {
           display: flex; align-items: center; gap: 0.6rem; padding: 0.75rem 1.25rem;
-          border-radius: 14px; background: var(--bg-soft); color: var(--text-muted); font-weight: 800;
-          font-size: 0.85rem; transition: all 0.2s;
+          border-radius: 14px; background: var(--bg-soft); color: var(--text-soft); font-weight: 800;
+          font-size: 0.85rem; transition: all 0.2s; border: 1px solid transparent;
         }
-        .tool-btn.active { background: var(--warning-soft); color: var(--warning); border: 1px solid var(--warning); }
+        .tool-btn:hover { background: var(--surface); border-color: var(--border-soft); color: var(--primary); }
+        .tool-btn.active { background: var(--warning-soft-fade); color: var(--warning); border-color: var(--warning-soft); }
+        
         .note-input-wrapper {
-          flex: 1; display: flex; align-items: center; gap: 0.75rem;
-          background: var(--bg-soft); padding: 0.75rem 1.25rem; border-radius: 14px;
-          border: 1px solid var(--border);
+          flex: 1; min-width: 260px; display: flex; align-items: center; gap: 0.75rem;
+          background: var(--bg-soft); padding: 0 1.25rem; border-radius: 14px;
+          height: 48px; border: 1px solid transparent; transition: all 0.2s;
         }
-        .note-input-wrapper input { background: transparent; border: none; flex: 1; font-weight: 600; color: var(--text-strong); }
+        .note-input-wrapper:focus-within { background: var(--surface); border-color: var(--primary-soft); box-shadow: var(--shadow-sm); }
+        .note-input-wrapper input { background: transparent; border: none; flex: 1; font-weight: 600; color: var(--text-strong); font-size: 0.9rem; }
+        .note-icon { color: var(--text-soft); }
 
         .desktop-navigation { display: flex; align-items: center; gap: 2.5rem; margin-top: 3rem; }
         .nav-step-btn {

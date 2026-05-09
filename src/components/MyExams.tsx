@@ -125,86 +125,99 @@ const MyExams: React.FC = () => {
       )}
 
       <style>{`
-        .my-exams-page { display: flex; flex-direction: column; gap: 2.5rem; }
+        .my-exams-page { display: flex; flex-direction: column; gap: 2rem; }
 
         .page-header-alt {
           display: flex; align-items: center; justify-content: space-between; gap: 1rem;
-          background: var(--surface); padding: 1.5rem 2rem; border-radius: var(--radius-xl);
-          border: 1px solid var(--border);
+          background: var(--surface); padding: 2rem; border-radius: 2rem;
+          border: 1px solid var(--border-soft);
+          box-shadow: 0 4px 20px rgba(0,0,0,0.03);
         }
-        .header-info h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
-        .header-info p { color: var(--text-muted); font-size: 0.9rem; font-weight: 600; }
+        .header-info h1 { font-size: 1.75rem; font-weight: 900; letter-spacing: -0.02em; margin-bottom: 0.25rem; }
+        .header-info p { color: var(--text-muted); font-size: 0.95rem; font-weight: 600; }
         
         .header-action-btn {
           background: var(--primary); color: white;
-          padding: 0 1.25rem; height: 44px; border-radius: var(--radius-lg);
-          display: flex; align-items: center; gap: 0.5rem; font-weight: 800;
+          padding: 0 1.5rem; height: 48px; border-radius: 1rem;
+          display: flex; align-items: center; gap: 0.75rem; font-weight: 800;
+          box-shadow: 0 10px 15px -3px rgba(var(--primary-rgb), 0.3);
+          transition: all 0.2s;
         }
+        .header-action-btn:hover { transform: translateY(-2px); box-shadow: 0 20px 25px -5px rgba(var(--primary-rgb), 0.4); }
 
         .exams-responsive-grid {
-          display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+          display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
           gap: 1.5rem;
         }
 
         .exam-cloud-card {
-          background: var(--surface); padding: 1.5rem;
-          border-radius: var(--radius-2xl); border: 1px solid var(--border);
-          display: flex; flex-direction: column; gap: 1.25rem;
-          transition: all 0.2s;
+          background: var(--surface); padding: 1.75rem;
+          border-radius: 2rem; border: 1px solid var(--border-soft);
+          display: flex; flex-direction: column; gap: 1.5rem;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          position: relative;
+          overflow: hidden;
         }
-        .exam-cloud-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); border-color: var(--primary); }
+        .exam-cloud-card:hover { transform: translateY(-8px); box-shadow: 0 20px 40px rgba(0,0,0,0.08); border-color: var(--primary-soft); }
 
-        .card-top { display: flex; align-items: center; gap: 1rem; }
+        .card-top { display: flex; align-items: center; gap: 1.25rem; }
         .exam-type-icon {
-          width: 48px; height: 48px; background: var(--bg-soft); color: var(--text-soft);
-          border-radius: var(--radius-lg); display: flex; align-items: center; justify-content: center;
+          width: 56px; height: 56px; background: var(--bg-soft); color: var(--primary);
+          border-radius: 1.25rem; display: flex; align-items: center; justify-content: center;
+          transition: all 0.3s;
         }
-        .exam-main-info h3 { font-size: 1.1rem; color: var(--text-strong); }
-        .q-count { font-size: 0.75rem; font-weight: 800; color: var(--primary); text-transform: uppercase; }
+        .exam-cloud-card:hover .exam-type-icon { background: var(--primary); color: white; transform: rotate(-5deg); }
+        
+        .exam-main-info h3 { font-size: 1.15rem; font-weight: 800; color: var(--text-strong); margin-bottom: 0.25rem; }
+        .q-count { font-size: 0.7rem; font-weight: 900; color: var(--primary); text-transform: uppercase; letter-spacing: 0.05em; background: var(--primary-soft-fade); padding: 2px 8px; border-radius: 6px; }
 
-        .card-mid { flex: 1; display: flex; flex-direction: column; }
-        .meta-row { display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; color: var(--text-muted); font-weight: 600; }
+        .card-mid { flex: 1; }
+        .meta-row { display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; color: var(--text-muted); font-weight: 600; }
 
         .card-actions {
-          display: flex; align-items: center; gap: 0.75rem;
-          padding-top: 1rem; border-top: 1px solid var(--border);
+          display: flex; align-items: center; gap: 1rem;
+          padding-top: 1.25rem; border-top: 1px solid var(--border-soft);
         }
         .btn-start {
-          flex: 1; background: var(--primary-soft); color: var(--primary);
-          height: 40px; border-radius: var(--radius-md); font-weight: 800;
-          display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+          flex: 1; background: var(--primary); color: white;
+          height: 48px; border-radius: 1rem; font-weight: 900;
+          display: flex; align-items: center; justify-content: center; gap: 0.75rem;
+          transition: all 0.2s;
         }
-        .btn-start:hover { background: var(--primary); color: white; }
+        .btn-start:hover { transform: scale(1.02); }
         
-        .btn-group { display: flex; gap: 0.5rem; }
+        .btn-group { display: flex; gap: 0.75rem; }
         .btn-group button {
-          width: 44px; height: 40px; border-radius: var(--radius-md);
+          width: 48px; height: 48px; border-radius: 1rem;
           background: var(--bg-soft); color: var(--text-soft);
           display: flex; align-items: center; justify-content: center;
+          transition: all 0.2s;
         }
-        .btn-group button:hover { color: var(--primary); background: var(--surface); border: 1px solid var(--primary); }
-        .btn-group .btn-delete:hover { color: var(--danger); border-color: var(--danger); background: var(--danger-soft); }
-
-        @media (max-width: 480px) {
-          .card-actions { flex-direction: column; align-items: stretch; }
-          .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
-          .btn-group button { width: 100%; height: 44px; }
-          .btn-start { height: 44px; }
-        }
+        .btn-group button:hover { color: var(--primary); background: var(--primary-soft-fade); }
+        .btn-group .btn-delete:hover { color: var(--danger); background: var(--danger-soft-fade); }
 
         .empty-state-box {
-          background: var(--surface); padding: 4rem 2rem; border-radius: var(--radius-2xl);
+          background: var(--surface); padding: 4rem 2rem; border-radius: 2.5rem;
           border: 1px dashed var(--border-strong); text-align: center;
           display: flex; flex-direction: column; align-items: center; gap: 1.5rem;
         }
         .empty-icon-wrap { width: 80px; height: 80px; border-radius: 50%; background: var(--bg-soft); color: var(--text-soft); display: flex; align-items: center; justify-content: center; }
-        .empty-state-box h2 { font-size: 1.5rem; }
+        .empty-state-box h2 { font-size: 1.5rem; font-weight: 800; }
         .empty-state-box p { color: var(--text-muted); max-width: 400px; font-weight: 600; }
-        .primary-button { background: var(--primary); color: white; padding: 0 2rem; height: 48px; border-radius: var(--radius-lg); font-weight: 800; }
+        .primary-button { background: var(--primary); color: white; padding: 0 2.5rem; height: 52px; border-radius: 1rem; font-weight: 800; box-shadow: 0 10px 15px rgba(var(--primary-rgb), 0.2); }
 
         @media (max-width: 640px) {
-          .page-header-alt { flex-direction: column; align-items: flex-start; padding: 1.25rem; }
-          .header-action-btn { width: 100%; }
+          .page-header-alt { flex-direction: column; align-items: stretch; padding: 1.5rem; border-radius: 1.5rem; }
+          .header-action-btn { width: 100%; justify-content: center; }
+          .my-exams-page { gap: 1.5rem; }
+          .exam-cloud-card { padding: 1.5rem; border-radius: 1.5rem; }
+        }
+
+        @media (max-width: 480px) {
+          .card-actions { flex-direction: column; align-items: stretch; gap: 0.75rem; }
+          .btn-group { display: grid; grid-template-columns: 1fr 1fr; width: 100%; }
+          .btn-group button { width: 100%; }
+          .exam-main-info h3 { font-size: 1.1rem; }
         }
       `}</style>
     </div>

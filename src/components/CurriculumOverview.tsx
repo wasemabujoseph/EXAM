@@ -277,21 +277,36 @@ const CurriculumOverview: React.FC = () => {
 
         @media (max-width: 1280px) {
           .dashboard-main-grid { grid-template-columns: 1fr; }
-          .dashboard-side-col { flex-direction: row; }
+          .dashboard-side-col { flex-direction: row; gap: 1.5rem; }
           .dashboard-side-col > section { flex: 1; }
         }
 
         @media (max-width: 768px) {
+          .overview-page { gap: 2rem; }
           .dashboard-side-col { flex-direction: column; }
-          .dashboard-hero { padding: 2.5rem 1.5rem; }
+          .dashboard-hero { padding: 3rem 1.25rem; border-radius: 1.5rem; }
+          .hero-title { font-size: 2.25rem; }
+          .hero-subtitle { font-size: 0.95rem; }
           .hero-search { margin-top: 1.5rem; }
-          .search-box { flex-direction: column; padding: 1rem; gap: 0.75rem; }
-          .search-box input { text-align: center; }
-          .search-button { width: 100%; }
-          .year-row { padding: 1.25rem; gap: 1rem; }
-          .year-num { display: none; }
-          .year-meta { flex-direction: column; align-items: flex-end; gap: 4px; }
-          .arrow-icon { display: none; }
+          .search-box { padding: 0.5rem; gap: 0.5rem; border-radius: 1rem; }
+          .search-icon { display: none; }
+          .search-box input { padding: 0 0.75rem; text-align: left; height: 44px; font-size: 0.9rem; }
+          .search-button { height: 44px; border-radius: 0.75rem; }
+          
+          .dashboard-stats-grid { gap: 1rem; }
+          .stat-card { padding: 1.25rem; border-radius: 1.25rem; gap: 1rem; }
+          .stat-icon { width: 44px; height: 44px; font-size: 1.25rem; }
+          .stat-value { font-size: 1.5rem; }
+          .stat-label { font-size: 0.7rem; }
+
+          .year-row { padding: 1.25rem; gap: 1rem; border-radius: 1.25rem; }
+          .year-num { display: flex; font-size: 1.25rem; opacity: 0.3; align-items: center; }
+          .year-details h3 { font-size: 1.15rem; }
+          .year-meta { flex-direction: row; align-items: center; gap: 0.75rem; }
+          .ects-badge { font-size: 0.65rem; padding: 2px 8px; }
+          .arrow-icon { display: flex; transform: scale(0.8); }
+          
+          .section-header h2 { font-size: 1.35rem; }
         }
       `}</style>
     </div>

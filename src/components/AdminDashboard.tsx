@@ -250,8 +250,21 @@ const AdminDashboard: React.FC = () => {
         .progress-bar-fill { height: 100%; border-radius: 4px; }
 
         @media (max-width: 1024px) {
-          .admin-stats-overview { grid-template-columns: repeat(2, 1fr); }
+          .admin-stats-overview { grid-template-columns: repeat(2, 1fr); gap: 1rem; }
           .admin-dashboard-grid { grid-template-columns: 1fr; }
+          .admin-view-header { flex-direction: column; align-items: flex-start; gap: 1.5rem; }
+          .header-actions { width: 100%; flex-wrap: wrap; }
+          .diagnostic-btn { flex: 1; min-width: 140px; height: 44px; font-size: 0.85rem; }
+          .header-sync { width: 100%; justify-content: center; }
+          .stat-card { padding: 1.25rem; border-radius: 1.25rem; gap: 1rem; }
+          .stat-info .value { font-size: 1.25rem; }
+        }
+
+        @media (max-width: 480px) {
+          .admin-stats-overview { grid-template-columns: 1fr; }
+          .header-txt h1 { font-size: 1.75rem; }
+          .backend-status-card { flex-direction: column; align-items: flex-start; padding: 1.25rem; gap: 1rem; }
+          .close-status { width: 100%; text-align: center; }
         }
       `}</style>
     </div>
