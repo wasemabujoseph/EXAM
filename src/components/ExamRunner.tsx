@@ -4,24 +4,11 @@ import { useVault } from '../context/VaultContext';
 import { curriculum } from '../data/curriculum';
 import { api } from '../lib/api';
 import { 
-  ChevronLeft, 
-  ChevronRight, 
-  Flag, 
-  StickyNote, 
-  Timer, 
-  X,
-  Hash,
-  Loader2,
-  Layout,
-  Layers,
-  Pause,
-  Play, 
-  AlertCircle,
-  ShieldCheck,
-  BookOpen,
-  Lock,
-  Info
+  ChevronLeft, ChevronRight, Clock, Send, Flag, 
+  Layout, Layers, Menu, X, ShieldCheck, Info, Pause, Play, Sparkles, Wand2, Bot,
+  Timer as TimerIcon, Loader2, AlertCircle, StickyNote, Hash
 } from 'lucide-react';
+import BrandLogo from './BrandLogo';
 import ProtectedContentShell from './security/ProtectedContentShell';
 
 const ExamRunner: React.FC = () => {
@@ -38,6 +25,9 @@ const ExamRunner: React.FC = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
   const [isTimerPaused, setIsTimerPaused] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [hints, setHints] = useState<Record<number, string>>({});
+  const [isLoadingHint, setIsLoadingHint] = useState<number | null>(null);
   const [displayMode, setDisplayMode] = useState<'single' | 'full'>('single');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -188,6 +178,32 @@ const ExamRunner: React.FC = () => {
     }
   };
 
+  const getAIHint = async (index: number) => {
+    if (hints[index] || isLoadingHint !== null) return;
+    
+    setIsLoadingHint(index);
+    try {
+      const q = questions[index];
+      const context = {
+        question: q.text || q.question,
+        options: q.options.map((o: any) => `${o.id}: ${o.text}`).join(', ')
+      };
+      
+      const response = await api.aiChat([
+        { role: 'system', content: 'You are a medical exam mentor. Provide a VERY SHORT, subtle hint (max 15 words) for the question. Do NOT give the answer. Focus on the core clinical concept or a diagnostic clue.' },
+        { role: 'user', content: `Question: ${context.question}\nOptions: ${context.options}` }
+      ]);
+      
+      if (response && response.message) {
+        setHints(prev => ({ ...prev, [index]: response.message }));
+      }
+    } catch (err) {
+      console.error('AI Hint failed', err);
+    } finally {
+      setIsLoadingHint(null);
+    }
+  };
+
   if (isLoading) return <div className="exam-loading"><Loader2 className="animate-spin" size={48} /><span>Preparing your exam workspace...</span></div>;
   if (!exam) return <div className="exam-error"><AlertCircle size={48} /><span>Exam not found or failed to load.</span><button onClick={() => navigate(-1)}>Go Back</button></div>;
 
@@ -204,50 +220,55 @@ const ExamRunner: React.FC = () => {
       examId={exam.id} 
       title={exam.title}
     >
-      <div className="exam-session">
-      {/* Header Section */}
+      <div className="exam-session animate-fade-in">
       <header className="exam-header-premium">
         <div className="header-content container">
           <div className="header-left">
             <button className="btn-exit-session" onClick={() => navigate(-1)}>
-              <X size={20} />
+              <ChevronLeft size={20} />
             </button>
-            <div className="exam-info-stack">
-              <h1 className="exam-main-title">{exam.title}</h1>
-              <div className="exam-meta-row">
-                <span className="q-progress-pill">Question {currentIndex + 1} of {questions.length}</span>
-                {isProtected && (
-                  <div className="security-pill-premium animate-fade-in">
-                    <div className="security-dot-active" />
-                    <ShieldCheck size={12} />
-                    <span>Strict Protection Active</span>
-                  </div>
-                )}
+            <div className="brand-wrap">
+              <BrandLogo variant="compact" size="md" className="header-logo-anim" />
+              <div className="vertical-divider" />
+              <div className="exam-info-stack">
+                <h1 className="exam-main-title">{exam.title}</h1>
+                <div className="exam-meta-row">
+                  <span className="q-progress-pill">Question {currentIndex + 1} of {questions.length}</span>
+                  {isProtected && (
+                    <div className="security-pill-premium">
+                      <div className="security-dot-active" />
+                      <span>Strict Protection</span>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
 
           <div className="header-center">
-            <div className={`smart-timer ${isTimerPaused ? 'is-paused' : ''} ${timeRemaining !== null && timeRemaining < 300 ? 'timer-urgent' : ''}`}>
-              <div className="timer-icon-wrap">
-                <Timer size={18} />
-              </div>
-              <span className="timer-digits">{timeRemaining !== null ? formatTime(timeRemaining) : '--:--'}</span>
-              <button className="timer-control" onClick={() => setIsTimerPaused(!isTimerPaused)}>
-                {isTimerPaused ? <Play size={12} fill="currentColor" /> : <Pause size={12} fill="currentColor" />}
-              </button>
+            <div className={`smart-timer-v2 ${timeRemaining !== null && timeRemaining < 300 ? 'urgent' : ''}`}>
+               <div className="timer-icon-box">
+                 <Clock size={16} />
+               </div>
+               <div className="timer-display">
+                 <span className="timer-label">Time Remaining</span>
+                 <span className="timer-val">{formatTime(timeRemaining || 0)}</span>
+               </div>
+               <button className="timer-action-btn" onClick={() => setIsTimerPaused(!isTimerPaused)}>
+                 {isTimerPaused ? <Play size={14} /> : <Pause size={14} fill="currentColor" />}
+               </button>
             </div>
           </div>
 
           <div className="header-right">
-             <button className="btn-submit-premium" onClick={() => handleSubmit()} disabled={isSubmitting}>
-               {isSubmitting ? <Loader2 className="animate-spin" size={18} /> : (
-                 <>
-                   <span>Complete Exam</span>
-                   <ChevronRight size={18} />
-                 </>
-               )}
-             </button>
+            <button className="btn-submit-pro" onClick={() => handleSubmit()} disabled={isSubmitting}>
+              {isSubmitting ? <Loader2 size={18} className="animate-spin" /> : (
+                <>
+                  <span>Submit Exam</span>
+                  <Send size={18} />
+                </>
+              )}
+            </button>
           </div>
         </div>
       </header>
@@ -257,15 +278,18 @@ const ExamRunner: React.FC = () => {
         <main className={`exam-main ${displayMode === 'full' ? 'is-full' : ''}`}>
           {displayMode === 'single' ? (
             <div className="question-wrapper animate-fade-in">
-               <div className="question-card">
-                  <div className="question-header">
-                    <span className="question-label">Question {currentIndex + 1}</span>
-                    <div className="question-text" dir="auto">
-                      {currentQ.text || currentQ.question}
-                    </div>
-                  </div>
+                <div className="question-card animate-slide-up">
+                  <span className="question-label">Clinical Scenario {currentIndex + 1}</span>
+                  <h2 className="question-text">{currentQ.text || currentQ.question}</h2>
 
-                  <div className="options-stack" dir="ltr">
+                  {hints[currentIndex] && (
+                    <div className="ai-hint-box animate-fade-in">
+                      <div className="hint-icon"><Sparkles size={16} /></div>
+                      <p className="hint-text">{hints[currentIndex]}</p>
+                    </div>
+                  )}
+
+                  <div className="options-stack">
                     {currentQ.options.map((opt: any) => {
                       const isSelected = (answers[currentIndex] || []).includes(opt.id);
                       return (
@@ -285,21 +309,28 @@ const ExamRunner: React.FC = () => {
                   </div>
 
                   <div className="question-tools">
-                    <button className={`tool-btn flag ${flags.has(currentIndex) ? 'active' : ''}`} onClick={() => toggleFlag(currentIndex)}>
-                      <Flag size={18} />
-                      <span>{flags.has(currentIndex) ? 'Flagged' : 'Flag'}</span>
+                    <button 
+                      className={`ai-mentor-btn ${isLoadingHint === currentIndex ? 'loading' : ''}`}
+                      onClick={() => getAIHint(currentIndex)}
+                      disabled={isLoadingHint === currentIndex}
+                    >
+                      {isLoadingHint === currentIndex ? (
+                        <Wand2 size={16} className="animate-spin" />
+                      ) : (
+                        <Bot size={16} />
+                      )}
+                      <span>{hints[currentIndex] ? 'Mentor Active' : 'Ask AI Mentor'}</span>
                     </button>
-                    <div className="note-input-wrapper">
-                      <StickyNote size={18} />
-                      <input 
-                        type="text" 
-                        placeholder="Add a private note..." 
-                        value={notes[currentIndex] || ''}
-                        onChange={(e) => setNotes({...notes, [currentIndex]: e.target.value})}
-                      />
-                    </div>
+
+                    <button 
+                      className={`tool-btn ${flags.has(currentIndex) ? 'active' : ''}`}
+                      onClick={() => toggleFlag(currentIndex)}
+                    >
+                      <Flag size={16} />
+                      <span>{flags.has(currentIndex) ? 'Flagged' : 'Flag Question'}</span>
+                    </button>
                   </div>
-               </div>
+                </div>
 
                {/* Standard Navigation */}
                <div className="desktop-navigation">
@@ -419,106 +450,60 @@ const ExamRunner: React.FC = () => {
           --safe-bottom: env(safe-area-inset-bottom, 0px);
         }
 
-        .exam-session {
-          position: fixed;
-          inset: 0;
-          background: var(--bg);
-          z-index: 2000;
-          display: flex;
-          flex-direction: column;
-          color: var(--text-strong);
-          overflow: hidden;
+        .header-logo-anim { animation: logo-float 6s infinite ease-in-out; }
+        @keyframes logo-float {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-4px); }
         }
 
-        .exam-header-premium {
-          height: 80px;
-          background: var(--surface-glass);
-          backdrop-filter: blur(20px);
-          border-bottom: 1px solid var(--border-soft);
-          display: flex;
-          align-items: center;
-          z-index: 100;
-          position: sticky;
-          top: 0;
-        }
+        .brand-wrap { display: flex; align-items: center; gap: 1.5rem; }
+        .vertical-divider { width: 1px; height: 32px; background: var(--border-soft); }
 
-        .header-content {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          width: 100%;
-          padding: 0 2rem;
-        }
+        .header-center { flex: 1; display: flex; justify-content: center; }
 
-        .header-left { display: flex; align-items: center; gap: 1.5rem; flex: 1; min-width: 0; }
-        .header-right { display: flex; align-items: center; gap: 1rem; }
+        .smart-timer-v2 {
+          display: flex; align-items: center; gap: 12px;
+          background: var(--surface-glass); padding: 8px 16px; border-radius: 99px;
+          border: 1px solid var(--border-soft); box-shadow: var(--shadow-sm);
+        }
+        .timer-icon-box { color: var(--primary); }
+        .timer-display { display: flex; flex-direction: column; line-height: 1.1; }
+        .timer-label { font-size: 0.6rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+        .timer-val { font-family: 'JetBrains Mono', monospace; font-size: 1.1rem; font-weight: 900; color: var(--text-strong); }
+        .timer-action-btn { color: var(--text-muted); transition: all 0.2s; padding: 4px; border-radius: 6px; }
+        .timer-action-btn:hover { color: var(--primary); background: var(--primary-soft-fade); }
 
-        .btn-exit-session {
-          width: 44px; height: 44px;
-          border-radius: 12px;
-          background: var(--bg-soft);
-          color: var(--text-muted);
-          display: flex; align-items: center; justify-content: center;
-          transition: all 0.2s;
-        }
-        .btn-exit-session:hover { background: var(--danger-soft); color: var(--danger); transform: scale(1.05); }
-
-        .exam-info-stack { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-        .exam-main-title { 
-          font-size: 1.1rem; 
-          font-weight: 900; 
-          margin: 0; 
-          letter-spacing: -0.02em;
-          color: var(--text-strong);
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-        }
-        .exam-meta-row { display: flex; align-items: center; gap: 1rem; }
-        .q-progress-pill { font-size: 0.7rem; font-weight: 800; color: var(--primary); text-transform: uppercase; letter-spacing: 0.05em; }
-        
-        .security-pill-premium {
-          display: flex; align-items: center; gap: 6px;
-          background: var(--text-strong); color: var(--bg);
-          padding: 4px 12px; border-radius: 99px;
-          font-size: 0.6rem; font-weight: 800; text-transform: uppercase;
-        }
-        .security-dot-active {
-          width: 6px; height: 6px; background: #10b981; border-radius: 50%;
-          box-shadow: 0 0 8px #10b981; animation: security-pulse 2s infinite;
-        }
-        @keyframes security-pulse {
+        .urgent .timer-val { color: var(--danger); }
+        .urgent .timer-icon-box { color: var(--danger); animation: timer-pulse 1s infinite; }
+        @keyframes timer-pulse {
           0% { transform: scale(1); opacity: 1; }
-          50% { transform: scale(1.3); opacity: 0.5; }
+          50% { transform: scale(1.1); opacity: 0.7; }
           100% { transform: scale(1); opacity: 1; }
         }
 
-        .smart-timer {
-          display: flex; align-items: center; gap: 0.75rem;
-          background: var(--bg-soft); padding: 6px; border-radius: 14px;
-          border: 1px solid var(--border-soft);
-          color: var(--text-strong);
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        .btn-submit-pro {
+          background: var(--primary); color: white;
+          padding: 0 1.5rem; height: 48px; border-radius: 14px;
+          font-weight: 900; font-size: 0.9rem; display: flex; align-items: center; gap: 10px;
+          box-shadow: 0 10px 20px var(--primary-glow); transition: all 0.2s;
         }
-        .smart-timer.timer-urgent { background: var(--danger-soft); border-color: var(--danger); color: var(--danger); }
-        .timer-icon-wrap {
-          width: 32px; height: 32px; background: var(--surface); border-radius: 10px;
-          display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow-sm);
-        }
-        .timer-digits { font-family: 'JetBrains Mono', monospace; font-weight: 800; font-size: 1.1rem; min-width: 60px; text-align: center; }
-        .timer-control {
-          width: 32px; height: 32px; border-radius: 10px; background: var(--surface);
-          display: flex; align-items: center; justify-content: center; transition: all 0.2s;
-        }
-        .timer-control:hover { background: var(--primary); color: white; }
+        .btn-submit-pro:hover { transform: translateY(-2px); box-shadow: 0 15px 30px var(--primary-glow); }
 
-        .btn-submit-premium {
-          background: var(--primary);
-          color: white; height: 48px; padding: 0 1.5rem; border-radius: 14px;
-          font-weight: 800; font-size: 0.95rem; display: flex; align-items: center; gap: 10px;
-          box-shadow: var(--shadow-premium); transition: all 0.2s;
+        .ai-hint-box {
+          margin-bottom: 2rem; padding: 1.25rem 1.5rem; border-radius: 1.5rem;
+          background: var(--primary-soft-fade); border: 1px solid var(--primary-soft);
+          display: flex; gap: 1rem; align-items: flex-start;
         }
-        .btn-submit-premium:hover { transform: translateY(-2px); box-shadow: var(--shadow-xl); }
+        .hint-icon { color: var(--primary); margin-top: 2px; }
+        .hint-text { font-size: 0.95rem; font-weight: 600; color: var(--primary); margin: 0; line-height: 1.5; }
+
+        .ai-mentor-btn {
+          display: flex; align-items: center; gap: 10px; padding: 0.75rem 1.5rem;
+          border-radius: 14px; background: var(--text-strong); color: var(--bg);
+          font-weight: 900; font-size: 0.85rem; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .ai-mentor-btn:hover:not(:disabled) { transform: scale(1.05); box-shadow: var(--shadow-lg); }
+        .ai-mentor-btn.loading { opacity: 0.7; cursor: wait; }
 
         .exam-viewport { flex: 1; display: flex; overflow: hidden; background: var(--bg); }
         .exam-main { flex: 1; overflow-y: auto; padding: 3rem 2rem; background: var(--bg); }
