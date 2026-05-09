@@ -273,32 +273,29 @@ const ExamRunner: React.FC = () => {
             </div>
           </div>
 
-          <div className="header-center">
-              <div className={`smart-timer ${timeRemaining !== null && timeRemaining < 300 ? 'timer-urgent' : ''}`}>
-                <div className="timer-icon-wrap">
-                  <Clock size={16} className={isTimerPaused ? '' : 'animate-pulse'} />
-                </div>
-                <span className="timer-digits">{formatTime(timeRemaining)}</span>
-                <button 
-                  className="timer-control"
-                  onClick={() => setIsTimerPaused(!isTimerPaused)}
-                  title={isTimerPaused ? 'Resume' : 'Pause'}
-                >
-                  {isTimerPaused ? <ChevronRight size={16} /> : <div className="pause-icon" />}
-                </button>
-              </div>
-
-              <button 
-                onClick={() => handleSubmit()} 
-                className="btn-submit-premium"
-                disabled={isSubmitting}
-              >
-                <span>{isSubmitting ? 'Finalizing...' : 'Submit Exam'}</span>
-                <ChevronRight size={18} />
-              </button>
-          </div>
-
           <div className="header-right">
+            <div className={`smart-timer ${timeRemaining !== null && timeRemaining < 300 ? 'timer-urgent' : ''}`}>
+              <div className="timer-icon-wrap">
+                <Clock size={16} className={isTimerPaused ? '' : 'animate-pulse'} />
+              </div>
+              <span className="timer-digits">{formatTime(timeRemaining)}</span>
+              <button 
+                className="timer-control"
+                onClick={() => setIsTimerPaused(!isTimerPaused)}
+                title={isTimerPaused ? 'Resume' : 'Pause'}
+              >
+                {isTimerPaused ? <ChevronRight size={16} /> : <div className="pause-icon" />}
+              </button>
+            </div>
+
+            <button 
+              onClick={() => handleSubmit()} 
+              className="btn-submit-premium"
+              disabled={isSubmitting}
+            >
+              <span>{isSubmitting ? 'Finalizing...' : 'Submit Exam'}</span>
+              <ChevronRight size={18} />
+            </button>
           </div>
         </div>
       </header>
