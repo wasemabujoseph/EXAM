@@ -11,7 +11,8 @@ import {
   FileText,
   Image as ImageIcon,
   BookOpen,
-  Lock
+  Lock,
+  Info
 } from 'lucide-react';
 import InternalPdfViewer from './viewers/InternalPdfViewer';
 import InternalImageViewer from './viewers/InternalImageViewer';

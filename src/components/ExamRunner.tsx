@@ -17,7 +17,10 @@ import {
   Pause,
   Play, 
   AlertCircle,
-  ShieldCheck
+  ShieldCheck,
+  BookOpen,
+  Lock,
+  Info
 } from 'lucide-react';
 import ProtectedContentShell from './security/ProtectedContentShell';
 
