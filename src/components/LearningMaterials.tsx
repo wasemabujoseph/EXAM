@@ -253,9 +253,6 @@ const LearningMaterials: React.FC = () => {
                         <span>View</span>
                       </button>
                     )}
-                    <a href={m.downloadUrl} className="action-btn secondary" title="Download">
-                      <Download size={16} />
-                    </a>
                   </div>
                 </div>
               </div>
@@ -326,7 +323,7 @@ const LearningMaterials: React.FC = () => {
         .file-meta { display: flex; align-items: center; gap: 0.5rem; font-size: 0.75rem; color: var(--text-muted); font-weight: 700; }
         .sep { opacity: 0.3; }
 
-        .card-actions { display: grid; grid-template-columns: 1fr 48px; gap: 0.75rem; }
+        .card-actions { display: grid; grid-template-columns: 1fr; gap: 0.75rem; }
         .action-btn { height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; gap: 0.5rem; font-weight: 800; transition: all 0.2s; }
         .action-btn.primary { background: var(--primary); color: white; flex: 1; }
         .action-btn.primary:hover { background: var(--primary-dark); transform: scale(1.02); }
