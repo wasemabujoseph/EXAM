@@ -91,7 +91,14 @@ const MaterialViewer: React.FC<MaterialViewerProps> = ({ material: propMaterial,
   };
 
   const handleStartExam = () => {
-    if (material?.id) navigate(`/dashboard/exam/material/${material.id}`);
+    if (material?.id) {
+      navigate(`/dashboard/exam/material/${material.id}`, {
+        state: {
+          isProtected,
+          securityMode: isProtected ? 'protected' : 'normal'
+        }
+      });
+    }
   };
 
   const handleUpdateMetadata = (updates: any) => {

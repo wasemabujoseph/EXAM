@@ -65,14 +65,23 @@ const LearningMaterials: React.FC = () => {
       const response = await api.getMaterialContent(material.id);
       const examData = JSON.parse(response.content);
       
+      const isProtected = material.isProtected === 'TRUE' || material.isProtected === true;
+      
       const exam = {
         id: material.id,
         title: material.title,
         questions: examData.questions || [],
-        timeLimit: examData.timeLimit || examData.time_limit_minutes || 0
+        timeLimit: examData.timeLimit || examData.time_limit_minutes || 0,
+        isProtected
       };
       
-      navigate(`/dashboard/exam/material/${material.id}`, { state: { exam } });
+      navigate(`/dashboard/exam/material/${material.id}`, { 
+        state: { 
+          exam,
+          isProtected,
+          securityMode: isProtected ? 'protected' : 'normal'
+        } 
+      });
     } catch (err) {
       console.error('Failed to start exam', err);
       alert('Could not load exam data. Please try again.');

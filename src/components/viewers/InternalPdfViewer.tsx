@@ -14,16 +14,13 @@ import {
   MoreVertical,
   Download,
   ExternalLink,
-  ShieldCheck
+  ShieldCheck,
+  Layout
 } from 'lucide-react';
 import { useVault } from '../../context/VaultContext';
 
 // Set worker source to the locally bundled Vite asset URL
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerSrc;
-
-if (import.meta.env.DEV) {
-  console.log("PDF.js worker source:", pdfjsLib.GlobalWorkerOptions.workerSrc);
-}
 
 interface InternalPdfViewerProps {
   fileData: {
@@ -41,6 +38,8 @@ interface InternalPdfViewerProps {
   };
 }
 
+const PDF_PAGE_GAP = 20;
+
 const InternalPdfViewer: React.FC<InternalPdfViewerProps> = ({ 
   fileData,
   adminActions
@@ -51,44 +50,24 @@ const InternalPdfViewer: React.FC<InternalPdfViewerProps> = ({
   const [pdf, setPdf] = useState<any>(null);
   const [numPages, setNumPages] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
-  const [scale, setScale] = useState(1.0); // Initial scale, will be updated by auto-fit
+  const [scale, setScale] = useState(1.0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showDebug, setShowDebug] = useState(false);
   const [renderKey, setRenderKey] = useState(0);
   const [showAdminMenu, setShowAdminMenu] = useState(false);
-  const [isInitialFitDone, setIsInitialFitDone] = useState(false);
+  const [viewMode, setViewMode] = useState<'continuous' | 'single'>('continuous');
 
-  const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const renderTaskRef = useRef<any>(null);
+  const pageRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const intersectionObserverRef = useRef<IntersectionObserver | null>(null);
 
-  // Function to calculate fit-to-width scale
-  const calculateFitScale = useCallback(async (pdfDoc: any, pageNum: number) => {
-    if (!containerRef.current || !pdfDoc) return 1.0;
-    
-    try {
-      const page = await pdfDoc.getPage(pageNum);
-      const viewport = page.getViewport({ scale: 1 });
-      
-      // Available width with safe margins (16px total)
-      const containerWidth = containerRef.current.clientWidth - (window.innerWidth < 768 ? 16 : 80);
-      const newScale = containerWidth / viewport.width;
-      
-      // Clamp scale between 0.3 and 3.0
-      return Math.min(Math.max(newScale, 0.3), 3.0);
-    } catch (e) {
-      return 1.0;
-    }
-  }, []);
-
-  // Handle PDF loading
+  // Load PDF document
   useEffect(() => {
     const loadPdf = async () => {
       setIsLoading(true);
       setError(null);
       setPdf(null);
-      setIsInitialFitDone(false);
       
       try {
         const pureBase64 = fileData.base64.includes(',') ? fileData.base64.split(',')[1] : fileData.base64;
@@ -108,12 +87,17 @@ const InternalPdfViewer: React.FC<InternalPdfViewerProps> = ({
         setNumPages(pdfDoc.numPages);
         
         // Initial auto-fit
-        const fitScale = await calculateFitScale(pdfDoc, 1);
-        setScale(fitScale);
-        setIsInitialFitDone(true);
+        if (containerRef.current) {
+          const page = await pdfDoc.getPage(1);
+          const viewport = page.getViewport({ scale: 1 });
+          const containerWidth = containerRef.current.clientWidth - 40;
+          const initialScale = Math.min(containerWidth / viewport.width, 1.5);
+          setScale(initialScale);
+        }
+        
         setIsLoading(false);
       } catch (err: any) {
-        console.error('PDF.js Internal Error:', err);
+        console.error('PDF.js Load Error:', err);
         setError(err.message || 'The PDF document could not be rendered.');
         setIsLoading(false);
       }
@@ -122,73 +106,50 @@ const InternalPdfViewer: React.FC<InternalPdfViewerProps> = ({
     if (fileData?.base64) {
       loadPdf();
     }
-  }, [fileData?.base64, renderKey, calculateFitScale]);
+  }, [fileData?.base64, renderKey]);
 
-  // Handle Page Rendering
+  // Page tracking with IntersectionObserver
   useEffect(() => {
-    const renderPage = async () => {
-      if (!pdf || !canvasRef.current || !isInitialFitDone) return;
-      
-      // Cancel previous render task if active
-      if (renderTaskRef.current) {
-        renderTaskRef.current.cancel();
-      }
+    if (!pdf || viewMode !== 'continuous') return;
 
-      try {
-        const page = await pdf.getPage(currentPage);
-        const dpr = window.devicePixelRatio || 1;
-        const viewport = page.getViewport({ scale: scale * dpr });
-        
-        const canvas = canvasRef.current;
-        const context = canvas.getContext('2d');
-        if (!context) return;
-        
-        // Set display dimensions
-        canvas.width = viewport.width;
-        canvas.height = viewport.height;
-        canvas.style.width = `${viewport.width / dpr}px`;
-        canvas.style.height = `${viewport.height / dpr}px`;
-        
-        const renderContext = {
-          canvasContext: context,
-          viewport: viewport,
-        };
-        
-        renderTaskRef.current = page.render(renderContext);
-        await renderTaskRef.current.promise;
-      } catch (e: any) {
-        if (e.name !== 'RenderingCancelledException') {
-          console.error('Page render error:', e);
-        }
-      }
-    };
+    intersectionObserverRef.current = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const pageNum = Number(entry.target.getAttribute('data-page-number'));
+            if (pageNum) setCurrentPage(pageNum);
+          }
+        });
+      },
+      { threshold: 0.3 }
+    );
 
-    renderPage();
-  }, [pdf, currentPage, scale, renderKey, isInitialFitDone]);
-
-  // Resize Observer for dynamic scaling
-  useEffect(() => {
-    if (!containerRef.current || !pdf) return;
-
-    const handleResize = async () => {
-      // Only auto-fit if we haven't manually zoomed significantly or if we're on mobile
-      if (window.innerWidth < 768) {
-        const fitScale = await calculateFitScale(pdf, currentPage);
-        setScale(fitScale);
-      }
-    };
-
-    const observer = new ResizeObserver(() => {
-      handleResize();
+    pageRefs.current.forEach((ref) => {
+      if (ref) intersectionObserverRef.current?.observe(ref);
     });
 
-    observer.observe(containerRef.current);
-    return () => observer.disconnect();
-  }, [pdf, currentPage, calculateFitScale]);
+    return () => {
+      intersectionObserverRef.current?.disconnect();
+    };
+  }, [pdf, viewMode, numPages, renderKey]);
 
-  const handleManualFit = async () => {
-    const fitScale = await calculateFitScale(pdf, currentPage);
-    setScale(fitScale);
+  const scrollToPage = (pageNum: number) => {
+    if (viewMode === 'continuous') {
+      const pageEl = pageRefs.current[pageNum];
+      if (pageEl) {
+        pageEl.scrollIntoView({ behavior: 'smooth' });
+      }
+    } else {
+      setCurrentPage(pageNum);
+    }
+  };
+
+  const handleFitWidth = async () => {
+    if (!pdf || !containerRef.current) return;
+    const page = await pdf.getPage(currentPage);
+    const viewport = page.getViewport({ scale: 1 });
+    const containerWidth = containerRef.current.clientWidth - 40;
+    setScale(containerWidth / viewport.width);
   };
 
   return (
@@ -197,41 +158,40 @@ const InternalPdfViewer: React.FC<InternalPdfViewerProps> = ({
       <div className="viewer-toolbar-premium">
         <div className="toolbar-left">
           <button 
-            onClick={() => setCurrentPage(p => Math.max(1, p - 1))} 
-            disabled={currentPage <= 1 || isLoading} 
-            className="tool-btn"
+            className="tool-btn nav"
+            onClick={() => scrollToPage(Math.max(1, currentPage - 1))}
+            disabled={currentPage <= 1 || isLoading}
           >
             <ChevronLeft size={18} />
           </button>
+          
           <div className="page-indicator">
             <span className="current">{currentPage}</span>
             <span className="divider">/</span>
             <span className="total">{numPages || '--'}</span>
           </div>
+
           <button 
-            onClick={() => setCurrentPage(p => Math.min(numPages, p + 1))} 
-            disabled={currentPage >= numPages || isLoading} 
-            className="tool-btn"
+            className="tool-btn nav"
+            onClick={() => scrollToPage(Math.min(numPages, currentPage + 1))}
+            disabled={currentPage >= numPages || isLoading}
           >
             <ChevronRight size={18} />
           </button>
         </div>
 
         <div className="toolbar-center">
-          <div className="zoom-controls">
-            <button onClick={() => setScale(s => Math.max(0.3, s - 0.2))} className="tool-btn">
-              <ZoomOut size={18} />
-            </button>
-            <div className="zoom-value" onClick={handleManualFit}>
-              {Math.round(scale * 100)}%
-            </div>
-            <button onClick={() => setScale(s => Math.min(3.0, s + 0.2))} className="tool-btn">
-              <ZoomIn size={18} />
-            </button>
-          </div>
+          <button onClick={() => setScale(s => Math.max(0.3, s - 0.2))} className="tool-btn"><ZoomOut size={18} /></button>
+          <div className="zoom-value" onClick={handleFitWidth}>{Math.round(scale * 100)}%</div>
+          <button onClick={() => setScale(s => Math.min(3.0, s + 0.2))} className="tool-btn"><ZoomIn size={18} /></button>
           <div className="tool-divider" />
-          <button onClick={handleManualFit} className="tool-btn fit-btn" title="Fit to Width">
-            <Maximize size={18} />
+          <button onClick={handleFitWidth} className="tool-btn" title="Fit to Width"><Maximize size={18} /></button>
+          <button 
+            onClick={() => setViewMode(v => v === 'continuous' ? 'single' : 'continuous')} 
+            className={`tool-btn ${viewMode === 'single' ? 'active' : ''}`}
+            title="Toggle View Mode"
+          >
+            <Layout size={18} />
           </button>
         </div>
 
@@ -243,19 +203,15 @@ const InternalPdfViewer: React.FC<InternalPdfViewerProps> = ({
             </div>
           )}
           
-          <button onClick={() => setShowDebug(!showDebug)} className={`tool-btn ${showDebug ? 'active' : ''}`}>
+          <button onClick={() => setShowDebug(!showDebug)} className={`tool-btn ${showDebug ? 'active' : ''}`} title="Diagnostics">
             <Info size={18} />
           </button>
 
           {isAdmin && (
             <div className="admin-tools-container">
-              <button 
-                onClick={() => setShowAdminMenu(!showAdminMenu)} 
-                className={`tool-btn admin-trigger ${showAdminMenu ? 'active' : ''}`}
-              >
+              <button onClick={() => setShowAdminMenu(!showAdminMenu)} className={`tool-btn admin-trigger ${showAdminMenu ? 'active' : ''}`}>
                 <MoreVertical size={18} />
               </button>
-              
               {showAdminMenu && (
                 <div className="admin-dropdown animate-pop-in">
                   <div className="dropdown-header">ADMIN TOOLS</div>
@@ -284,45 +240,50 @@ const InternalPdfViewer: React.FC<InternalPdfViewerProps> = ({
             <div className="skeleton-page animate-pulse" />
             <div className="loading-status">
               <Loader2 className="animate-spin" size={32} />
-              <p>Preparing High-Quality View...</p>
+              <p>Preparing Document View...</p>
             </div>
           </div>
         ) : error ? (
           <div className="viewer-error-state">
-            <div className="error-icon-bg">
-              <AlertCircle size={48} />
-            </div>
+            <AlertCircle size={48} className="icon-danger" />
             <h3>Unable to load PDF</h3>
-            <p>This document could not be rendered. It might be corrupted or restricted.</p>
-            <div className="error-actions">
-              <button onClick={() => setRenderKey(k => k + 1)} className="btn-primary-med">
-                <RefreshCw size={16} /> Retry
-              </button>
-            </div>
+            <p>{error}</p>
+            <button onClick={() => setRenderKey(k => k + 1)} className="btn-primary-med">Retry</button>
           </div>
         ) : (
-          <div className="pdf-scroll-area">
-            <div className="pdf-page-shadow">
-              <canvas 
-                ref={canvasRef} 
-                onContextMenu={e => e.preventDefault()} 
-                className="pdf-render-canvas"
+          <div className="pdf-scroll-content">
+            {viewMode === 'continuous' ? (
+              Array.from({ length: numPages }).map((_, i) => (
+                <PdfPage 
+                  key={`${renderKey}-${i + 1}`}
+                  pdf={pdf}
+                  pageNum={i + 1}
+                  scale={scale}
+                  ref={(el) => { pageRefs.current[i + 1] = el; }}
+                />
+              ))
+            ) : (
+              <PdfPage 
+                key={`${renderKey}-${currentPage}`}
+                pdf={pdf}
+                pageNum={currentPage}
+                scale={scale}
               />
-            </div>
+            )}
           </div>
         )}
 
-        {showDebug && (
+        {showDebug && isAdmin && (
           <div className="admin-debug-panel animate-slide-up">
             <div className="debug-header">
-              <div className="title">DIAGNOSTICS</div>
-              <button onClick={() => setShowDebug(false)} className="close-btn">&times;</button>
+              <span>DIAGNOSTICS (ADMIN)</span>
+              <button onClick={() => setShowDebug(false)}>&times;</button>
             </div>
-            <div className="debug-grid">
-              <div className="grid-item"><span>File</span>{fileData.fileName}</div>
-              <div className="grid-item"><span>Scale</span>{scale.toFixed(2)}</div>
-              <div className="grid-item"><span>DPR</span>{window.devicePixelRatio}</div>
-              <div className="grid-item"><span>Mode</span>{window.innerWidth < 768 ? 'Mobile (Auto-Fit)' : 'Desktop'}</div>
+            <div className="debug-content">
+              <div>Scale: {scale.toFixed(2)}</div>
+              <div>Mode: {viewMode}</div>
+              <div>Worker: Bundled Local</div>
+              <div>File: {fileData.fileName}</div>
             </div>
           </div>
         )}
@@ -350,135 +311,146 @@ const InternalPdfViewer: React.FC<InternalPdfViewerProps> = ({
           padding: 0 1rem;
           z-index: 100;
           box-shadow: var(--shadow-sm);
-          flex-shrink: 0;
-        }
-
-        .toolbar-left, .toolbar-center, .toolbar-right {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
         }
 
         .tool-btn {
-          width: 40px; /* Accessible touch target */
-          height: 40px;
-          border-radius: 10px;
-          color: var(--text-muted);
-          display: flex;
-          align-items: center;
-          justify-content: center;
+          width: 40px; height: 40px; border-radius: 10px;
+          color: var(--text-muted); display: flex; align-items: center; justify-content: center;
           transition: all 0.2s;
         }
         .tool-btn:hover:not(:disabled) { background: var(--primary-soft); color: var(--primary); }
-        .tool-btn:active:not(:disabled) { transform: scale(0.95); }
-        .tool-btn:disabled { opacity: 0.2; }
         .tool-btn.active { background: var(--primary); color: white; }
-
-        .zoom-controls { display: flex; align-items: center; }
+        .tool-btn:disabled { opacity: 0.2; }
 
         .page-indicator {
-          display: flex;
-          align-items: center;
-          gap: 0.4rem;
-          font-weight: 800;
-          font-size: 0.85rem;
-          background: var(--bg-soft);
-          padding: 0.25rem 0.75rem;
-          border-radius: 8px;
-          color: var(--text-strong);
+          display: flex; align-items: center; gap: 0.4rem;
+          font-weight: 800; font-size: 0.85rem;
+          background: var(--bg-soft); padding: 0.25rem 0.75rem;
+          border-radius: 8px; color: var(--text-strong);
         }
 
-        .zoom-value {
-          font-size: 0.8rem;
-          font-weight: 800;
-          min-width: 55px;
-          text-align: center;
-          cursor: pointer;
-          color: var(--text-strong);
-        }
-
-        .tool-divider { width: 1px; height: 24px; background: var(--border); margin: 0 0.25rem; }
+        .zoom-value { min-width: 50px; text-align: center; font-weight: 800; font-size: 0.8rem; cursor: pointer; }
+        .tool-divider { width: 1px; height: 20px; background: var(--border); margin: 0 0.5rem; }
 
         .pdf-viewport-container {
-          flex: 1;
-          overflow: auto;
-          position: relative;
-          background: var(--bg);
-          display: flex;
-          justify-content: center;
-          padding: 2rem 0; /* Vertical padding only, let width be handled by auto-fit */
+          flex: 1; overflow: auto; background: var(--bg);
+          padding: 2rem 1rem; display: flex; justify-content: center;
           -webkit-overflow-scrolling: touch;
         }
 
-        .pdf-scroll-area {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          width: fit-content;
-          margin: 0 auto;
+        .pdf-scroll-content {
+          display: flex; flex-direction: column; align-items: center;
+          gap: ${PDF_PAGE_GAP}px; width: fit-content;
         }
 
-        .pdf-page-shadow {
-          background: white;
-          box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-          border: 1px solid var(--border);
-          line-height: 0; /* Remove baseline gap */
+        .pdf-page-container {
+          background: white; box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+          border: 1px solid var(--border); line-height: 0;
+          transition: transform 0.2s ease-out;
         }
-        html[data-theme="dark"] .pdf-page-shadow {
-          box-shadow: 0 10px 50px rgba(0, 0, 0, 0.5);
-          border-color: rgba(255, 255, 255, 0.1);
+        html[data-theme="dark"] .pdf-page-container {
+          box-shadow: 0 10px 50px rgba(0,0,0,0.5); border-color: rgba(255,255,255,0.1);
         }
 
-        .pdf-render-canvas {
-          display: block;
-          user-select: none;
-        }
+        .pdf-canvas { display: block; max-width: none; }
 
-        /* Responsive Fixes */
         @media (max-width: 768px) {
-          .viewer-toolbar-premium {
-            padding: 0 0.5rem;
-            gap: 0.25rem;
-            overflow-x: auto;
-            justify-content: flex-start;
-          }
-          
+          .viewer-toolbar-premium { padding: 0 0.5rem; overflow-x: auto; justify-content: flex-start; gap: 0.5rem; }
           .toolbar-center { gap: 0.25rem; }
           .tool-divider, .hide-mobile { display: none; }
-          
-          .page-indicator { padding: 0.2rem 0.5rem; font-size: 0.75rem; min-width: 60px; }
-          .zoom-value { min-width: 45px; font-size: 0.75rem; }
-          
           .pdf-viewport-container { padding: 1rem 0; }
-          
-          .tool-btn { width: 36px; height: 36px; }
         }
 
-        /* Small screen specific toolbar wrapping/scrolling */
-        @media (max-width: 480px) {
-          .viewer-toolbar-premium {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
-          }
-          .viewer-toolbar-premium::-webkit-scrollbar { display: none; }
-          
-          .toolbar-right { margin-left: auto; }
+        .admin-dropdown {
+          position: absolute; top: 100%; right: 0; width: 220px;
+          background: var(--surface-elevated); border: 1px solid var(--border);
+          border-radius: 12px; box-shadow: var(--shadow-xl); padding: 0.5rem; z-index: 1000;
         }
+        .dropdown-item {
+          width: 100%; padding: 0.75rem; border-radius: 8px;
+          display: flex; align-items: center; gap: 0.75rem;
+          color: var(--text); font-size: 0.85rem; font-weight: 700;
+        }
+        .dropdown-item:hover { background: var(--primary-soft); color: var(--primary); }
 
-        /* PLACEHOLDER & LOADING */
-        .viewer-placeholder { display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 800px; gap: 2rem; padding: 2rem; }
-        .skeleton-page { width: 100%; aspect-ratio: 1 / 1.414; background: var(--surface); border-radius: 8px; box-shadow: var(--shadow-md); }
-        .loading-status { display: flex; align-items: center; gap: 1rem; color: var(--text-soft); font-weight: 700; }
-
-        /* DEBUG & ERRORS */
-        .admin-debug-panel { position: absolute; bottom: 1rem; left: 1rem; right: 1rem; background: var(--surface-elevated); border: 1px solid var(--border); border-radius: 16px; padding: 1rem; z-index: 500; backdrop-filter: blur(10px); max-width: 500px; }
-        .debug-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; font-weight: 900; font-size: 0.7rem; color: var(--secondary); }
-        .debug-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
-        .grid-item span { display: block; font-size: 0.6rem; font-weight: 900; color: var(--text-soft); text-transform: uppercase; }
-        .grid-item { font-size: 0.8rem; font-weight: 700; }
+        .admin-debug-panel {
+          position: absolute; bottom: 1rem; right: 1rem; width: 300px;
+          background: var(--surface-elevated); border: 1px solid var(--border);
+          border-radius: 12px; padding: 1rem; z-index: 500;
+        }
       `}</style>
     </div>
   );
 };
+
+// Sub-component for individual page rendering with lazy loading support
+const PdfPage = React.forwardRef<HTMLDivElement, { pdf: any, pageNum: number, scale: number }>(({ pdf, pageNum, scale }, ref) => {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [isVisible, setIsVisible] = useState(false);
+  const renderTaskRef = useRef<any>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setIsVisible(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: '200px' }
+    );
+
+    if (ref && 'current' in ref && ref.current) {
+      observer.observe(ref.current as Element);
+    } else if (typeof ref === 'function') {
+        // Handle callback ref if needed, but for simplicity we'll use a local div for observation
+    }
+
+    return () => observer.disconnect();
+  }, [pdf, pageNum]);
+
+  useEffect(() => {
+    if (!isVisible || !pdf || !canvasRef.current) return;
+
+    const renderPage = async () => {
+      try {
+        const page = await pdf.getPage(pageNum);
+        const dpr = window.devicePixelRatio || 1;
+        const viewport = page.getViewport({ scale: scale * dpr });
+        
+        const canvas = canvasRef.current!;
+        const context = canvas.getContext('2d');
+        if (!context) return;
+        
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+        canvas.style.width = `${viewport.width / dpr}px`;
+        canvas.style.height = `${viewport.height / dpr}px`;
+        
+        if (renderTaskRef.current) renderTaskRef.current.cancel();
+        renderTaskRef.current = page.render({ canvasContext: context, viewport });
+        await renderTaskRef.current.promise;
+      } catch (e: any) {
+        if (e.name !== 'RenderingCancelledException') console.error(e);
+      }
+    };
+
+    renderPage();
+  }, [pdf, pageNum, scale, isVisible]);
+
+  return (
+    <div 
+      className="pdf-page-container" 
+      ref={ref} 
+      data-page-number={pageNum}
+      style={{
+        minHeight: isVisible ? 'auto' : '500px', // Placeholder height
+        width: 'fit-content'
+      }}
+    >
+      <canvas ref={canvasRef} className="pdf-canvas" onContextMenu={e => e.preventDefault()} />
+    </div>
+  );
+});
 
 export default InternalPdfViewer;
