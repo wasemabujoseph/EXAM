@@ -95,7 +95,8 @@ const ExamRunner: React.FC = () => {
         setQuestions(qs);
         const limit = foundExam.time_limit_minutes || foundExam.timeLimit || (qs.length * 1.5);
         setTimeRemaining(limit > 0 ? Math.floor(limit * 60) : null);
-        setIsProtected(foundExam.is_protected === 'TRUE' || foundExam.is_protected === true || foundExam.isProtected === 'TRUE' || foundExam.isProtected === true || type === 'material');
+        const protectedValue = foundExam.is_protected || foundExam.isProtected;
+        setIsProtected(protectedValue === 'TRUE' || protectedValue === true || type === 'material');
       }
       setIsLoading(false);
     };
@@ -309,23 +310,28 @@ const ExamRunner: React.FC = () => {
           ) : (
             <div className="full-exam-view scroll-container">
               {questions.map((q, idx) => (
-                <div key={idx} className="full-mode-question" dir="ltr">
-                  <h3>{idx + 1}. {q.text || q.question}</h3>
-                  <div className="full-options-grid">
-                    {q.options.map((opt: any) => (
-                      <label key={opt.id} className={`option-item ${(answers[idx] || []).includes(opt.id) ? 'selected' : ''}`}>
-                        <span className="option-letter">{opt.id}</span>
-                        <span className="option-text">{opt.text}</span>
-                        <div className="option-control">
-                          <input 
-                            type={(q.answers || q.correct_answers || [q.correctAnswer]).length > 1 ? 'checkbox' : 'radio'}
-                            name={`q-full-${idx}`}
-                            checked={(answers[idx] || []).includes(opt.id)}
-                            onChange={(e) => handleAnswerChange(idx, opt.id, e.target.checked)}
-                          />
-                        </div>
-                      </label>
-                    ))}
+                <div key={idx} className="full-mode-question-card animate-fade-in" dir="ltr">
+                  <div className="full-q-header">
+                    <span className="full-q-num">Question {idx + 1}</span>
+                    <h3 className="full-q-text">{q.text || q.question}</h3>
+                  </div>
+                  <div className="full-options-stack">
+                    {q.options.map((opt: any) => {
+                      const isSelected = (answers[idx] || []).includes(opt.id);
+                      return (
+                        <button 
+                          key={opt.id} 
+                          className={`smart-option-card compact ${isSelected ? 'is-selected' : ''}`}
+                          onClick={() => handleAnswerChange(idx, opt.id, !isSelected)}
+                        >
+                          <div className="option-id-box">{opt.id}</div>
+                          <div className="option-body-text">{opt.text}</div>
+                          <div className="option-selection-ring">
+                            <div className="inner-dot" />
+                          </div>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               ))}
@@ -355,17 +361,19 @@ const ExamRunner: React.FC = () => {
             <div className="legend-item"><span className="dot flagged" /> Flagged</div>
           </div>
 
-          <div className="view-mode-toggle">
+          <div className="smart-view-switcher">
              <button 
-               className={`mode-toggle-btn ${displayMode === 'single' ? 'active' : ''}`}
+               className={`view-switch-btn ${displayMode === 'single' ? 'active' : ''}`}
                onClick={() => setDisplayMode('single')}
+               title="Single Question View"
              >
                <Layout size={18} /> <span>Single</span>
              </button>
              <button 
-               className={`mode-toggle-btn ${displayMode === 'full' ? 'active' : ''}`}
+               className={`view-switch-btn ${displayMode === 'full' ? 'active' : ''}`}
                onClick={() => setDisplayMode('full')}
                style={{ display: window.innerWidth <= 640 ? 'none' : 'flex' }}
+               title="Full Exam View"
              >
                <Layers size={18} /> <span>Full Page</span>
              </button>
@@ -543,6 +551,63 @@ const ExamRunner: React.FC = () => {
         .inner-dot { width: 12px; height: 12px; background: var(--primary); border-radius: 50%; opacity: 0; transform: scale(0.5); transition: all 0.2s; }
         .is-selected .inner-dot { opacity: 1; transform: scale(1); }
 
+        .full-exam-view {
+          width: 100%;
+          max-width: 900px;
+          display: flex;
+          flex-direction: column;
+          gap: 2.5rem;
+          padding-bottom: 5rem;
+        }
+
+        .full-mode-question-card {
+          background: #ffffff;
+          padding: 2.5rem;
+          border-radius: 2rem;
+          border: 1px solid #f1f5f9;
+          box-shadow: 0 4px 20px rgba(0,0,0,0.02);
+        }
+
+        .full-q-header { margin-bottom: 2rem; }
+        .full-q-num { font-size: 0.7rem; font-weight: 900; color: var(--primary); text-transform: uppercase; letter-spacing: 0.1em; display: block; margin-bottom: 0.5rem; }
+        .full-q-text { font-size: 1.25rem; font-weight: 800; color: #0f172a; line-height: 1.4; margin: 0; }
+
+        .full-options-stack { display: flex; flex-direction: column; gap: 0.75rem; }
+        .smart-option-card.compact { padding: 1rem 1.25rem; border-radius: 1.25rem; }
+        .smart-option-card.compact .option-id-box { width: 32px; height: 32px; font-size: 0.8rem; }
+        .smart-option-card.compact .option-body-text { font-size: 1rem; }
+
+        .smart-view-switcher {
+          margin-top: auto;
+          background: #f1f5f9;
+          padding: 6px;
+          border-radius: 16px;
+          display: flex;
+          gap: 4px;
+        }
+
+        .view-switch-btn {
+          flex: 1;
+          height: 44px;
+          border-radius: 12px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          font-size: 0.75rem;
+          font-weight: 800;
+          color: #64748b;
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+          background: transparent;
+        }
+
+        .view-switch-btn:hover { color: #0f172a; background: rgba(255,255,255,0.5); }
+        .view-switch-btn.active {
+          background: #ffffff;
+          color: var(--primary);
+          box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
+
         .question-tools {
           margin-top: 3rem; padding-top: 2rem; border-top: 1px solid #f1f5f9;
           display: flex; align-items: center; gap: 1.5rem;
@@ -598,7 +663,13 @@ const ExamRunner: React.FC = () => {
         @media (max-width: 1024px) {
           .exam-header-premium { height: 72px; }
           .header-content { padding: 0 1.25rem; }
-          .exam-navigator { display: none; }
+          .exam-navigator {
+            position: fixed; top: 0; bottom: 0; right: 0;
+            transform: translateX(100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: -10px 0 30px rgba(0,0,0,0.1); z-index: 2000;
+            width: 300px;
+          }
+          .exam-navigator.mob-show { transform: translateX(0); }
           .exam-main { padding: 2rem 1rem; }
           .question-card { padding: 2rem; border-radius: 2rem; }
           .question-text { font-size: 1.3rem; }
