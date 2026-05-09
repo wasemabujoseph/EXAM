@@ -399,6 +399,9 @@ const InternalPdfViewer: React.FC<InternalPdfViewerProps> = ({
           border: 1px solid var(--border);
           gap: 4px;
         }
+        @media (max-width: 768px) {
+          .pagination-controls { padding: 2px; gap: 2px; }
+        }
         .scroll-indicator-pro { padding: 4px 12px; font-size: 0.75rem; font-weight: 800; color: var(--primary); }
 
         .p-btn {
@@ -541,11 +544,26 @@ const InternalPdfViewer: React.FC<InternalPdfViewerProps> = ({
         }
 
         @media (max-width: 768px) {
+          .viewer-toolbar-premium { 
+            height: 54px; 
+            padding: 0 0.25rem;
+            gap: 4px;
+          }
           .pdf-scroller-main { padding: 1rem 0.5rem; }
           .page-number-label { display: none; }
           .desktop-only { display: none; }
-          .viewer-toolbar-premium { padding: 0 0.5rem; }
-          .zoom-trigger-pro { padding: 5px 10px; font-size: 0.75rem; }
+          
+          .icon-btn { width: 34px; height: 34px; border-radius: 10px; }
+          .icon-btn svg { width: 16px; height: 16px; }
+          
+          .p-btn { width: 28px; height: 28px; }
+          .page-indicator { padding: 0 4px; font-size: 0.7rem; gap: 2px; }
+          
+          .zoom-trigger-pro { padding: 4px 8px; font-size: 0.7rem; gap: 0.25rem; }
+          .zoom-trigger-pro svg { width: 12px; height: 12px; }
+          
+          .toolbar-right { gap: 4px; display: flex; align-items: center; }
+          
           .pdf-page-wrapper { margin-bottom: 1rem; width: 100% !important; overflow: hidden; }
           .pdf-page-wrapper canvas { width: 100% !important; height: auto !important; }
           .pdf-ai-overlay { width: 100%; top: 0; z-index: 1000; }
