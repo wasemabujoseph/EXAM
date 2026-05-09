@@ -15,6 +15,7 @@ import {
   ChevronLeft,
   FolderOpen
 } from 'lucide-react';
+import BrandLogo from './BrandLogo';
 
 const AdminLayout: React.FC = () => {
   const { user } = useVault();
@@ -68,8 +69,8 @@ const AdminLayout: React.FC = () => {
           <Menu size={24} />
         </button>
         <div className="admin-mobile-brand">
-          <img src="/brand/medexam-icon.png" alt="Logo" />
-          <span>ADMIN</span>
+          <BrandLogo variant="icon" size="sm" />
+          <span className="ml-2">ADMIN</span>
         </div>
         <div className="header-spacer" />
       </header>
@@ -80,9 +81,8 @@ const AdminLayout: React.FC = () => {
       <aside className="admin-sidebar">
         <div className="admin-sidebar-header">
           <div className="admin-brand">
-            <img src="/brand/medexam-icon.png" alt="MEDEXAM" />
+            <BrandLogo variant="compact" size="md" showSubtitle={false} />
             <div className="brand-txt">
-              <span className="brand-name">MEDEXAM</span>
               <span className="brand-tag">SYSTEM ADMIN</span>
             </div>
           </div>

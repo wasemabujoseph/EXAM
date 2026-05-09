@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useVault } from '../context/VaultContext';
 import { Lock, Mail, User, Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react';
+import BrandLogo from './BrandLogo';
 
 const RegisterPage: React.FC = () => {
   const { register } = useVault();
@@ -44,7 +45,7 @@ const RegisterPage: React.FC = () => {
     <div className="auth-page">
       <div className="auth-card animate-fade-in">
         <div className="auth-header">
-          <img src="/brand/medexam-logo-primary.png" alt="MEDEXAM AI Medical Learning Assistant" className="auth-logo" />
+          <BrandLogo variant="full" size="lg" className="justify-center mb-8" />
           <h1>Create Account</h1>
           <p>Join the MEDEXAM academic portal</p>
         </div>

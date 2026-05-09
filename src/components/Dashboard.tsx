@@ -17,6 +17,7 @@ import {
   ShieldAlert as ShieldIcon,
   FolderOpen
 } from 'lucide-react';
+import BrandLogo from './BrandLogo';
 
 const Dashboard: React.FC = () => {
   const { logout, user } = useVault();
@@ -69,7 +70,7 @@ const Dashboard: React.FC = () => {
           <Menu size={24} />
         </button>
         <div className="mobile-logo">
-          <img src="/brand/medexam-icon.png" alt="MEDEXAM" />
+          <BrandLogo variant="icon" size="sm" />
         </div>
         <div className="header-actions">
           <ThemeToggle />
@@ -85,8 +86,7 @@ const Dashboard: React.FC = () => {
       <aside className={`dashboard-sidebar ${isSidebarOpen ? 'active' : ''}`}>
         <div className="sidebar-top">
           <div className="sidebar-logo">
-            <img src="/brand/medexam-logo-primary.png" alt="MEDEXAM" className="full-logo" />
-            <img src="/brand/medexam-icon.png" alt="MEDEXAM" className="compact-logo" />
+            <BrandLogo variant="compact" size="md" />
             <button className="sidebar-close-btn" onClick={() => setIsSidebarOpen(false)} aria-label="Close Menu">
               <X size={24} />
             </button>

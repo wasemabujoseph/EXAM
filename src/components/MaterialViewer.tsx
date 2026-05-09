@@ -16,6 +16,7 @@ import {
 import InternalPdfViewer from './viewers/InternalPdfViewer';
 import InternalImageViewer from './viewers/InternalImageViewer';
 import InternalExamMaterialViewer from './viewers/InternalExamMaterialViewer';
+import BrandLogo from './BrandLogo';
 
 interface MaterialViewerProps {
   material?: any;
@@ -241,9 +242,8 @@ const MaterialViewer: React.FC<MaterialViewerProps> = ({ material: propMaterial,
             </div>
           </div>
           <div className="header-right desktop-only">
-             <div className="platform-branding">
-               <span className="brand-med">MED</span>
-               <span className="brand-exam">EXAM</span>
+             <div className="platform-branding flex items-center gap-2">
+               <BrandLogo variant="compact" size="sm" showSubtitle={false} />
                <span className="brand-internal">Internal Viewer</span>
              </div>
           </div>

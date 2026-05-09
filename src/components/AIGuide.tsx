@@ -149,7 +149,7 @@ const AIGuide: React.FC<Props> = ({ userName, embedded = false }) => {
         <div className="ai-header-main">
           <div className="ai-identity">
             <div className="ai-avatar-wrap">
-              <img src="/brand/medexam-icon.png" alt="AI" />
+              <img src="/brand/medexam-icon.svg" alt="AI" />
               <div className="ai-pulse-ring" />
             </div>
             <div className="ai-meta">
