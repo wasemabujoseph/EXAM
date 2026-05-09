@@ -16,10 +16,9 @@ import {
 } from 'lucide-react';
 import { useVault } from '../../context/VaultContext';
 
-// FINAL FAILSAFE WORKER - Using unpkg with standard JS for maximum compatibility
+// FAILSAFE WORKER - Using Legacy Compatibility Build
 const PDFJS_VERSION = '5.6.205'; 
-// Switching to .js instead of .mjs to avoid MIME type issues in some environments
-pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${PDFJS_VERSION}/build/pdf.worker.min.js`;
+pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${PDFJS_VERSION}/legacy/build/pdf.worker.min.js`;
 
 interface InternalPdfViewerProps {
   fileData: {
@@ -57,10 +56,9 @@ const InternalPdfViewer: React.FC<InternalPdfViewerProps> = ({
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-    const loadPdf = async () => {
+    const loadPdf = async (retryWithLegacy = false) => {
       setIsLoading(true);
       setError(null);
-      setPdf(null);
       
       try {
         const pureBase64 = fileData.base64.includes(',') ? fileData.base64.split(',')[1] : fileData.base64;
@@ -72,8 +70,7 @@ const InternalPdfViewer: React.FC<InternalPdfViewerProps> = ({
 
         const loadingTask = pdfjs.getDocument({ 
           data,
-          // Using any to bypass TS check for disableWorker which is valid in JS but often missing in types
-          disableWorker: useLegacyMode 
+          disableWorker: retryWithLegacy || useLegacyMode 
         } as any);
 
         const pdfDoc = await loadingTask.promise;
@@ -82,7 +79,16 @@ const InternalPdfViewer: React.FC<InternalPdfViewerProps> = ({
         setIsLoading(false);
       } catch (err: any) {
         console.error('PDF Load Error:', err);
-        setError(err.message || 'Worker initialization failed.');
+        
+        // AUTO-RETRY WITH LEGACY MODE IF WORKER FAILS
+        if (!retryWithLegacy && !useLegacyMode) {
+          console.warn('Worker failed, retrying with Legacy Compatibility Mode...');
+          setUseLegacyMode(true);
+          loadPdf(true);
+          return;
+        }
+
+        setError(err.message || 'Initialization failed.');
         setIsLoading(false);
       }
     };
@@ -113,11 +119,6 @@ const InternalPdfViewer: React.FC<InternalPdfViewerProps> = ({
     renderPage();
   }, [pdf, currentPage, scale, renderKey]);
 
-  const toggleLegacy = () => {
-    setUseLegacyMode(!useLegacyMode);
-    setRenderKey(k => k + 1);
-  };
-
   return (
     <div className="internal-pdf-viewer pro-theme">
       <div className="viewer-toolbar">
@@ -143,15 +144,15 @@ const InternalPdfViewer: React.FC<InternalPdfViewerProps> = ({
 
       <div className="pdf-canvas-container">
         {isLoading ? (
-          <div className="v-state"><Loader2 className="animate-spin" size={48} /><p>Optimizing Display...</p></div>
+          <div className="v-state"><Loader2 className="animate-spin" size={48} /><p>Bypassing Restrictions...</p></div>
         ) : error ? (
           <div className="v-state error">
             <AlertCircle size={64} className="text-danger" />
-            <h2>Viewer Initialization Failed</h2>
+            <h2>Document Load Blocked</h2>
             <p className="err-txt">{error}</p>
             <div className="error-actions">
-              <button onClick={toggleLegacy} className="btn-legacy">
-                {useLegacyMode ? 'Try Worker Mode' : 'Try Compatibility Mode'}
+              <button onClick={() => { setUseLegacyMode(true); setRenderKey(k => k + 1); }} className="btn-legacy">
+                Force Compatibility Mode
               </button>
               <button onClick={() => setRenderKey(k => k + 1)} className="btn-retry">
                 <RefreshCw size={16} /> Retry
@@ -164,9 +165,8 @@ const InternalPdfViewer: React.FC<InternalPdfViewerProps> = ({
 
         {showDebug && (
           <div className="diag-overlay">
-            <h4>Security & Health (v3.3.0)</h4>
+            <h4>Security & Health (v3.3.1)</h4>
             <div className="diag-row"><span>File:</span> {fileData.fileName}</div>
-            <div className="diag-row"><span>Status:</span> {fileData.pdfHeaderValid ? 'VALID' : 'INVALID'}</div>
             <div className="diag-row"><span>Mode:</span> {useLegacyMode ? 'COMPATIBILITY' : 'WORKER'}</div>
             <div className="diag-row"><span>Bytes:</span> {fileData.byteLength || 'ERR'}</div>
             <button className="close-diag" onClick={() => setShowDebug(false)}>CLOSE</button>
@@ -175,7 +175,7 @@ const InternalPdfViewer: React.FC<InternalPdfViewerProps> = ({
       </div>
 
       <style>{`
-        .pro-theme .viewer-toolbar { background: #1e1b4b !important; } /* DEEP NAVY TOOLBAR */
+        .pro-theme .viewer-toolbar { background: #1e1b4b !important; }
         .internal-pdf-viewer { display: flex; flex-direction: column; height: 100%; width: 100%; background: #0f172a; position: relative; }
         .viewer-toolbar { height: 50px; display: flex; align-items: center; justify-content: center; gap: 2rem; color: white; border-bottom: 1px solid rgba(255,255,255,0.1); }
         .toolbar-section { display: flex; align-items: center; gap: 0.5rem; }
