@@ -99,27 +99,29 @@ async function request<T>(action: string, payload: any = {}, timeoutMs: number =
 export const api = {
   // Diagnostics
   health: () => request<any>('health'),
-
+  getServerCapabilities: () => request<any>('serverCapabilities'),
+  materialsHealth: () => request<any>('materialsHealth'),
+  
   // Auth
-  register: (data: any) => request<any>('register', data),
-  login: (data: any) => request<any>('login', data),
+  register: (payload: any) => request<any>('register', payload),
+  login: (payload: any) => request<any>('login', payload),
   logout: () => request<any>('logout'),
   getMe: () => request<any>('getMe'),
 
   // Exams
-  saveExam: (data: any) => request<any>('saveExam', data),
+  saveExam: (payload: any) => request<any>('saveExam', payload),
   getMyExams: () => request<any[]>('getMyExams'),
   getPublicExams: () => request<any[]>('getPublicExams'),
   getExamById: (id: string) => request<any>('getExamById', { id }),
   deleteExam: (id: string) => request<any>('deleteExam', { id }),
 
   // Attempts
-  saveAttempt: (data: any) => request<any>('saveAttempt', data),
+  saveAttempt: (payload: any) => request<any>('saveAttempt', payload),
   getMyAttempts: () => request<any[]>('getMyAttempts'),
   getAttemptReview: (id: string) => request<any>('getAttemptReview', { id }),
   getLeaderboard: (examId?: string) => request<any[]>('getLeaderboard', { examId }),
 
-  // Admin Actions
+  // Admin
   adminGetStats: () => request<any>('adminGetStats'),
   adminGetUsers: () => request<any[]>('adminGetUsers'),
   adminUpdateUser: (userId: string, updates: any) => request<any>('adminUpdateUser', { userId, updates }),
@@ -128,30 +130,23 @@ export const api = {
   adminUpdateExam: (id: string, updates: any) => request<any>('adminUpdateExam', { id, updates }),
   adminUpdateExamJson: (id: string, examData: any) => request<any>('adminUpdateExamJson', { id, examData }),
 
+  // AI
+  aiChat: (messages: any[], context?: any) => request<any>('aiChat', { messages, context }),
+  aiExplain: (questionContext: any) => request<any>('aiExplain', { questionContext }),
+
   // Materials
-  uploadMaterial: (data: any) => request<any>('uploadMaterial', data, 60000), // 60s timeout for uploads
-  listMaterials: () => request<any[]>('listMaterials'),
+  uploadMaterial: (payload: any) => request<any>('uploadMaterial', payload),
+  listMaterials: (payload: any = {}) => request<any[]>('listMaterials', payload),
   getMaterialById: (id: string) => request<any>('getMaterialById', { id }),
+  getMaterialFileData: (id: string) => request<any>('getMaterialFileData', { id }),
   getMaterialContent: (id: string) => request<any>('getMaterialContent', { id }),
   updateMaterialMetadata: (id: string, updates: any) => request<any>('updateMaterialMetadata', { id, updates }),
   deleteMaterial: (id: string) => request<any>('deleteMaterial', { id }),
-  syncMaterialsFromDrive: () => request<any>('syncMaterialsFromDrive'),
-  materialsHealth: () => request<any>('materialsHealth'),
-  getMaterialFileData: (id: string) => request<{ 
-    fileName: string; 
-    mimeType: string; 
-    base64: string; 
-    sizeBytes: number; 
-    type: string; 
-    title: string; 
-    isProtected: boolean;
-  }>('getMaterialFileData', { id }),
   updateMaterialContent: (id: string, content: string) => request<any>('updateMaterialContent', { id, content }),
-  replaceMaterialFile: (data: any) => request<any>('replaceMaterialFile', data, 60000),
-  logSecurityEvent: (data: { eventType: string; page?: string; materialId?: string; examId?: string; attemptId?: string; userAgent?: string }) => 
-    request<any>('logSecurityEvent', data),
-  validateExamAccess: (data: { examId?: string; materialId?: string }) => 
-    request<{ allowed: boolean; reason?: string; userStatus?: string; username?: string }>('validateExamAccess', data),
+  replaceMaterialFile: (payload: any) => request<any>('replaceMaterialFile', payload),
+  syncMaterialsFromDrive: () => request<any>('syncMaterialsFromDrive'),
+  
+  // Security
+  logSecurityEvent: (payload: any) => request<any>('logSecurityEvent', payload),
+  validateExamAccess: (payload: any = {}) => request<any>('validateExamAccess', payload)
 };
-
-export const isApiConfigured = !!API_URL;

@@ -50,7 +50,11 @@ const MaterialViewer: React.FC = () => {
         }
       } catch (err: any) {
         console.error('Failed to load material', err);
-        setError(err.message || 'Material not found or access denied.');
+        let msg = err.message || 'Material not found or access denied.';
+        if (msg.includes('Unknown action: getMaterialFileData')) {
+          msg = 'Backend is outdated (Missing getMaterialFileData). Please redeploy Apps Script with the latest Code.gs as a new version.';
+        }
+        setError(msg);
       } finally {
         setIsLoading(false);
       }
@@ -102,7 +106,7 @@ const MaterialViewer: React.FC = () => {
       <div className="viewer-error-container">
         <AlertCircle size={64} className="text-danger" />
         <h2>Unable to load material</h2>
-        <p>{error}</p>
+        <p className="error-message-text">{error}</p>
         <button onClick={() => navigate(-1)} className="btn-back">
           Go Back
         </button>
@@ -282,7 +286,7 @@ const MaterialViewer: React.FC = () => {
         }
         .viewer-loading-container p { font-weight: 800; color: var(--text-soft); }
         .viewer-error-container h2 { font-weight: 900; color: var(--text-strong); }
-        .viewer-error-container p { color: var(--text-muted); max-width: 300px; text-align: center; }
+        .viewer-error-container p.error-message-text { color: var(--text-danger); max-width: 500px; text-align: center; font-weight: 700; background: var(--danger-soft); padding: 1rem; border-radius: 12px; border: 1px solid var(--danger); }
         .btn-back { background: var(--primary); color: white; padding: 0 1.5rem; height: 48px; border-radius: 12px; font-weight: 800; }
 
         @media (max-width: 640px) {

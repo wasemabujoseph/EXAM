@@ -1,5 +1,5 @@
 /**
- * MEDEXAM Core Backend (Version 3.2.0 - Master)
+ * MEDEXAM Core Backend (Version 3.3.0-material-viewer)
  * This script acts as the secure cloud gateway for the MEDEXAM platform.
  */
 
@@ -54,7 +54,27 @@ function doPost(e) {
     let result;
     switch (action) {
       case 'health':
-        result = { status: 'ok', version: '3.2.0', db: TABLES.USERS };
+        result = { status: 'ok', version: '3.3.0-material-viewer', db: TABLES.USERS };
+        break;
+      case 'serverCapabilities':
+        result = {
+          version: "3.3.0-material-viewer",
+          actions: [
+            "uploadMaterial",
+            "listMaterials",
+            "getMaterialById",
+            "getMaterialFileData",
+            "getMaterialContent",
+            "updateMaterialContent",
+            "replaceMaterialFile",
+            "syncMaterialsFromDrive",
+            "materialsHealth",
+            "adminUpdateExam",
+            "adminUpdateExamJson",
+            "logSecurityEvent",
+            "validateExamAccess"
+          ]
+        };
         break;
       case 'register':
         result = handleRegister(payload);
@@ -185,7 +205,7 @@ function doGet(e) {
   
   const info = {
     status: 'ok',
-    version: '3.2.0',
+    version: '3.3.0-material-viewer',
     spreadsheetName: ss.getName(),
     sheets: ss.getSheets().map(s => s.getName()),
     registeredUsernames: users.map(u => u ? (u.length > 2 ? u.substring(0, 2) + '***' : '***') : 'null')
@@ -758,31 +778,36 @@ function handleSyncMaterialsFromDrive(user) {
         else if (typeFolderName === 'PowerPoints') type = 'presentation';
 
         const id = Utilities.getUuid();
-        const material = [
-          id,
-          fileId,
-          file.getName(), // title
-          '', // description
-          year,
-          subject,
-          type,
-          file.getName(), // originalFilename
-          file.getMimeType(),
-          file.getSize(),
-          file.getUrl(),
-          `https://drive.google.com/file/d/${fileId}/preview`,
-          `https://drive.google.com/uc?export=download&id=${fileId}`,
-          null, // thumbnailUrl
-          '[]', // tags
-          user.username || 'Drive Sync',
-          now,
-          now,
-          'TRUE', // isVisibleToStudents
-          0, // examQuestionCount
-          type === 'exam' ? 'TRUE' : 'FALSE' // isProtected
-        ];
+        const materialObj = {
+          id: id,
+          fileId: fileId,
+          previewFileId: null,
+          title: file.getName(),
+          description: '',
+          year: year,
+          subject: subject,
+          type: type,
+          originalFilename: file.getName(),
+          mimeType: file.getMimeType(),
+          previewMimeType: null,
+          previewStatus: 'ready',
+          sizeBytes: file.getSize(),
+          driveUrl: file.getUrl(),
+          previewUrl: `https://drive.google.com/file/d/${fileId}/preview`,
+          downloadUrl: `https://drive.google.com/uc?export=download&id=${fileId}`,
+          thumbnailUrl: null,
+          tags: '[]',
+          uploadedBy: user.username || 'Drive Sync',
+          uploadedAt: now,
+          updatedAt: now,
+          isVisibleToStudents: 'TRUE',
+          examQuestionCount: 0,
+          isProtected: type === 'exam' ? 'TRUE' : 'FALSE'
+        };
 
-        sheet.appendRow(material);
+        const headers = HEADERS[TABLES.MATERIALS];
+        const materialRow = headers.map(h => materialObj[h]);
+        sheet.appendRow(materialRow);
         existingFileIds.add(fileId);
         results.added++;
       } catch (e) {
@@ -810,10 +835,11 @@ function handleMaterialsHealth(user) {
   try {
     const folder = DriveApp.getFolderById(rootFolderId);
     const sheet = getSheet(TABLES.MATERIALS);
-    const count = Math.max(0, sheet.getLastRow() - 1);
-
+    ensureDatabaseHeaders();
     return {
       success: true,
+      version: "3.3.0-material-viewer",
+      hasGetMaterialFileData: true,
       folderName: folder.getName(),
       folderId: rootFolderId,
       materialsCount: count,
@@ -1046,8 +1072,11 @@ function rowToObject(row, headers) {
  * ONE-TIME SETUP: Run this function once in the Apps Script editor 
  * to securely save your API key.
  */
-function SETUP_OPENROUTER_KEY() {
-  const apiKey = "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"; 
+function SETUP_OPENROUTER_KEY(apiKey) {
+  if (!apiKey) {
+    Logger.log("❌ Please provide the API key as an argument: SETUP_OPENROUTER_KEY('sk-or-...')");
+    return;
+  }
   PropertiesService.getScriptProperties().setProperty('OPENROUTER_API_KEY', apiKey);
   Logger.log("✅ API Key saved successfully!");
 }
@@ -1255,7 +1284,7 @@ function MASTER_DATABASE_SETUP() {
 function ULTIMATE_ADMIN_FIX() {
   const email = 'wasemkhallaf86@gmail.com';
   const username = 'waseem';
-  const pass = '88962334';
+  const pass = PropertiesService.getScriptProperties().getProperty('ADMIN_TEMP_PASSWORD') || '88962334';
   
   const sheet = getSheet(TABLES.USERS);
   const data = sheet.getDataRange().getValues();
@@ -1455,3 +1484,33 @@ function convertOfficeToPdf(fileId, targetFolder) {
     return null;
   }
 }
+
+ f u n c t i o n   e n s u r e D a t a b a s e H e a d e r s ( )   { 
+     c o n s t   s s   =   g e t S s ( ) ; 
+     O b j e c t . k e y s ( T A B L E S ) . f o r E a c h ( t a b l e N a m e   = >   { 
+         c o n s t   s h e e t N a m e   =   T A B L E S [ t a b l e N a m e ] ; 
+         c o n s t   s h e e t   =   s s . g e t S h e e t B y N a m e ( s h e e t N a m e ) ; 
+         i f   ( ! s h e e t )   r e t u r n ; 
+         
+         c o n s t   t a r g e t H e a d e r s   =   H E A D E R S [ s h e e t N a m e ] ; 
+         i f   ( ! t a r g e t H e a d e r s )   r e t u r n ; 
+         
+         c o n s t   c u r r e n t H e a d e r s   =   s h e e t . g e t R a n g e ( 1 ,   1 ,   1 ,   s h e e t . g e t L a s t C o l u m n ( ) ) . g e t V a l u e s ( ) [ 0 ] ; 
+         
+         / /   F i n d   m i s s i n g   h e a d e r s 
+         t a r g e t H e a d e r s . f o r E a c h ( ( h e a d e r ,   i n d e x )   = >   { 
+             i f   ( c u r r e n t H e a d e r s . i n d e x O f ( h e a d e r )   = = =   - 1 )   { 
+                 / /   C o l u m n   i s   m i s s i n g 
+                 c o n s t   n e w C o l I d x   =   s h e e t . g e t L a s t C o l u m n ( )   +   1 ; 
+                 s h e e t . i n s e r t C o l u m n A f t e r ( s h e e t . g e t L a s t C o l u m n ( ) ) ; 
+                 s h e e t . g e t R a n g e ( 1 ,   n e w C o l I d x ) . s e t V a l u e ( h e a d e r ) 
+                           . s e t F o n t W e i g h t ( ' b o l d ' ) 
+                           . s e t B a c k g r o u n d ( ' # f 3 f 4 f 6 ' ) ; 
+                 L o g g e r . l o g ( ' A d d e d   m i s s i n g   c o l u m n   \  
+   +   h e a d e r   +    
+ \   t o   s h e e t   '   +   s h e e t N a m e ) ; 
+             } 
+         } ) ; 
+     } ) ; 
+ }  
+ 
