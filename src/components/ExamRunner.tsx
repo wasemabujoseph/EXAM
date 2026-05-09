@@ -279,22 +279,19 @@ const ExamRunner: React.FC = () => {
                 <Clock size={16} className={isTimerPaused ? '' : 'animate-pulse'} />
               </div>
               <span className="timer-digits">{formatTime(timeRemaining)}</span>
-              <button 
-                className="timer-control"
-                onClick={() => setIsTimerPaused(!isTimerPaused)}
-                title={isTimerPaused ? 'Resume' : 'Pause'}
-              >
-                {isTimerPaused ? <ChevronRight size={16} /> : <div className="pause-icon" />}
-              </button>
             </div>
 
             <button 
               onClick={() => handleSubmit()} 
-              className="btn-submit-premium"
+              className="btn-submit-premium desktop-only"
               disabled={isSubmitting}
             >
               <span>{isSubmitting ? 'Finalizing...' : 'Submit Exam'}</span>
               <ChevronRight size={18} />
+            </button>
+            
+            <button className="mobile-only menu-toggle-btn" onClick={() => setIsQuestionsMenuOpen(!isQuestionsMenuOpen)}>
+              <Menu size={20} />
             </button>
           </div>
         </div>
@@ -419,7 +416,11 @@ const ExamRunner: React.FC = () => {
         </main>
 
         {/* Side Question Navigator */}
-        <aside className="exam-navigator">
+        <aside className={`exam-navigator ${isQuestionsMenuOpen ? 'mob-show' : ''}`}>
+          <div className="nav-mob-header mobile-only">
+            <span>Questions</span>
+            <button onClick={() => setIsQuestionsMenuOpen(false)}><X size={20} /></button>
+          </div>
           <div className="nav-header">
              <Hash size={18} /> <span>Question Navigator</span>
           </div>
@@ -428,7 +429,10 @@ const ExamRunner: React.FC = () => {
               <button
                 key={i}
                 className={`nav-grid-item ${currentIndex === i ? 'active' : ''} ${answers[i]?.length > 0 ? 'completed' : ''} ${flaggedQuestions.has(i) ? 'flagged' : ''}`}
-                onClick={() => setCurrentIndex(i)}
+                onClick={() => {
+                  setCurrentIndex(i);
+                  setIsQuestionsMenuOpen(false);
+                }}
               >
                 {i + 1}
               </button>
@@ -458,6 +462,25 @@ const ExamRunner: React.FC = () => {
              </button>
           </div>
         </aside>
+
+        {/* Mobile Navigation Footer */}
+        <div className="mobile-footer-nav mobile-only">
+          <button className="mob-nav-btn" onClick={() => setCurrentIndex(p => Math.max(0, p - 1))} disabled={currentIndex === 0}>
+            <ChevronLeft size={20} />
+          </button>
+          <button className="mob-questions-btn" onClick={() => setIsQuestionsMenuOpen(true)}>
+            Q {currentIndex + 1} / {questions.length}
+          </button>
+          {currentIndex === questions.length - 1 ? (
+            <button className="mob-submit-btn" onClick={() => handleSubmit()}>
+              Submit
+            </button>
+          ) : (
+            <button className="mob-nav-btn" onClick={() => setCurrentIndex(p => Math.min(questions.length - 1, p + 1))}>
+              <ChevronRight size={20} />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Mobile Sticky Bottom Navigation */}
@@ -774,26 +797,59 @@ const ExamRunner: React.FC = () => {
 
         .mobile-footer-nav { display: none; }
 
+        .desktop-only { display: flex; }
+        .mobile-only { display: none; }
+
         @media (max-width: 1024px) {
-          .exam-header-premium { height: 72px; }
-          .header-content { padding: 0 1.25rem; }
+          .desktop-only { display: none !important; }
+          .mobile-only { display: flex !important; }
+
+          .exam-header-premium { height: 72px; padding: 0 1rem; }
+          .header-content { padding: 0; }
+          .v-divider { display: none; }
+          .exam-header-logo { transform: scale(0.85) translateX(-5px); }
+          .exam-main-title { display: none; }
+          .exam-meta-row { gap: 0.5rem; }
+          
+          .smart-timer { padding: 4px 8px; border-radius: 10px; }
+          .timer-digits { font-size: 0.95rem; min-width: 45px; }
+
+          .menu-toggle-btn {
+            width: 40px; height: 40px; border-radius: 10px;
+            background: var(--bg-soft); color: var(--text-strong);
+            display: flex; align-items: center; justify-content: center;
+          }
+
+          .exam-main { padding: 1.5rem 1rem 7rem; }
+          .question-card { padding: 2rem; border-radius: 2rem; box-shadow: var(--shadow-md); }
+          .question-text { font-size: 1.3rem; margin-bottom: 2rem; }
+          .smart-option-card { padding: 1rem; border-radius: 1.25rem; }
+          .option-body-text { font-size: 1rem; }
+
+          .question-tools { flex-wrap: wrap; gap: 0.75rem; }
+          .tool-btn { flex: 1; min-width: 120px; }
+          .note-input-wrapper { width: 100%; }
+
+          .desktop-navigation { display: none; }
+
           .exam-navigator {
             position: fixed; top: 0; bottom: 0; right: 0;
             transform: translateX(100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: -10px 0 30px rgba(0,0,0,0.1); z-index: 2000;
-            width: 300px;
+            box-shadow: -10px 0 30px rgba(0,0,0,0.1); z-index: 3000;
+            width: 300px; padding: 2rem;
           }
           .exam-navigator.mob-show { transform: translateX(0); }
-          .exam-main { padding: 2rem 1rem; }
-          .question-card { padding: 2rem; border-radius: 2rem; }
-          .question-text { font-size: 1.3rem; }
+          .nav-mob-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem; font-weight: 900; color: var(--text-strong); }
+
           .mobile-footer-nav {
             display: flex; position: fixed; bottom: 0; left: 0; right: 0;
-            height: 80px; background: var(--surface); border-top: 1px solid var(--border);
-            padding: 0 1.25rem; align-items: center; justify-content: space-between; z-index: 1000;
+            height: 80px; background: var(--surface); border-top: 1px solid var(--border-soft);
+            padding: 0 1rem; align-items: center; justify-content: space-between; z-index: 2000;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.05);
           }
           .mob-nav-btn { width: 48px; height: 48px; border-radius: 14px; background: var(--bg-soft); color: var(--text-strong); display: flex; align-items: center; justify-content: center; }
-          .mob-questions-btn { flex: 1; margin: 0 1rem; height: 48px; border-radius: 14px; background: var(--text-strong); color: var(--bg); font-weight: 800; }
+          .mob-questions-btn { flex: 1; margin: 0 0.75rem; height: 48px; border-radius: 14px; background: var(--text-strong); color: var(--bg); font-weight: 800; }
+          .mob-submit-btn { padding: 0 1.25rem; height: 48px; border-radius: 14px; background: var(--primary); color: white; font-weight: 800; font-size: 0.9rem; }
         }
       `}</style>
     </div>
