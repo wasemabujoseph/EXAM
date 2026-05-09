@@ -167,7 +167,7 @@ const ExamRunner: React.FC = () => {
 
       setAiHints(prev => ({
         ...prev,
-        [index]: { text: response.text || response.message || 'Think carefully about the clinical presentation.', loading: false }
+        [index]: { text: response.content || 'Think carefully about the clinical presentation.', loading: false }
       }));
     } catch (err) {
       setAiHints(prev => ({
