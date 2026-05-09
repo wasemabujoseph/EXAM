@@ -12,7 +12,8 @@ import {
   LogOut,
   Menu,
   X,
-  ChevronLeft
+  ChevronLeft,
+  FolderOpen
 } from 'lucide-react';
 
 const AdminLayout: React.FC = () => {
@@ -54,6 +55,7 @@ const AdminLayout: React.FC = () => {
     { icon: <Users size={20} />, label: 'User Management', path: '/admin/users' },
     { icon: <FileText size={20} />, label: 'Exam Library', path: '/admin/exams' },
     { icon: <History size={20} />, label: 'Attempt Logs', path: '/admin/attempts' },
+    { icon: <FolderOpen size={20} />, label: 'Materials Library', path: '/admin/materials' },
     { icon: <BarChart3 size={20} />, label: 'Platform Stats', path: '/admin/analytics' },
     { icon: <Settings size={20} />, label: 'Core Settings', path: '/admin/settings' },
   ];

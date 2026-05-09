@@ -18,14 +18,14 @@ export interface ApiResponse<T> {
 
 import { safeStorage } from '../utils/safeStorage';
 
-async function request<T>(action: string, payload: any = {}): Promise<T> {
+async function request<T>(action: string, payload: any = {}, timeoutMs: number = 15000): Promise<T> {
   if (!API_URL) {
     throw new Error('Apps Script API URL is not configured.');
   }
 
   const token = safeStorage.getItem('exam_cloud_token');
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
   
   try {
 
@@ -125,6 +125,14 @@ export const api = {
   adminUpdateUser: (userId: string, updates: any) => request<any>('adminUpdateUser', { userId, updates }),
   adminGetAllExams: () => request<any[]>('adminGetAllExams'),
   adminGetAllAttempts: () => request<any[]>('adminGetAllAttempts'),
+
+  // Materials
+  uploadMaterial: (data: any) => request<any>('uploadMaterial', data, 60000), // 60s timeout for uploads
+  listMaterials: () => request<any[]>('listMaterials'),
+  getMaterialById: (id: string) => request<any>('getMaterialById', { id }),
+  getMaterialContent: (id: string) => request<any>('getMaterialContent', { id }),
+  updateMaterialMetadata: (id: string, updates: any) => request<any>('updateMaterialMetadata', { id, updates }),
+  deleteMaterial: (id: string) => request<any>('deleteMaterial', { id }),
 };
 
 export const isApiConfigured = !!API_URL;

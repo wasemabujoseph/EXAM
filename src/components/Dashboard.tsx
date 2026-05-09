@@ -14,7 +14,8 @@ import {
   LogOut, 
   Menu, 
   X,
-  ShieldAlert as ShieldIcon
+  ShieldAlert as ShieldIcon,
+  FolderOpen
 } from 'lucide-react';
 
 const Dashboard: React.FC = () => {
@@ -52,6 +53,7 @@ const Dashboard: React.FC = () => {
     { icon: <PlusCircle size={20} />, label: 'Generate Exam', path: '/dashboard/generate' },
     { icon: <FileText size={20} />, label: 'My Exams', path: '/dashboard/my-exams' },
     { icon: <ClipboardCheck size={20} />, label: 'Completed Exams', path: '/dashboard/history' },
+    { icon: <FolderOpen size={20} />, label: 'Learning Materials', path: '/dashboard/materials' },
     { icon: <Trophy size={20} />, label: 'Leaderboard', path: '/dashboard/leaderboard' },
     { icon: <SettingsIcon size={20} />, label: 'Settings', path: '/dashboard/settings' },
   ];

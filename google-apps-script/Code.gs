@@ -18,7 +18,8 @@ const TABLES = {
   SESSIONS: 'Sessions',
   EXAMS: 'Exams',
   EXAM_ATTEMPTS: 'ExamAttempts',
-  AUDIT_LOG: 'AuditLog'
+  AUDIT_LOG: 'AuditLog',
+  MATERIALS: 'Materials'
 };
 
 const HEADERS = {
@@ -26,7 +27,8 @@ const HEADERS = {
   [TABLES.SESSIONS]: ['id', 'user_id', 'token_hash', 'expires_at', 'created_at'],
   [TABLES.EXAMS]: ['id', 'user_id', 'title', 'description', 'grade', 'subject', 'tags_json', 'difficulty', 'time_limit_minutes', 'exam_data_json', 'is_public', 'status', 'featured', 'created_at', 'updated_at'],
   [TABLES.EXAM_ATTEMPTS]: ['id', 'user_id', 'exam_id', 'score', 'total_questions', 'percentage', 'answers_json', 'questions_snapshot_json', 'duration_seconds', 'mode', 'created_at'],
-  [TABLES.AUDIT_LOG]: ['id', 'user_id', 'action', 'details', 'ip_address', 'created_at']
+  [TABLES.AUDIT_LOG]: ['id', 'user_id', 'action', 'details', 'ip_address', 'created_at'],
+  [TABLES.MATERIALS]: ['id', 'fileId', 'title', 'description', 'year', 'subject', 'type', 'originalFilename', 'mimeType', 'sizeBytes', 'driveUrl', 'previewUrl', 'downloadUrl', 'thumbnailUrl', 'tags', 'uploadedBy', 'uploadedAt', 'updatedAt', 'isVisibleToStudents', 'examQuestionCount']
 };
 
 /**
@@ -116,6 +118,26 @@ function doPost(e) {
         break;
       case 'aiExplain':
         result = handleAIExplain(user, payload);
+        break;
+      
+      // Materials Actions
+      case 'uploadMaterial':
+        result = handleUploadMaterial(user, payload);
+        break;
+      case 'listMaterials':
+        result = handleListMaterials(user, payload);
+        break;
+      case 'getMaterialById':
+        result = handleGetMaterialById(user, payload.id);
+        break;
+      case 'getMaterialContent':
+        result = handleGetMaterialContent(user, payload.id);
+        break;
+      case 'updateMaterialMetadata':
+        result = handleUpdateMaterialMetadata(user, payload);
+        break;
+      case 'deleteMaterial':
+        result = handleDeleteMaterial(user, payload.id);
         break;
 
       default:
@@ -552,6 +574,186 @@ function handleAdminGetAllAttempts(user) {
   const data = getSheet(TABLES.EXAM_ATTEMPTS).getDataRange().getValues();
   const headers = data[0];
   return data.slice(1).map(row => rowToObject(row, headers));
+}
+
+// --- Materials Handlers ---
+
+function handleUploadMaterial(user, payload) {
+  checkAdmin(user);
+  const { title, description, year, subject, type, tags, fileName, mimeType, fileBase64, isVisibleToStudents } = payload;
+  
+  if (!fileBase64) throw new Error('No file data received');
+  
+  const rootFolderId = PropertiesService.getScriptProperties().getProperty('MATERIALS_ROOT_FOLDER_ID');
+  if (!rootFolderId) {
+    throw new Error("Materials folder is not configured.");
+  }
+
+  // 1. Create Folder Structure: Year / Subject / Type
+  const rootFolder = DriveApp.getFolderById(rootFolderId);
+  const yearFolder = getOrCreateSubFolder(rootFolder, `Year ${year}`);
+  const subjectFolder = getOrCreateSubFolder(yearFolder, subject);
+  const typeFolder = getOrCreateSubFolder(subjectFolder, type === 'exam' ? 'Exams' : type === 'pdf' ? 'PDFs' : type.includes('image') ? 'Images' : type.includes('ppt') ? 'PowerPoints' : 'Other');
+
+  // 2. Decode Base64 and Save File
+  const fileData = Utilities.base64Decode(fileBase64);
+  const blob = Utilities.newBlob(fileData, mimeType, fileName);
+  const file = typeFolder.createFile(blob);
+  
+  // 3. Set Sharing
+  file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  
+  const fileId = file.getId();
+  const now = new Date().toISOString();
+  const id = generateUUID();
+  
+  let examQuestionCount = 0;
+  if (type === 'exam') {
+    try {
+      const jsonContent = blob.getDataAsString();
+      const examData = JSON.parse(jsonContent);
+      examQuestionCount = Array.isArray(examData.questions) ? examData.questions.length : 0;
+    } catch (e) {
+      Logger.log('Failed to parse exam JSON: ' + e.message);
+    }
+  }
+
+  const material = {
+    id,
+    fileId,
+    title,
+    description,
+    year,
+    subject,
+    type,
+    originalFilename: fileName,
+    mimeType,
+    sizeBytes: file.getSize(),
+    driveUrl: file.getUrl(),
+    previewUrl: `https://drive.google.com/file/d/${fileId}/preview`,
+    downloadUrl: `https://drive.google.com/uc?export=download&id=${fileId}`,
+    thumbnailUrl: file.getThumbnail() ? file.getThumbnail().getDownloadUrl() : null,
+    tags: JSON.stringify(tags || []),
+    uploadedBy: user.username,
+    uploadedAt: now,
+    updatedAt: now,
+    isVisibleToStudents: isVisibleToStudents === true || isVisibleToStudents === 'true' ? 'TRUE' : 'FALSE',
+    examQuestionCount
+  };
+
+  const sheet = getSheet(TABLES.MATERIALS);
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  const row = headers.map(h => material[h]);
+  sheet.appendRow(row);
+
+  logAction(user.id, 'UPLOAD_MATERIAL', `Uploaded: ${title} (${type})`);
+  
+  return material;
+}
+
+function handleListMaterials(user, payload) {
+  const sheet = getSheet(TABLES.MATERIALS);
+  const data = sheet.getDataRange().getValues();
+  if (data.length < 2) return [];
+  
+  const headers = data[0];
+  const isAdmin = user && (user.role === 'admin' || SUPER_ADMIN_EMAILS.some(e => e.toLowerCase() === (user.email || '').toLowerCase().trim()));
+  
+  const materials = [];
+  for (let i = 1; i < data.length; i++) {
+    const obj = rowToObject(data[i], headers);
+    if (isAdmin || obj.isVisibleToStudents === 'TRUE' || obj.isVisibleToStudents === true) {
+      materials.push(obj);
+    }
+  }
+  return materials;
+}
+
+function handleGetMaterialById(user, id) {
+  const sheet = getSheet(TABLES.MATERIALS);
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+  
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === id) {
+      const obj = rowToObject(data[i], headers);
+      const isAdmin = user && (user.role === 'admin' || SUPER_ADMIN_EMAILS.some(e => e.toLowerCase() === (user.email || '').toLowerCase().trim()));
+      if (!isAdmin && obj.isVisibleToStudents !== 'TRUE' && obj.isVisibleToStudents !== true) {
+        throw new Error('Unauthorized');
+      }
+      return obj;
+    }
+  }
+  throw new Error('Material not found');
+}
+
+function handleGetMaterialContent(user, id) {
+  const material = handleGetMaterialById(user, id);
+  const file = DriveApp.getFileById(material.fileId);
+  return {
+    content: file.getBlob().getDataAsString(),
+    mimeType: file.getMimeType()
+  };
+}
+
+function handleUpdateMaterialMetadata(user, payload) {
+  checkAdmin(user);
+  const { id, updates } = payload;
+  const sheet = getSheet(TABLES.MATERIALS);
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+  
+  let rowIdx = -1;
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === id) {
+      rowIdx = i;
+      break;
+    }
+  }
+  
+  if (rowIdx === -1) throw new Error('Material not found');
+  
+  updates.updatedAt = new Date().toISOString();
+  if (updates.isVisibleToStudents !== undefined) {
+    updates.isVisibleToStudents = updates.isVisibleToStudents === true || updates.isVisibleToStudents === 'true' ? 'TRUE' : 'FALSE';
+  }
+  if (updates.tags) updates.tags = JSON.stringify(updates.tags);
+
+  Object.keys(updates).forEach(key => {
+    const colIdx = headers.indexOf(key);
+    if (colIdx !== -1) {
+      sheet.getRange(rowIdx + 1, colIdx + 1).setValue(updates[key]);
+    }
+  });
+  
+  return { success: true };
+}
+
+function handleDeleteMaterial(user, id) {
+  checkAdmin(user);
+  const sheet = getSheet(TABLES.MATERIALS);
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+  
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === id) {
+      const fileId = data[i][headers.indexOf('fileId')];
+      try {
+        DriveApp.getFileById(fileId).setTrashed(true);
+      } catch (e) {
+        Logger.log('Could not delete file from Drive: ' + e.message);
+      }
+      sheet.deleteRow(i + 1);
+      return { success: true };
+    }
+  }
+  throw new Error('Material not found');
+}
+
+function getOrCreateSubFolder(parent, name) {
+  const folders = parent.getFoldersByName(name);
+  if (folders.hasNext()) return folders.next();
+  return parent.createFolder(name);
 }
 
 // --- Internal Helpers ---

@@ -11,8 +11,13 @@ import {
   ArrowLeft,
   Play,
   Download,
-  Info
+  Info,
+  Loader2,
+  Presentation,
+  Image as ImageIcon,
+  FileCode
 } from 'lucide-react';
+import { api } from '../lib/api';
 
 const SubjectDetails: React.FC = () => {
   const { yearId, semesterId, subjectName } = useParams<{ 
@@ -27,6 +32,27 @@ const SubjectDetails: React.FC = () => {
   const subjectData = semesterData?.subjects.find(s => s.name === subjectName);
 
   const [activeTab, setActiveTab] = useState<'exams' | 'pdf' | 'note'>('exams');
+  const [subjectMaterials, setSubjectMaterials] = React.useState<any[]>([]);
+  const [isMaterialsLoading, setIsMaterialsLoading] = React.useState(false);
+
+  React.useEffect(() => {
+    const fetchSubjectMaterials = async () => {
+      setIsMaterialsLoading(true);
+      try {
+        const allMaterials = await api.listMaterials();
+        const filtered = allMaterials.filter((m: any) => 
+          m.subject.toLowerCase() === subjectName?.toLowerCase() && 
+          m.year.toString() === yearId?.toString()
+        );
+        setSubjectMaterials(filtered);
+      } catch (err) {
+        console.error('Failed to fetch subject materials', err);
+      } finally {
+        setIsMaterialsLoading(false);
+      }
+    };
+    fetchSubjectMaterials();
+  }, [yearId, subjectName]);
 
   const handleStartExam = () => {
     if (!subjectData) return;
@@ -144,6 +170,47 @@ const SubjectDetails: React.FC = () => {
               )}
             </div>
           </section>
+
+          {/* New Cloud Materials Section */}
+          <section className="details-section-card cloud-materials-section">
+            <div className="section-card-header">
+              <Layers size={20} className="header-icon" />
+              <h2>Cloud Resources</h2>
+              <Link to="/dashboard/materials" className="view-all-link">View All</Link>
+            </div>
+            <div className="cloud-materials-list">
+              {isMaterialsLoading ? (
+                <div className="materials-loading">
+                  <Loader2 className="animate-spin" size={24} />
+                  <span>Scanning cloud library...</span>
+                </div>
+              ) : subjectMaterials.length > 0 ? (
+                <div className="materials-mini-grid">
+                  {subjectMaterials.slice(0, 6).map(m => (
+                    <div key={m.id} className="mini-material-card">
+                       <div className={`mini-icon ${m.type}`}>
+                         {m.type === 'pdf' && <FileText size={18} />}
+                         {m.type === 'presentation' && <Presentation size={18} />}
+                         {m.type === 'image' && <ImageIcon size={18} />}
+                         {m.type === 'exam' && <FileCode size={18} />}
+                       </div>
+                       <div className="mini-info">
+                         <h4>{m.title}</h4>
+                         <span>{m.type.toUpperCase()}</span>
+                       </div>
+                       <a href={m.previewUrl} target="_blank" rel="noopener noreferrer" className="mini-action">
+                         <ExternalLink size={16} />
+                       </a>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="empty-cloud-state">
+                  <p>No extra cloud materials for this subject yet.</p>
+                </div>
+              )}
+            </div>
+          </section>
         </div>
 
         <aside className="details-sidebar-col">
@@ -253,6 +320,29 @@ const SubjectDetails: React.FC = () => {
           .res-card-item { padding: 0.75rem; gap: 0.75rem; }
           .res-item-info h3 { font-size: 0.9rem; }
           .components-responsive-table { padding: 1rem 1.25rem; }
+        }
+
+        .view-all-link { margin-left: auto; font-size: 0.85rem; font-weight: 800; color: var(--primary); text-decoration: none; }
+        .view-all-link:hover { text-decoration: underline; }
+        
+        .cloud-materials-list { padding: 1.5rem 2rem; }
+        .materials-loading { display: flex; align-items: center; gap: 1rem; color: var(--text-soft); font-weight: 700; padding: 1rem; }
+        .materials-mini-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+        .mini-material-card { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem; background: var(--bg-soft-fade); border-radius: 12px; border: 1px solid var(--border-soft); transition: all 0.2s; }
+        .mini-material-card:hover { border-color: var(--primary); background: var(--surface); transform: translateY(-2px); }
+        .mini-icon { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; background: var(--surface); color: var(--text-soft); }
+        .mini-icon.pdf { color: #ef4444; }
+        .mini-icon.presentation { color: #f59e0b; }
+        .mini-icon.image { color: #3b82f6; }
+        .mini-icon.exam { color: #8b5cf6; }
+        .mini-info h4 { font-size: 0.85rem; font-weight: 800; color: var(--text-strong); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px; }
+        .mini-info span { font-size: 0.65rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; }
+        .mini-action { margin-left: auto; color: var(--text-muted); }
+        .mini-action:hover { color: var(--primary); }
+        .empty-cloud-state { text-align: center; color: var(--text-muted); font-size: 0.9rem; font-weight: 600; padding: 1rem; }
+
+        @media (max-width: 640px) {
+          .materials-mini-grid { grid-template-columns: 1fr; }
         }
       `}</style>
     </div>

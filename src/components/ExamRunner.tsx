@@ -62,9 +62,9 @@ const ExamRunner: React.FC = () => {
               questions: location.state.wrongQuestions
             };
           }
-        } else if (type === 'curriculum') {
+        } else if (type === 'curriculum' || type === 'material') {
           foundExam = location.state?.exam;
-          if (!foundExam) {
+          if (!foundExam && type === 'curriculum') {
             const [yearId, semesterId, subjectName] = (id || '').split('|');
             const year = curriculum.years.find(y => y.year === yearId);
             const semester = year?.semesters.find(s => s.semester === semesterId);

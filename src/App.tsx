@@ -15,11 +15,13 @@ import Settings from './components/Settings';
 import CurriculumOverview from './components/CurriculumOverview';
 import YearView from './components/YearView';
 import SubjectDetails from './components/SubjectDetails';
+import LearningMaterials from './components/LearningMaterials';
 import AdminLayout from './components/AdminLayout';
 import AdminDashboard from './components/AdminDashboard';
 import AdminUsers from './components/AdminUsers';
 import AdminExams from './components/AdminExams';
 import AdminAttempts from './components/AdminAttempts';
+import AdminMaterials from './components/AdminMaterials';
 import { AdminAnalytics, AdminSettings } from './components/AdminPlaceholders';
 
 const AppContent = () => {
@@ -47,6 +49,7 @@ const AppContent = () => {
         <Route path="history" element={<ResultsHistory />} />
         <Route path="review/:attemptId" element={<ReviewAttempt />} />
         <Route path="leaderboard" element={<Leaderboard />} />
+        <Route path="materials" element={<LearningMaterials />} />
         <Route path="settings" element={<Settings />} />
       </Route>
 
@@ -56,6 +59,7 @@ const AppContent = () => {
         <Route path="users" element={<AdminUsers />} />
         <Route path="exams" element={<AdminExams />} />
         <Route path="attempts" element={<AdminAttempts />} />
+        <Route path="materials" element={<AdminMaterials />} />
         <Route path="analytics" element={<AdminAnalytics />} />
         <Route path="settings" element={<AdminSettings />} />
       </Route>
