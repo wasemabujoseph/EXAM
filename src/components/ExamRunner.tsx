@@ -483,32 +483,6 @@ const ExamRunner: React.FC = () => {
         </div>
       </div>
 
-      {/* Mobile Sticky Bottom Navigation */}
-      <footer className="mobile-footer-nav">
-        <button 
-          className="mob-nav-btn" 
-          disabled={currentIndex === 0} 
-          onClick={() => setCurrentIndex(prev => prev - 1)}
-        >
-          <ChevronLeft size={24} />
-        </button>
-        
-        <button className="mob-questions-btn" onClick={() => {
-           const nav = document.querySelector('.exam-navigator');
-           nav?.classList.toggle('mob-show');
-        }}>
-          Questions ({currentIndex + 1}/{questions.length})
-        </button>
-
-        <button 
-          className="mob-nav-btn" 
-          disabled={currentIndex === questions.length - 1} 
-          onClick={() => setCurrentIndex(prev => prev + 1)}
-        >
-          <ChevronRight size={24} />
-        </button>
-      </footer>
-
       <style>{`
         :root {
           --safe-bottom: env(safe-area-inset-bottom, 0px);
@@ -796,67 +770,169 @@ const ExamRunner: React.FC = () => {
         .dot.flagged { background: var(--warning); }
 
         .mobile-footer-nav { display: none; }
+        .nav-mob-header { display: none; }
 
         .desktop-only { display: flex; }
-        .mobile-only { display: none; }
+        .mobile-only { display: none !important; }
 
         @media (max-width: 1024px) {
           .desktop-only { display: none !important; }
           .mobile-only { display: flex !important; }
 
-          .exam-header-premium { height: 72px; padding: 0 1rem; }
-          .header-content { padding: 0; }
+          /* ── Header ── */
+          .exam-header-premium { height: 52px; padding: 0; }
+          .header-content { padding: 0 0.75rem; gap: 0.25rem; }
+          .header-left { gap: 0.5rem; flex: 1; }
+          .header-right { gap: 0.5rem; flex-shrink: 0; }
+
           .v-divider { display: none; }
-          .exam-header-logo { transform: scale(0.85) translateX(-5px); }
+          .exam-header-logo .logo-symbol img { width: 24px !important; height: 24px !important; }
+          .exam-header-logo .brand-name { font-size: 0.85rem !important; }
           .exam-main-title { display: none; }
           .q-progress-pill { display: none; }
-          .exam-meta-row { gap: 0.5rem; }
-          
-          .smart-timer { padding: 4px 8px; border-radius: 10px; }
-          .timer-digits { font-size: 0.95rem; min-width: 45px; }
+          .security-pill-premium { display: none; }
+          .exam-info-stack { display: none; }
+
+          .btn-exit-session { width: 34px; height: 34px; border-radius: 10px; flex-shrink: 0; }
+
+          .smart-timer { 
+            padding: 4px 8px; border-radius: 10px; gap: 0.3rem;
+            background: transparent; border: none;
+          }
+          .timer-icon-wrap { width: 26px; height: 26px; border-radius: 8px; }
+          .timer-digits { font-size: 0.95rem; min-width: 44px; }
 
           .menu-toggle-btn {
-            width: 40px; height: 40px; border-radius: 10px;
+            width: 34px; height: 34px; border-radius: 10px;
             background: var(--bg-soft); color: var(--text-strong);
             display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
           }
 
-          .exam-main { padding: 1rem 1rem 7rem; }
-          .question-card { padding: 1.5rem; border-radius: 1.5rem; box-shadow: var(--shadow-md); width: 100%; overflow: hidden; }
-          .question-text { font-size: 1.2rem; margin-bottom: 1.5rem; }
-          .smart-option-card { padding: 0.85rem 1rem; border-radius: 1rem; }
-          .option-body-text { font-size: 0.95rem; padding: 0 0.5rem; }
-          .option-id-box { width: 30px; height: 30px; font-size: 0.8rem; }
+          /* ── Main Content Area ── */
+          .exam-viewport { flex-direction: column; }
+          .exam-main { padding: 0.75rem 0.75rem 6.5rem; }
+          .question-wrapper { max-width: 100%; }
 
+          .question-card { 
+            padding: 1.25rem; 
+            border-radius: 1.25rem; 
+            box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+            width: 100%;
+            box-sizing: border-box;
+          }
+
+          .question-label { font-size: 0.65rem; margin-bottom: 0.5rem; }
+          .question-text { font-size: 1.1rem; margin-bottom: 1.25rem; line-height: 1.5; }
+
+          /* ── Option Cards ── */
+          .options-stack { gap: 0.6rem; }
+          .smart-option-card { 
+            padding: 0.75rem 0.85rem; 
+            border-radius: 1rem;
+            grid-template-columns: 32px 1fr 28px;
+            gap: 0;
+          }
+          .option-id-box { width: 32px; height: 32px; font-size: 0.75rem; border-radius: 8px; }
+          .option-body-text { font-size: 0.9rem; padding: 0 0.5rem; line-height: 1.4; }
+          .option-selection-ring { width: 20px; height: 20px; }
+          .inner-dot { width: 10px; height: 10px; }
+
+          /* ── Question Tools (inside card) ── */
           .question-tools { 
-            flex-direction: column;
-            gap: 1rem; 
-            margin-top: 2rem;
-            padding-top: 1.5rem;
+            flex-direction: row;
+            flex-wrap: wrap;
+            gap: 0.5rem; 
+            margin-top: 1.25rem;
+            padding-top: 1rem;
+            border-top-color: var(--border-soft);
           }
-          .tool-btn { width: 100%; justify-content: center; height: 44px; }
-          .note-input-wrapper { width: 100%; height: 44px; margin: 0; box-sizing: border-box; }
+          .tool-btn { 
+            flex: 1 1 calc(50% - 0.25rem);
+            justify-content: center; 
+            height: 40px; 
+            padding: 0 0.75rem;
+            font-size: 0.75rem;
+            border-radius: 10px;
+          }
+          .note-input-wrapper { 
+            width: 100%; 
+            flex: 1 1 100%;
+            height: 40px; 
+            margin: 0; 
+            box-sizing: border-box;
+            border-radius: 10px;
+            padding: 0 0.85rem;
+            font-size: 0.8rem;
+          }
+          .note-input-wrapper input { font-size: 0.8rem; }
 
-          .desktop-navigation { display: none; }
+          /* ── Hint Box ── */
+          .hint-display-box { margin-top: 1rem; padding: 1rem; border-radius: 0.75rem; }
+          .hint-text { font-size: 0.85rem; }
 
+          /* ── Desktop Nav (hidden) ── */
+          .desktop-navigation { display: none !important; }
+
+          /* ── Side Navigator Drawer ── */
           .exam-navigator {
             position: fixed; top: 0; bottom: 0; right: 0;
-            transform: translateX(100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: -10px 0 30px rgba(0,0,0,0.1); z-index: 3000;
-            width: 300px; padding: 2rem;
+            transform: translateX(100%); 
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: -10px 0 30px rgba(0,0,0,0.15); 
+            z-index: 3000;
+            width: 280px; 
+            padding: 1.25rem;
+            background: var(--surface);
+            overflow-y: auto;
+            overflow-x: hidden;
           }
           .exam-navigator.mob-show { transform: translateX(0); }
-          .nav-mob-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem; font-weight: 900; color: var(--text-strong); }
-
-          .mobile-footer-nav {
-            display: flex; position: fixed; bottom: 0; left: 0; right: 0;
-            height: 80px; background: var(--surface); border-top: 1px solid var(--border-soft);
-            padding: 0 1rem; align-items: center; justify-content: space-between; z-index: 2000;
-            box-shadow: 0 -4px 20px rgba(0,0,0,0.05);
+          .nav-grid { gap: 0.5rem; }
+          .nav-grid-item { border-radius: 10px; font-size: 0.8rem; }
+          .nav-mob-header { 
+            display: flex; align-items: center; justify-content: space-between; 
+            margin-bottom: 1rem; font-weight: 900; font-size: 1rem;
+            color: var(--text-strong); 
           }
-          .mob-nav-btn { width: 48px; height: 48px; border-radius: 14px; background: var(--bg-soft); color: var(--text-strong); display: flex; align-items: center; justify-content: center; }
-          .mob-questions-btn { flex: 1; margin: 0 0.75rem; height: 48px; border-radius: 14px; background: var(--text-strong); color: var(--bg); font-weight: 800; }
-          .mob-submit-btn { padding: 0 1.25rem; height: 48px; border-radius: 14px; background: var(--primary); color: white; font-weight: 800; font-size: 0.9rem; }
+          .nav-mob-header button {
+            width: 34px; height: 34px; border-radius: 10px;
+            background: var(--bg-soft); display: flex; align-items: center; justify-content: center;
+          }
+          .nav-header { display: none; }
+          .nav-legend { padding-top: 1rem; gap: 0.75rem; }
+          .smart-view-switcher { display: none; }
+
+          /* ── Bottom Navigation Bar ── */
+          .mobile-footer-nav {
+            position: fixed; bottom: 0; left: 0; right: 0;
+            height: calc(64px + var(--safe-bottom));
+            padding: 0 0.75rem; padding-bottom: var(--safe-bottom);
+            background: var(--surface); 
+            border-top: 1px solid var(--border-soft);
+            display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+            z-index: 2500;
+            box-shadow: 0 -2px 16px rgba(0,0,0,0.06);
+          }
+          .mob-nav-btn { 
+            width: 44px; height: 44px; border-radius: 12px; flex-shrink: 0;
+            background: var(--bg-soft); color: var(--text-strong); 
+            display: flex; align-items: center; justify-content: center; 
+            transition: all 0.15s;
+          }
+          .mob-nav-btn:disabled { opacity: 0.3; }
+          .mob-nav-btn:active:not(:disabled) { transform: scale(0.92); }
+          .mob-questions-btn { 
+            flex: 1; height: 44px; border-radius: 12px; 
+            background: var(--text-strong); color: var(--bg); 
+            font-weight: 800; font-size: 0.8rem;
+            display: flex; align-items: center; justify-content: center;
+          }
+          .mob-submit-btn { 
+            padding: 0 1.25rem; height: 44px; border-radius: 12px; 
+            background: var(--primary); color: white; 
+            font-weight: 800; font-size: 0.8rem; flex-shrink: 0;
+          }
         }
       `}</style>
     </div>
